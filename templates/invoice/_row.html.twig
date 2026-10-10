@@ -1,0 +1,23 @@
+{% import '_partials/macros.html.twig' as m %}
+<tr id="invoice-row-{{ invoice.id }}"
+    class="{{ invoice.unread ? 'is-unread' }}"
+    data-table-nav-target="row"
+    data-preview-url="{{ path('app_invoice_preview', {id: invoice.id}) }}"
+    data-href="{{ path('app_invoice_show', {id: invoice.id}) }}"
+    data-action="click->table-nav#click">
+    <td class="w-4 !pr-0">{% if invoice.unread %}<span class="dot-new" title="Nowa"></span><span class="sr-only">Nowa</span>{% endif %}</td>
+    <td data-label="Data wystawienia" class="tabular-nums whitespace-nowrap">{{ invoice.issueDate|pl_date }}</td>
+    <td class="card-title-cell">
+        <a href="{{ path('app_invoice_show', {id: invoice.id}) }}" class="text-tekst hover:text-zielen-600">{{ invoice.number }}</a>
+        {% if invoice.correction %}<twig:Badge tone="info">Korekta</twig:Badge>{% endif %}
+        <span class="kind-label"><twig:Badge tone="neutral">{{ invoice.kind.label }}</twig:Badge></span>
+    </td>
+    <td data-label="Kontrahent" class="max-w-[280px] truncate" title="{{ invoice.contractorName }}">{{ invoice.contractorLabel }}</td>
+    <td data-label="Netto" class="num">{{ invoice.net|money(invoice.currency) }}</td>
+    <td data-label="Brutto" class="num">{{ invoice.gross|money(invoice.currency) }}</td>
+    <td data-label="Termin płatności" class="whitespace-nowrap">{{ m.deadline(invoice.paymentDue, 3, invoice.paid or not invoice.cost) }}</td>
+    <td data-label="Status" class="whitespace-nowrap">
+        <twig:Badge tone="{{ invoice.status.tone }}">{{ invoice.status.label }}</twig:Badge>
+        {% if invoice.paid %}<twig:Badge tone="positive">Opłacona</twig:Badge>{% endif %}
+    </td>
+</tr>

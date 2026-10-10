@@ -1,0 +1,57 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Umowy{% endblock %}
+{% block active_menu %}contracts{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="Umowy">
+        {% if is_granted('CONTRACT_EDIT') %}
+            <a href="{{ path('app_contract_new') }}" class="btn btn-primary">{{ ux_icon('lucide:plus') }} Dodaj umowę</a>
+        {% endif %}
+    </twig:PageHeader>
+
+    <div data-controller="filters">
+    {{ include('_partials/filters_toggle.html.twig', {active: (filters.contractor ? 1 : 0) + (filters.kind ? 1 : 0) + (filters.status ? 1 : 0) + (filters.expiring ? 1 : 0)}) }}
+    <form method="get" class="filter-bar is-collapsible" data-filters-target="panel" data-controller="autosubmit" data-turbo-action="replace">
+        <div class="field min-w-[220px]">
+            <label class="label" for="f-contractor">Kontrahent</label>
+            <select id="f-contractor" name="kontrahent"
+                    data-controller="symfony--ux-autocomplete--autocomplete"
+                    data-symfony--ux-autocomplete--autocomplete-url-value="{{ path('ux_entity_autocomplete', {alias: 'contractor'}) }}"
+                    data-symfony--ux-autocomplete--autocomplete-preload-value="focus"
+                    data-action="change->autosubmit#submit">
+                <option value="">Wszyscy</option>
+                {% if selected_contractor %}<option value="{{ selected_contractor.id }}" selected>{{ selected_contractor.name }}</option>{% endif %}
+            </select>
+        </div>
+        <div class="field">
+            <label class="label" for="f-kind">Rodzaj</label>
+            <select id="f-kind" name="rodzaj" class="select" data-action="autosubmit#submit">
+                <option value="">Wszystkie</option>
+                {% for kind in enum_cases('App\\Enum\\ContractKind') %}<option value="{{ kind.value }}" {{ filters.kind == kind ? 'selected' }}>{{ kind.label }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="field">
+            <label class="label" for="f-status">Status</label>
+            <select id="f-status" name="status" class="select" data-action="autosubmit#submit">
+                <option value="">Wszystkie</option>
+                {% for status in enum_cases('App\\Enum\\ContractStatus') %}<option value="{{ status.value }}" {{ filters.status == status ? 'selected' }}>{{ status.label }}</option>{% endfor %}
+            </select>
+        </div>
+        <label class="inline-flex items-center gap-2 cursor-pointer" style="min-height:40px">
+            <input type="checkbox" class="checkbox" name="wygasajace" value="1" {{ filters.expiring ? 'checked' }} data-action="autosubmit#submit">
+            Wygasające w ciągu {{ filters.days }} dni
+        </label>
+        <a href="{{ path('app_contract_index', {wyczysc: 1}) }}" class="btn btn-ghost">Wyczyść</a>
+    </form>
+    </div>
+
+    <div class="card">
+        {% if pager.items is empty %}
+            <twig:EmptyState text="Brak umów spełniających filtry." actionLabel="{{ is_granted('CONTRACT_EDIT') ? 'Dodaj umowę' : null }}" actionUrl="{{ is_granted('CONTRACT_EDIT') ? path('app_contract_new') : null }}" />
+        {% else %}
+            {{ include('contract/_table.html.twig', {contracts: pager.items}) }}
+            {{ include('_partials/pagination.html.twig') }}
+        {% endif %}
+    </div>
+{% endblock %}

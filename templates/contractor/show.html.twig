@@ -1,0 +1,167 @@
+{% extends 'layout.html.twig' %}
+{% import '_partials/macros.html.twig' as m %}
+
+{% block title %}{{ contractor.displayName }}{% endblock %}
+{% block active_menu %}contractors{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="{{ contractor.name }}" back="{{ path('app_contractor_index') }}">
+        {% if is_granted('CONTRACTOR_EDIT') %}
+            <a href="{{ path('app_contractor_edit', {id: contractor.id}) }}" class="btn btn-secondary">{{ ux_icon('lucide:pencil') }} Edytuj</a>
+        {% endif %}
+        {% if is_granted('CONTRACT_EDIT') %}
+            <a href="{{ path('app_contract_new', {kontrahent: contractor.id}) }}" class="btn btn-secondary">{{ ux_icon('lucide:plus') }} Umowa</a>
+        {% endif %}
+    </twig:PageHeader>
+
+    <section class="card card-body mb-6">
+        <div class="grid gap-6 md:grid-cols-3">
+            <dl class="dl">
+                <dt>NIP</dt><dd class="tabular-nums">{{ contractor.nip ?? '—' }}</dd>
+                <dt>Typ</dt><dd>{{ contractor.kind ? contractor.kind.label : '—' }}</dd>
+                <dt>Adres</dt><dd>{{ contractor.addressLine ?: '—' }}</dd>
+                <dt>Źródło danych</dt>
+                <dd>
+                    {{ contractor.dataSource.label }}{% if contractor.dataUpdatedAt %}, {{ contractor.dataUpdatedAt|pl_date }}{% endif %}
+                    {% if contractor.updateLocked %}<span class="block mt-1"><twig:Badge tone="warning">Blokada aktualizacji</twig:Badge></span>{% endif %}
+                </dd>
+            </dl>
+            <dl class="dl">
+                <dt>Osoba kontaktowa</dt><dd>{{ contractor.contactPerson ?? '—' }}</dd>
+                <dt>Telefon</dt><dd>{% if contractor.phone %}<a href="tel:{{ contractor.phone|replace({' ': ''}) }}">{{ contractor.phone }}</a>{% else %}—{% endif %}</dd>
+                <dt>E-mail</dt><dd>{% if contractor.email %}<a href="mailto:{{ contractor.email }}">{{ contractor.email }}</a>{% else %}—{% endif %}</dd>
+                <dt>Czas dostawy</dt><dd>{{ contractor.deliveryDays is not null ? contractor.deliveryDays ~ ' ' ~ contractor.deliveryDays|plural('dzień', 'dni', 'dni') : '—' }}</dd>
+            </dl>
+            <div>
+                <h2 class="text-sm font-semibold text-antracyt-500 mb-2">Rachunki bankowe</h2>
+                {% if contractor.bankAccounts is empty %}
+                    <p class="text-sm text-antracyt-500">Brak.</p>
+                {% else %}
+                    <ul class="space-y-1 text-sm">
+                        {% for account in contractor.bankAccounts %}
+                            <li class="tabular-nums">
+                                {{ account.formattedNumber }}
+                                {% if account.onWhiteList is same as(true) %}<twig:Badge tone="positive">na Białej liście</twig:Badge>{% elseif account.onWhiteList is same as(false) %}<twig:Badge tone="danger">brak na Białej liście</twig:Badge>{% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+                {% if is_granted('CONTRACTOR_EDIT') %}
+                    <div class="flex flex-wrap gap-2 mt-3">
+                        {% if contractor.nip %}
+                            <form method="post" action="{{ path('app_contractor_white_list', {id: contractor.id}) }}">
+                                <input type="hidden" name="_token" value="{{ csrf_token('contractor') }}">
+                                <button type="submit" class="btn btn-secondary btn-sm">Sprawdź na Białej liście</button>
+                            </form>
+                        {% endif %}
+                        {% if contractor.updateLocked %}
+                            <form method="post" action="{{ path('app_contractor_unlock', {id: contractor.id}) }}" data-turbo-confirm="Zdjąć blokadę? Nazwa i adres będą aktualizowane z najnowszych faktur.">
+                                <input type="hidden" name="_token" value="{{ csrf_token('contractor') }}">
+                                <button type="submit" class="btn btn-ghost btn-sm">Zdejmij blokadę</button>
+                            </form>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </section>
+
+    <nav class="tabs" aria-label="Sekcje kontrahenta">
+        {% set tabs = {faktury: 'Faktury', zakupy: 'Zakupy', umowy: 'Umowy', historia: 'Historia danych', notatki: 'Notatki'} %}
+        {% for key, label in tabs %}
+            {% if (key != 'faktury' or is_granted('INVOICE_VIEW')) and (key != 'zakupy' or route_exists('app_product_index')) %}
+                <a href="{{ path('app_contractor_show', {id: contractor.id, zakladka: key}) }}" class="tab {{ tab == key ? 'tab-active' }}">{{ label }}</a>
+            {% endif %}
+        {% endfor %}
+    </nav>
+
+    {% if tab == 'faktury' and is_granted('INVOICE_VIEW') %}
+        {% if years|length > 1 %}
+            <div class="flex flex-wrap gap-2 mb-4">
+                {% for y in years %}
+                    <a href="{{ path('app_contractor_show', {id: contractor.id, zakladka: 'faktury', rok: y}) }}" class="btn btn-sm {{ y == year ? 'btn-primary' : 'btn-secondary' }}">{{ y }}</a>
+                {% endfor %}
+            </div>
+        {% endif %}
+        <div class="grid gap-6 xl:grid-cols-2">
+            {% for group in [{title: 'Kosztowe', items: cost_invoices}, {title: 'Przychodowe', items: income_invoices}] %}
+                <section class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">{{ group.title }} {{ year }}</h2>
+                        <span class="text-sm tabular-nums">{{ group.items|reduce((sum, i) => sum + i.net, 0)|money }} netto</span>
+                    </div>
+                    {% if group.items is empty %}
+                        <p class="px-4 py-6 text-sm text-antracyt-500">Brak faktur.</p>
+                    {% else %}
+                        <div class="table-wrap">
+                            <table class="table table-cards">
+                                <thead><tr><th>Data</th><th>Numer</th><th class="text-right">Netto</th><th class="text-right">Brutto</th><th>Status</th></tr></thead>
+                                <tbody>
+                                    {% for invoice in group.items %}
+                                        <tr>
+                                            <td data-label="Data" class="tabular-nums">{{ invoice.issueDate|pl_date }}</td>
+                                            <td class="card-title-cell"><a href="{{ path('app_invoice_show', {id: invoice.id}) }}">{{ invoice.number }}</a></td>
+                                            <td data-label="Netto" class="num">{{ invoice.net|money(invoice.currency) }}</td>
+                                            <td data-label="Brutto" class="num">{{ invoice.gross|money(invoice.currency) }}</td>
+                                            <td data-label="Status"><twig:Badge tone="{{ invoice.status.tone }}">{{ invoice.status.label }}</twig:Badge></td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                </section>
+            {% endfor %}
+        </div>
+    {% elseif tab == 'zakupy' %}
+        {{ include('contractor/_purchases.html.twig') }}
+    {% elseif tab == 'umowy' %}
+        <div class="card">
+            {% if contracts is empty %}
+                <twig:EmptyState text="Brak umów z tym kontrahentem." actionLabel="{{ is_granted('CONTRACT_EDIT') ? 'Dodaj umowę' : null }}" actionUrl="{{ is_granted('CONTRACT_EDIT') ? path('app_contract_new', {kontrahent: contractor.id}) : null }}" />
+            {% else %}
+                {{ include('contract/_table.html.twig', {contracts: contracts, show_contractor: false}) }}
+            {% endif %}
+        </div>
+    {% elseif tab == 'historia' %}
+        <div class="card">
+            {% if history is empty %}
+                <twig:EmptyState text="Dane nie były zmieniane." />
+            {% else %}
+                <div class="table-wrap">
+                    <table class="table table-cards">
+                        <thead><tr><th>Kiedy</th><th>Pole</th><th>Było</th><th>Jest</th><th>Źródło</th></tr></thead>
+                        <tbody>
+                            {% for entry in history %}
+                                <tr>
+                                    <td data-label="Kiedy" class="tabular-nums whitespace-nowrap">{{ entry.changedAt|pl_datetime }}</td>
+                                    <td data-label="Pole">{{ entry.fieldLabel }}</td>
+                                    <td data-label="Było" class="text-antracyt-500">{{ entry.oldValue ?? '—' }}</td>
+                                    <td data-label="Jest">{{ entry.newValue ?? '—' }}</td>
+                                    <td data-label="Źródło">
+                                        {{ entry.source.label }}
+                                        {% if entry.invoice and is_granted('INVOICE_VIEW') %} · <a href="{{ path('app_invoice_show', {id: entry.invoice.id}) }}">{{ entry.invoice.number }}</a>{% endif %}
+                                        {% if entry.user %} · {{ entry.user.fullName }}{% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </div>
+    {% elseif tab == 'notatki' %}
+        <div class="card card-body max-w-3xl">
+            {% if is_granted('CONTRACTOR_EDIT') %}
+                <form method="post" action="{{ path('app_contractor_notes', {id: contractor.id}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('contractor') }}">
+                    <label class="label" for="notes">Notatki</label>
+                    <textarea id="notes" name="notes" class="textarea mb-3" rows="8">{{ contractor.notes }}</textarea>
+                    <button type="submit" class="btn btn-primary">Zapisz notatki</button>
+                </form>
+            {% else %}
+                <p class="whitespace-pre-line">{{ contractor.notes ?: 'Brak notatek.' }}</p>
+            {% endif %}
+        </div>
+    {% endif %}
+{% endblock %}

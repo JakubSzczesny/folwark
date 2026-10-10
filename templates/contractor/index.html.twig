@@ -1,0 +1,74 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Kontrahenci{% endblock %}
+{% block active_menu %}contractors{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="Kontrahenci" subtitle="Kontrahenci z NIP dodają się sami przy fakturach z KSeF.">
+        {% if is_granted('CONTRACTOR_EDIT') %}
+            <a href="{{ path('app_contractor_new') }}" class="btn btn-primary">{{ ux_icon('lucide:plus') }} Dodaj kontrahenta</a>
+        {% endif %}
+    </twig:PageHeader>
+
+    <div data-controller="filters">
+    {{ include('_partials/filters_toggle.html.twig', {active: text or kind or inactive ? 1 : 0}) }}
+    <form method="get" class="filter-bar is-collapsible" data-filters-target="panel" data-controller="autosubmit" data-turbo-action="replace">
+        <div class="field flex-1 min-w-[220px] max-w-md">
+            <label class="label" for="f-text">Szukaj</label>
+            <input id="f-text" type="search" name="szukaj" class="input" value="{{ text }}" placeholder="Nazwa lub NIP" data-action="input->autosubmit#debounced">
+        </div>
+        <div class="field">
+            <label class="label" for="f-kind">Typ</label>
+            <select id="f-kind" name="typ" class="select" data-action="autosubmit#submit">
+                <option value="">Wszyscy</option>
+                {% for k in kinds %}<option value="{{ k.value }}" {{ kind == k ? 'selected' }}>{{ k.label }}</option>{% endfor %}
+            </select>
+        </div>
+        <label class="inline-flex items-center gap-2 cursor-pointer" style="min-height:40px">
+            <input type="checkbox" class="checkbox" name="nieaktywni" value="1" {{ inactive ? 'checked' }} data-action="autosubmit#submit">
+            Także nieaktywni
+        </label>
+        {% if text or kind or inactive %}<a href="{{ path('app_contractor_index', {wyczysc: 1}) }}" class="btn btn-ghost">Wyczyść</a>{% endif %}
+    </form>
+    </div>
+
+    <div class="card">
+        {% if pager.items is empty %}
+            <twig:EmptyState text="{{ text or kind ? 'Brak kontrahentów spełniających filtry.' : 'Brak kontrahentów. Pojawią się po synchronizacji faktur z KSeF.' }}" />
+        {% else %}
+            {% set amounts = is_granted('AMOUNTS_VIEW') %}
+            <div class="table-wrap">
+                <table class="table table-cards" data-controller="table-nav" data-action="keydown@window->table-nav#keydown">
+                    <thead>
+                        <tr>
+                            <th>Nazwa</th><th>NIP</th><th>Miejscowość</th>
+                            {% if amounts %}<th class="text-right">Koszty {{ year }}</th><th class="text-right">Przychody {{ year }}</th>{% endif %}
+                            <th>Ostatnia faktura</th><th class="text-right">Aktywne umowy</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for contractor in pager.items %}
+                            {% set t = totals[contractor.id] ?? null %}
+                            <tr data-table-nav-target="row" data-href="{{ path('app_contractor_show', {id: contractor.id}) }}" data-action="click->table-nav#click">
+                                <td class="card-title-cell">
+                                    <a href="{{ path('app_contractor_show', {id: contractor.id}) }}" class="text-tekst hover:text-zielen-600">{{ contractor.displayName }}</a>
+                                    {% if contractor.shortName %}<span class="block text-xs text-antracyt-500 font-normal">{{ contractor.name }}</span>{% endif %}
+                                    {% if not contractor.active %}<twig:Badge tone="neutral">nieaktywny</twig:Badge>{% endif %}
+                                </td>
+                                <td data-label="NIP" class="tabular-nums">{{ contractor.nip ?? '—' }}</td>
+                                <td data-label="Miejscowość">{{ contractor.city }}</td>
+                                {% if amounts %}
+                                    <td data-label="Koszty {{ year }}" class="num">{{ t and t.cost ? t.cost|money : '—' }}</td>
+                                    <td data-label="Przychody {{ year }}" class="num">{{ t and t.income ? t.income|money : '—' }}</td>
+                                {% endif %}
+                                <td data-label="Ostatnia faktura" class="tabular-nums">{{ t and t.last ? date(t.last)|pl_date : '—' }}</td>
+                                <td data-label="Aktywne umowy" class="num">{{ contract_counts[contractor.id] ?? 0 }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {{ include('_partials/pagination.html.twig') }}
+        {% endif %}
+    </div>
+{% endblock %}

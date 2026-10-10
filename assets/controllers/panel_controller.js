@@ -22,7 +22,9 @@ export default class extends Controller {
 
     open() {
         this.panelTarget.hidden = false;
-        requestAnimationFrame(() => this.panelTarget.classList.remove('translate-x-full'));
+        // wymuszenie przeliczenia układu, żeby przejście transform zadziałało od stanu ukrytego
+        void this.panelTarget.offsetWidth;
+        this.panelTarget.classList.remove('translate-x-full');
     }
 
     close() {

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>Faktura {{ invoice.number }}</title>
+    <style>
+        @page { margin: 18mm 14mm; }
+        body { font-family: "DejaVu Sans", sans-serif; font-size: 9pt; color: #1E2226; }
+        h1 { font-size: 15pt; margin: 0 0 2mm; }
+        h2 { font-size: 9pt; text-transform: uppercase; color: #5F666D; margin: 0 0 1.5mm; }
+        .muted { color: #5F666D; }
+        .parties { width: 100%; border-collapse: separate; border-spacing: 0; margin: 5mm 0; }
+        .parties td { width: 50%; vertical-align: top; border: 1px solid #DDE1E4; padding: 3mm; }
+        table.items { width: 100%; border-collapse: collapse; margin-top: 3mm; }
+        table.items th { text-align: left; font-weight: bold; color: #5F666D; border-bottom: 1px solid #1E2226; padding: 1.5mm; }
+        table.items td { border-bottom: 1px solid #DDE1E4; padding: 1.5mm; }
+        .num { text-align: right; white-space: nowrap; }
+        .totals { margin-top: 4mm; width: 60%; margin-left: 40%; border-collapse: collapse; }
+        .totals td { padding: 1mm 1.5mm; }
+        .totals .grand td { font-weight: bold; border-top: 1px solid #1E2226; font-size: 10pt; }
+        .meta td { padding: 0.6mm 4mm 0.6mm 0; }
+        .footer { position: fixed; bottom: -10mm; left: 0; right: 0; font-size: 7pt; color: #5F666D; }
+    </style>
+</head>
+<body>
+    {% set seller = parsed ? parsed.seller : null %}
+    {% set buyer = parsed ? parsed.buyer : null %}
+    <h1>{{ invoice.type.value == 'correction' ? 'Faktura korygująca' : (invoice.type.value == 'rr' ? 'Faktura VAT RR' : 'Faktura') }} {{ invoice.number }}</h1>
+    <table class="meta">
+        <tr><td class="muted">Data wystawienia</td><td>{{ invoice.issueDate|pl_date }}</td></tr>
+        {% if parsed and parsed.saleDate %}<tr><td class="muted">Data sprzedaży</td><td>{{ parsed.saleDate|pl_date }}</td></tr>{% endif %}
+        <tr><td class="muted">Numer KSeF</td><td>{{ invoice.ksefNumber }}</td></tr>
+        {% if invoice.correctedNumber %}<tr><td class="muted">Koryguje fakturę</td><td>{{ invoice.correctedNumber }}</td></tr>{% endif %}
+    </table>
+
+    <table class="parties">
+        <tr>
+            <td>
+                <h2>Sprzedawca</h2>
+                <strong>{{ seller and seller.name ? seller.name : invoice.sellerName }}</strong><br>
+                NIP {{ invoice.sellerNip }}<br>
+                {% if seller %}{{ [seller.addressLine1, seller.addressLine2]|filter(v => v)|join(', ') }}{% endif %}
+            </td>
+            <td>
+                <h2>Nabywca</h2>
+                <strong>{{ buyer and buyer.name ? buyer.name : invoice.buyerName }}</strong><br>
+                {% if invoice.buyerIdentifier %}{{ invoice.buyerIdentifierType == 'Nip' ? 'NIP' : 'Id.' }} {{ invoice.buyerIdentifier }}<br>{% endif %}
+                {% if buyer %}{{ [buyer.addressLine1, buyer.addressLine2]|filter(v => v)|join(', ') }}{% endif %}
+            </td>
+        </tr>
+    </table>
+
+    {% if invoice.items is not empty %}
+        <table class="items">
+            <thead><tr><th>Lp.</th><th>Nazwa</th><th class="num">Ilość</th><th>J.m.</th><th class="num">Cena netto</th><th class="num">Wartość netto</th><th class="num">VAT</th></tr></thead>
+            <tbody>
+                {% for item in invoice.items %}
+                    <tr>
+                        <td>{{ item.position }}</td>
+                        <td>{{ item.name }}{% if item.beforeCorrection %} (przed korektą){% endif %}</td>
+                        <td class="num">{{ item.quantity|qty }}</td>
+                        <td>{{ item.unit }}</td>
+                        <td class="num">{{ item.unitPriceNet|amount }}</td>
+                        <td class="num">{{ item.netValue|amount }}</td>
+                        <td class="num">{{ item.vatRate }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p class="muted">Pozycje dostępne po pobraniu pełnego XML faktury z KSeF.</p>
+    {% endif %}
+
+    <table class="totals">
+        {% if parsed %}
+            {% for row in parsed.vatSummary %}
+                <tr><td class="muted">{{ row.rate }}</td><td class="num">{{ row.net|amount }}</td><td class="num">{{ row.vat|amount }}</td></tr>
+            {% endfor %}
+        {% endif %}
+        <tr><td class="muted">Netto</td><td class="num" colspan="2">{{ invoice.net|money(invoice.currency) }}</td></tr>
+        <tr><td class="muted">VAT</td><td class="num" colspan="2">{{ invoice.vat|money('PLN') }}</td></tr>
+        <tr class="grand"><td>Do zapłaty</td><td class="num" colspan="2">{{ invoice.gross|money(invoice.currency) }}</td></tr>
+    </table>
+
+    <table class="meta" style="margin-top:5mm">
+        <tr><td class="muted">Termin płatności</td><td>{{ invoice.paymentDue ? invoice.paymentDue|pl_date : '—' }}</td></tr>
+        <tr><td class="muted">Forma płatności</td><td>{{ parsed and parsed.paymentForm ? parsed.paymentForm : '—' }}</td></tr>
+        {% if parsed %}{% for account in parsed.bankAccounts %}<tr><td class="muted">Rachunek</td><td>{{ account }}</td></tr>{% endfor %}{% endif %}
+    </table>
+
+    {% if parsed and parsed.annotations is not empty %}
+        <p class="muted" style="margin-top:4mm">{{ parsed.annotations|join(' · ') }}</p>
+    {% endif %}
+
+    <div class="footer">Wizualizacja faktury z KSeF wygenerowana w systemie Folwark {{ 'now'|date('d.m.Y H:i') }}. Dokumentem jest faktura ustrukturyzowana w KSeF.</div>
+</body>
+</html>

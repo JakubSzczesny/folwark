@@ -276,6 +276,10 @@
         @apply font-semibold bg-szary-50 border-b-0;
     }
 
+    .hide-kind .kind-label {
+        display: none;
+    }
+
     .num {
         @apply text-right tabular-nums whitespace-nowrap;
     }
@@ -341,6 +345,16 @@
 
     .filter-bar .field {
         @apply mb-0;
+    }
+
+    @media (max-width: 767px) {
+        .filter-bar.is-collapsible:not(.is-open) {
+            display: none;
+        }
+
+        .filter-bar .field {
+            @apply w-full;
+        }
     }
 
     /* Pasek postępu */

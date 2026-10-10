@@ -1,0 +1,6 @@
+<turbo-frame id="preview">
+    {{ include('invoice/_preview_body.html.twig', {context: 'podglad'}) }}
+    <turbo-stream action="replace" target="invoice-row-{{ invoice.id }}">
+        <template>{{ include('invoice/_row.html.twig') }}</template>
+    </turbo-stream>
+</turbo-frame>

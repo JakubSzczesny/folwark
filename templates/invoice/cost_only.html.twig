@@ -1,0 +1,10 @@
+<twig:Modal title="Tylko koszt – {{ invoice.number }}">
+    <p class="text-sm text-antracyt-500 mb-4">Faktura bez przypisywania towarów: wskaż, gdzie zaliczyć koszt.</p>
+    {{ form_start(form, {attr: {'data-turbo-frame': 'modal'}}) }}
+        {{ form_widget(form) }}
+        <div class="flex gap-2">
+            <button type="submit" class="btn btn-primary">Zapisz</button>
+            <button type="button" class="btn btn-ghost" data-action="modal#close">Anuluj</button>
+        </div>
+    {{ form_end(form) }}
+</twig:Modal>

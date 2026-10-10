@@ -1,0 +1,41 @@
+{% extends 'layout.html.twig' %}
+
+{% set title = contract.id ? 'Edycja umowy ' ~ contract.number : 'Nowa umowa' %}
+{% block title %}{{ title }}{% endblock %}
+{% block active_menu %}contracts{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="{{ title }}" back="{{ contract.id ? path('app_contract_show', {id: contract.id}) : path('app_contract_index') }}" />
+
+    <div class="card card-body max-w-3xl">
+        {{ form_start(form) }}
+            {{ form_row(form.contractor) }}
+            <div class="form-grid">
+                {{ form_row(form.number) }}
+                {{ form_row(form.kind) }}
+            </div>
+            {{ form_row(form.subject) }}
+            <div class="grid gap-x-4 sm:grid-cols-3">
+                {{ form_row(form.concludedAt) }}
+                {{ form_row(form.validFrom) }}
+                {{ form_row(form.validTo) }}
+            </div>
+            {% if form.product is defined %}{{ form_row(form.product) }}{% endif %}
+            <div class="grid gap-x-4 sm:grid-cols-4">
+                {{ form_row(form.contractedQuantity) }}
+                {{ form_row(form.quantityUnit) }}
+                {{ form_row(form.price) }}
+                {{ form_row(form.priceUnit) }}
+            </div>
+            {{ form_row(form.qualityTerms) }}
+            {{ form_row(form.status) }}
+            {{ form_row(form.notes) }}
+            {{ form_row(form.newAttachments) }}
+            {{ form_rest(form) }}
+            <div class="flex gap-2">
+                <button type="submit" class="btn btn-primary">Zapisz</button>
+                <a href="{{ contract.id ? path('app_contract_show', {id: contract.id}) : path('app_contract_index') }}" class="btn btn-ghost">Anuluj</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}

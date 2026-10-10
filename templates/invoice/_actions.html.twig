@@ -1,0 +1,40 @@
+{# context: 'podglad' (panel) albo null (pełny widok) #}
+{% set z = context|default(null) %}
+{% set token = csrf_token('invoice') %}
+{% set frame_attrs = z ? '' : 'data-turbo-frame=_top' %}
+{% if is_granted('INVOICE_MANAGE') %}
+    <div class="flex flex-wrap gap-2">
+        {% if invoice.cost %}
+            {% if invoice.status.value != 'skipped' %}
+                {% if route_exists('app_invoice_assign') %}
+                    <a href="{{ path('app_invoice_assign', {id: invoice.id}) }}" class="btn {{ invoice.status.processed ? 'btn-secondary' : 'btn-primary' }}" data-turbo-frame="_top">{{ ux_icon('lucide:package-check') }} Przypisz towary</a>
+                {% endif %}
+            {% endif %}
+            <a href="{{ path('app_invoice_cost_only', {id: invoice.id, z: z}) }}" class="btn btn-secondary" data-turbo-frame="modal">Tylko koszt</a>
+            {% if invoice.status.value == 'skipped' %}
+                <form method="post" action="{{ path('app_invoice_restore', {id: invoice.id, z: z}) }}" {{ frame_attrs }}>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <button type="submit" class="btn btn-secondary">Przywróć</button>
+                </form>
+            {% else %}
+                <form method="post" action="{{ path('app_invoice_skip', {id: invoice.id, z: z}) }}" {{ frame_attrs }}>
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <button type="submit" class="btn btn-secondary">Pomiń</button>
+                </form>
+            {% endif %}
+        {% else %}
+            <a href="{{ path('app_invoice_contract', {id: invoice.id, z: z}) }}" class="btn {{ invoice.contract ? 'btn-secondary' : 'btn-primary' }}" data-turbo-frame="modal">{{ ux_icon('lucide:file-signature') }} Przypisz umowę</a>
+        {% endif %}
+        {% if invoice.paid %}
+            <form method="post" action="{{ path('app_invoice_unpaid', {id: invoice.id, z: z}) }}" {{ frame_attrs }}>
+                <input type="hidden" name="_token" value="{{ token }}">
+                <button type="submit" class="btn btn-ghost">Cofnij opłacenie</button>
+            </form>
+        {% else %}
+            <form method="post" action="{{ path('app_invoice_paid', {id: invoice.id, z: z}) }}" {{ frame_attrs }}>
+                <input type="hidden" name="_token" value="{{ token }}">
+                <button type="submit" class="btn btn-secondary">{{ ux_icon('lucide:check') }} Oznacz jako opłaconą</button>
+            </form>
+        {% endif %}
+    </div>
+{% endif %}

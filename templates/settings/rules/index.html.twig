@@ -1,0 +1,32 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Reguły faktur{% endblock %}
+{% block active_menu %}settings{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="Reguły faktur" subtitle="Faktury kosztowe od wybranych dostawców od razu jako „tylko koszt” – np. energia, ubezpieczenia." back="{{ path('app_settings') }}">
+        <a href="{{ path('app_settings_rule_new') }}" class="btn btn-primary">{{ ux_icon('lucide:plus') }} Dodaj regułę</a>
+    </twig:PageHeader>
+
+    <div class="card">
+        {% if rules is empty %}
+            <twig:EmptyState text="Brak reguł." actionLabel="Dodaj regułę" actionUrl="{{ path('app_settings_rule_new') }}" />
+        {% else %}
+            <div class="table-wrap">
+                <table class="table table-cards" data-controller="table-nav" data-action="keydown@window->table-nav#keydown">
+                    <thead><tr><th>Dostawca</th><th>Ośrodek kosztów</th><th>Kategoria</th><th>Status</th></tr></thead>
+                    <tbody>
+                        {% for rule in rules %}
+                            <tr data-table-nav-target="row" data-href="{{ path('app_settings_rule_edit', {id: rule.id}) }}" data-action="click->table-nav#click">
+                                <td class="card-title-cell"><a href="{{ path('app_settings_rule_edit', {id: rule.id}) }}">{{ names[rule.contractorNip] ?? 'NIP ' ~ rule.contractorNip }}</a>{% if names[rule.contractorNip] %}<span class="block text-xs text-antracyt-500 font-normal">NIP {{ rule.contractorNip }}</span>{% endif %}</td>
+                                <td data-label="Ośrodek kosztów">{{ rule.costCenter ? rule.costCenter.name : '—' }}</td>
+                                <td data-label="Kategoria">{{ rule.costCategory ? rule.costCategory.name : '—' }}</td>
+                                <td data-label="Status">{% if rule.active %}<twig:Badge tone="positive">Aktywna</twig:Badge>{% else %}<twig:Badge tone="neutral">Wyłączona</twig:Badge>{% endif %}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

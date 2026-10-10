@@ -1,0 +1,4 @@
+{# Przycisk rozwijający filtry na telefonie. Parametr: active (liczba aktywnych filtrów). #}
+<button type="button" class="btn btn-secondary w-full mb-3 md:hidden" data-filters-target="button" data-action="filters#toggle" aria-expanded="false">
+    {{ ux_icon('lucide:filter') }} Filtry{% if active|default(0) > 0 %} ({{ active }}){% endif %}
+</button>

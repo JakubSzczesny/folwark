@@ -1,0 +1,45 @@
+{% set compact = compact|default(false) %}
+{% if invoice.items is empty %}
+    {% if not invoice.hasXml %}
+        <div class="rounded-ui border border-dashed border-szary-200 p-4 text-sm text-antracyt-500">
+            <p class="mb-3">Pozycje są w pełnym XML faktury, który nie został jeszcze pobrany z KSeF.</p>
+            <form method="post" action="{{ path('app_invoice_fetch_items', {id: invoice.id, z: context|default(null)}) }}" {% if not context|default(null) %}data-turbo-frame="_top"{% endif %}>
+                <input type="hidden" name="_token" value="{{ csrf_token('invoice') }}">
+                <button type="submit" class="btn btn-secondary">{{ ux_icon('lucide:download') }} Pokaż pozycje</button>
+            </form>
+        </div>
+    {% else %}
+        <p class="text-sm text-antracyt-500">Faktura nie zawiera pozycji.</p>
+    {% endif %}
+{% else %}
+    <div class="table-wrap">
+        <table class="table">
+            <thead>
+                <tr>
+                    {% if not compact %}<th class="w-8">Lp.</th>{% endif %}
+                    <th>Nazwa</th>
+                    <th class="text-right">Ilość</th>
+                    {% if not compact %}<th class="text-right">Cena netto</th>{% endif %}
+                    <th class="text-right">Wartość netto</th>
+                    {% if not compact %}<th class="text-right">VAT</th>{% endif %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in invoice.items %}
+                    <tr class="{{ item.skipped ? 'text-antracyt-500' }}">
+                        {% if not compact %}<td class="tabular-nums">{{ item.position }}</td>{% endif %}
+                        <td>
+                            {{ item.name }}
+                            {% if item.beforeCorrection %}<twig:Badge tone="neutral">stan przed korektą</twig:Badge>{% endif %}
+                            {% if item.product is defined and item.product %}<span class="block text-xs text-zielen-700">→ {{ item.product.name }}{% if item.quantityInProductUnit is not null %} ({{ item.quantityInProductUnit|qty }} {{ item.product.baseUnit.symbol }}){% endif %}</span>{% elseif item.skipped %}<span class="block text-xs">pominięta</span>{% endif %}
+                        </td>
+                        <td class="num">{{ item.quantity|qty }} {{ item.unit }}</td>
+                        {% if not compact %}<td class="num">{{ item.unitPriceNet|amount(2) }}</td>{% endif %}
+                        <td class="num">{{ item.netValue|amount }}</td>
+                        {% if not compact %}<td class="num">{{ item.vatRate }}{{ item.vatRate and item.vatRate matches '/^\\d+$/' ? '%' }}</td>{% endif %}
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endif %}

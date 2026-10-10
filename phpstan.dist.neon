@@ -10,4 +10,5 @@ parameters:
         consoleApplicationLoader: tests/console-application.php
     doctrine:
         objectManagerLoader: tests/object-manager.php
+        allowNullablePropertyForRequiredField: true
     treatPhpDocTypesAsCertain: false

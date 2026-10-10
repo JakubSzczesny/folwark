@@ -1,3 +1,6 @@
+parameters:
+    ksef.auth_poll_interval_ms: 1000
+
 services:
     _defaults:
         autowire: true
@@ -5,3 +8,13 @@ services:
 
     App\:
         resource: '../src/'
+
+    App\Ksef\KsefClient:
+        factory: ['@App\Ksef\KsefClientSelector', 'select']
+
+    App\WhiteList\WhiteListClient:
+        factory: ['@App\WhiteList\WhiteListClientSelector', 'select']
+
+when@test:
+    parameters:
+        ksef.auth_poll_interval_ms: 0

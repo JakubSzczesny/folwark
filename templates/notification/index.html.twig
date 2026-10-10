@@ -11,7 +11,9 @@
         </form>
     </twig:PageHeader>
 
-    <form method="get" class="filter-bar" data-controller="autosubmit" data-turbo-action="replace">
+    <div data-controller="filters">
+    {{ include('_partials/filters_toggle.html.twig', {active: (filters.type ? 1 : 0) + (filters.unread ? 1 : 0) + (filters.from ? 1 : 0) + (filters.to ? 1 : 0)}) }}
+    <form method="get" class="filter-bar is-collapsible" data-filters-target="panel" data-controller="autosubmit" data-turbo-action="replace">
         <div class="field">
             <label class="label" for="f-type">Typ</label>
             <select id="f-type" name="typ" class="select" data-action="autosubmit#submit">
@@ -35,6 +37,7 @@
         </label>
         <a href="{{ path('app_notification_index', {wyczysc: 1}) }}" class="btn btn-ghost">Wyczyść</a>
     </form>
+    </div>
 
     <div class="card">
         {% if pager.items is empty %}

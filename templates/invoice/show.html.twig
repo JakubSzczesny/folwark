@@ -1,0 +1,111 @@
+{% extends 'layout.html.twig' %}
+{% import '_partials/macros.html.twig' as m %}
+
+{% block title %}Faktura {{ invoice.number }}{% endblock %}
+{% block active_menu %}invoices{% endblock %}
+
+{% block stylesheets %}
+    <meta name="turbo-refresh-method" content="morph">
+    <meta name="turbo-refresh-scroll" content="preserve">
+{% endblock %}
+
+{% block content %}
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-2">
+        <a href="{{ path('app_invoice_index') }}" class="inline-flex items-center gap-1 text-sm text-antracyt-500 hover:text-tekst">{{ ux_icon('lucide:arrow-left', {width: 16, height: 16}) }} Faktury</a>
+        <div class="flex items-center gap-2">
+            {% if neighbours.prev %}<a class="btn btn-secondary btn-sm" href="{{ path('app_invoice_show', {id: neighbours.prev}) }}" rel="prev">{{ ux_icon('lucide:chevron-left') }} Poprzednia</a>{% endif %}
+            {% if neighbours.next %}<a class="btn btn-secondary btn-sm" href="{{ path('app_invoice_show', {id: neighbours.next}) }}" rel="next">Następna {{ ux_icon('lucide:chevron-right') }}</a>{% endif %}
+        </div>
+    </div>
+
+    <div class="page-header">
+        <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2 mb-1">
+                <twig:Badge tone="{{ invoice.status.tone }}">{{ invoice.status.label }}</twig:Badge>
+                <twig:Badge tone="neutral">{{ invoice.kind.label }}</twig:Badge>
+                {% if invoice.type.value != 'invoice' %}<twig:Badge tone="info">{{ invoice.type.label }}</twig:Badge>{% endif %}
+            </div>
+            <h1 class="page-title break-all">{{ invoice.number }}</h1>
+            <p class="page-subtitle">{{ invoice.contractorLabel }} · {{ invoice.issueDate|pl_date }} · {{ invoice.gross|money(invoice.currency) }}</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ path('app_invoice_xml', {id: invoice.id}) }}" class="btn btn-ghost" data-turbo="false">{{ ux_icon('lucide:file-code') }} Pobierz XML</a>
+            <a href="{{ path('app_invoice_pdf', {id: invoice.id}) }}" class="btn btn-ghost" target="_blank" rel="noopener">{{ ux_icon('lucide:printer') }} PDF</a>
+        </div>
+    </div>
+
+    {% if parse_error %}<div class="alert alert-warning mb-4">Nie udało się odczytać zapisanego XML: {{ parse_error }}</div>{% endif %}
+
+    <div class="grid gap-6 xl:grid-cols-[1fr_340px]">
+        <article class="card card-body">
+            {{ include('invoice/_document.html.twig') }}
+        </article>
+
+        <aside class="space-y-4">
+            <section class="card card-body">
+                {{ include('invoice/_actions.html.twig', {context: null}) }}
+                {% if not is_granted('INVOICE_MANAGE') %}<p class="text-sm text-antracyt-500">Podgląd tylko do odczytu.</p>{% endif %}
+            </section>
+
+            <section class="card card-body">
+                <h2 class="card-title mb-3">Stan</h2>
+                <dl class="dl">
+                    <dt>Status</dt><dd><twig:Badge tone="{{ invoice.status.tone }}">{{ invoice.status.label }}</twig:Badge></dd>
+                    <dt>Płatność</dt><dd><twig:Badge tone="{{ invoice.payment.tone }}">{{ invoice.payment.label }}</twig:Badge>{% if invoice.paidAt %} {{ invoice.paidAt|pl_date }}{% endif %}</dd>
+                    <dt>Termin</dt><dd>{{ m.deadline(invoice.paymentDue, 3, invoice.paid or not invoice.cost) }}</dd>
+                    {% if invoice.readAt %}<dt>Przeczytał</dt><dd>{{ invoice.readBy ? invoice.readBy.fullName : '—' }}, {{ invoice.readAt|pl_datetime }}</dd>{% endif %}
+                </dl>
+            </section>
+
+            <section class="card card-body">
+                <h2 class="card-title mb-3">Powiązania</h2>
+                <dl class="dl">
+                    <dt>Kontrahent</dt>
+                    <dd>{% if invoice.contractor and is_granted('CONTRACTOR_VIEW') %}<a href="{{ path('app_contractor_show', {id: invoice.contractor.id}) }}">{{ invoice.contractor.displayName }}</a>{% else %}{{ invoice.contractorLabel }}{% endif %}</dd>
+                    <dt>Umowa</dt>
+                    <dd>{% if invoice.contract %}<a href="{{ path('app_contract_show', {id: invoice.contract.id}) }}">{{ invoice.contract.number }}</a>{% else %}—{% endif %}</dd>
+                    <dt>Ośrodek kosztów</dt><dd>{{ invoice.costCenter ? invoice.costCenter.name : '—' }}</dd>
+                    <dt>Kategoria kosztu</dt><dd>{{ invoice.costCategory ? invoice.costCategory.name : '—' }}</dd>
+                    {% if invoice.correctedInvoice %}
+                        <dt>Koryguje</dt><dd><a href="{{ path('app_invoice_show', {id: invoice.correctedInvoice.id}) }}">{{ invoice.correctedInvoice.number }}</a></dd>
+                    {% endif %}
+                    {% block extra_links %}{% endblock %}
+                </dl>
+            </section>
+
+            {% if is_granted('INVOICE_MANAGE') %}
+                <section class="card card-body">
+                    <h2 class="card-title mb-3">Uwagi</h2>
+                    <form method="post" action="{{ path('app_invoice_notes', {id: invoice.id}) }}">
+                        <input type="hidden" name="_token" value="{{ csrf_token('invoice') }}">
+                        <textarea name="notes" class="textarea mb-2" rows="3">{{ invoice.notes }}</textarea>
+                        <button type="submit" class="btn btn-secondary btn-sm">Zapisz uwagi</button>
+                    </form>
+                    <hr class="my-4 border-szary-200">
+                    <form method="post" action="{{ path('app_invoice_kind', {id: invoice.id}) }}" data-turbo-confirm="Zmienić klasyfikację faktury na „{{ invoice.kind.opposite.label }}”?">
+                        <input type="hidden" name="_token" value="{{ csrf_token('invoice') }}">
+                        <button type="submit" class="btn btn-ghost btn-sm">Zmień na: {{ invoice.kind.opposite.label|lower }}</button>
+                    </form>
+                </section>
+            {% elseif invoice.notes %}
+                <section class="card card-body"><h2 class="card-title mb-2">Uwagi</h2><p class="text-sm whitespace-pre-line">{{ invoice.notes }}</p></section>
+            {% endif %}
+
+            <section class="card card-body">
+                <h2 class="card-title mb-3">Historia zmian</h2>
+                {% if history is empty %}
+                    <p class="text-sm text-antracyt-500">Brak zmian.</p>
+                {% else %}
+                    <ul class="space-y-2 text-sm">
+                        {% for entry in history %}
+                            <li>
+                                <span class="font-semibold">{{ audit_text(entry) }}</span>
+                                <span class="block text-xs text-antracyt-500">{{ entry.user ? entry.user.fullName : 'system' }}, {{ entry.createdAt|pl_datetime }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </section>
+        </aside>
+    </div>
+{% endblock %}

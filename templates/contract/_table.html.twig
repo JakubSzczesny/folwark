@@ -1,0 +1,34 @@
+{% import '_partials/macros.html.twig' as m %}
+<div class="table-wrap">
+    <table class="table table-cards" data-controller="table-nav" data-action="keydown@window->table-nav#keydown">
+        <thead>
+            <tr>
+                <th>Numer</th>
+                {% if show_contractor|default(true) %}<th>Kontrahent</th>{% endif %}
+                <th>Przedmiot</th><th>Rodzaj</th><th>Obowiązuje do</th><th class="min-w-[180px]">Realizacja</th><th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for contract in contracts %}
+                {% set p = progress[contract.id] ?? null %}
+                <tr data-table-nav-target="row" data-href="{{ path('app_contract_show', {id: contract.id}) }}" data-action="click->table-nav#click">
+                    <td class="card-title-cell"><a href="{{ path('app_contract_show', {id: contract.id}) }}" class="text-tekst hover:text-zielen-600">{{ contract.number }}</a></td>
+                    {% if show_contractor|default(true) %}<td data-label="Kontrahent">{{ contract.contractor.displayName }}</td>{% endif %}
+                    <td data-label="Przedmiot">{{ contract.subject }}</td>
+                    <td data-label="Rodzaj">{{ contract.kind.label }}</td>
+                    <td data-label="Obowiązuje do">{% if contract.validTo %}{{ m.deadline(contract.validTo, 30, not contract.active) }}{% else %}bezterminowa{% endif %}</td>
+                    <td data-label="Realizacja">
+                        {% if p and p.target %}
+                            <twig:Progress value="{{ p.quantity }}" max="{{ p.target }}" caption="{{ p.quantity|qty }} / {{ p.target|qty }} {{ p.unit }}" />
+                        {% elseif p and p.quantity > 0 %}
+                            {{ p.quantity|qty }} {{ p.unit }}
+                        {% else %}
+                            <span class="text-antracyt-500">—</span>
+                        {% endif %}
+                    </td>
+                    <td data-label="Status"><twig:Badge tone="{{ contract.status.tone }}">{{ contract.status.label }}</twig:Badge></td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

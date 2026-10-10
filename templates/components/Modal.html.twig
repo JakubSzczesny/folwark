@@ -1,0 +1,10 @@
+{% props title %}
+<turbo-frame id="modal">
+    <div class="flex items-center justify-between gap-3 border-b border-szary-200 px-4 py-3">
+        <h2 class="text-base font-semibold">{{ title }}</h2>
+        <button type="button" class="btn btn-ghost btn-icon btn-sm" aria-label="Zamknij" data-action="modal#close">{{ ux_icon('lucide:x') }}</button>
+    </div>
+    <div class="p-4 overflow-y-auto" style="max-height: calc(90vh - 60px)">
+        {% block content %}{% endblock %}
+    </div>
+</turbo-frame>

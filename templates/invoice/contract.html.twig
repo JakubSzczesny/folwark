@@ -1,0 +1,32 @@
+<twig:Modal title="Umowa dla faktury {{ invoice.number }}">
+    {% if contracts is empty %}
+        <p class="text-sm text-antracyt-500 mb-4">{{ invoice.contractor ? 'Ten kontrahent nie ma aktywnych umów.' : 'Faktura nie ma przypisanego kontrahenta.' }}</p>
+        {% if invoice.contractor and is_granted('CONTRACT_EDIT') %}
+            <a href="{{ path('app_contract_new', {kontrahent: invoice.contractor.id}) }}" class="btn btn-secondary" data-turbo-frame="_top">Dodaj umowę</a>
+        {% endif %}
+    {% else %}
+        <form method="post" action="{{ app.request.requestUri }}" data-turbo-frame="modal">
+            <input type="hidden" name="_token" value="{{ csrf_token('invoice') }}">
+            <fieldset class="space-y-2 mb-4">
+                <legend class="sr-only">Umowa</legend>
+                {% for contract in contracts %}
+                    <label class="flex items-start gap-3 rounded-ui border border-szary-200 p-3 cursor-pointer hover:bg-szary-100">
+                        <input type="radio" class="checkbox mt-0.5" name="contract" value="{{ contract.id }}" {{ invoice.contract == contract or (invoice.contract is null and loop.first) ? 'checked' }}>
+                        <span>
+                            <span class="font-semibold">{{ contract.number }}</span> <twig:Badge tone="neutral">{{ contract.kind.label }}</twig:Badge>
+                            <span class="block text-sm text-antracyt-500">{{ contract.subject }}{% if contract.validTo %} · do {{ contract.validTo|pl_date }}{% endif %}</span>
+                        </span>
+                    </label>
+                {% endfor %}
+                <label class="flex items-center gap-3 rounded-ui border border-szary-200 p-3 cursor-pointer hover:bg-szary-100">
+                    <input type="radio" class="checkbox" name="contract" value="0" {{ invoice.contract is null and contracts is empty ? 'checked' }}>
+                    <span>Bez umowy</span>
+                </label>
+            </fieldset>
+            <div class="flex gap-2">
+                <button type="submit" class="btn btn-primary">Zapisz</button>
+                <button type="button" class="btn btn-ghost" data-action="modal#close">Anuluj</button>
+            </div>
+        </form>
+    {% endif %}
+</twig:Modal>

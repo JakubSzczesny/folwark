@@ -1,0 +1,24 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Reguła faktur{% endblock %}
+{% block active_menu %}settings{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="{{ rule.id ? 'Edycja reguły' : 'Nowa reguła' }}" back="{{ path('app_settings_rules') }}" />
+    <div class="card card-body max-w-2xl">
+        {{ form_start(form) }}
+            {{ form_widget(form) }}
+            <div class="flex gap-2">
+                <button type="submit" class="btn btn-primary">Zapisz</button>
+                <a href="{{ path('app_settings_rules') }}" class="btn btn-ghost">Anuluj</a>
+            </div>
+        {{ form_end(form) }}
+        {% if rule.id %}
+            <hr class="my-6 border-szary-200">
+            <form method="post" action="{{ path('app_settings_rule_delete', {id: rule.id}) }}" data-turbo-confirm="Usunąć regułę?">
+                <input type="hidden" name="_token" value="{{ csrf_token('rule') }}">
+                <button type="submit" class="btn btn-danger">{{ ux_icon('lucide:trash-2') }} Usuń regułę</button>
+            </form>
+        {% endif %}
+    </div>
+{% endblock %}

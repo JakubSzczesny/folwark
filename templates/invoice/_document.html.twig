@@ -1,0 +1,86 @@
+{# Treść faktury w układzie dokumentu – wspólna dla pełnego widoku i wydruku PDF. #}
+{% set seller = parsed ? parsed.seller : null %}
+{% set buyer = parsed ? parsed.buyer : null %}
+<div class="grid gap-4 sm:grid-cols-2">
+    <section class="rounded-ui border border-szary-200 p-4">
+        <h3 class="text-xs font-semibold uppercase tracking-wide text-antracyt-500 mb-2">Sprzedawca</h3>
+        <p class="font-semibold">{{ seller and seller.name ? seller.name : invoice.sellerName }}</p>
+        <p class="text-sm">NIP {{ invoice.sellerNip }}</p>
+        {% if seller %}
+            <p class="text-sm text-antracyt-500">{{ [seller.addressLine1, seller.addressLine2]|filter(v => v)|join(', ') }}</p>
+        {% endif %}
+    </section>
+    <section class="rounded-ui border border-szary-200 p-4">
+        <h3 class="text-xs font-semibold uppercase tracking-wide text-antracyt-500 mb-2">Nabywca</h3>
+        <p class="font-semibold">{{ buyer and buyer.name ? buyer.name : invoice.buyerName }}</p>
+        {% if invoice.buyerIdentifier %}<p class="text-sm">{{ invoice.buyerIdentifierType == 'Nip' ? 'NIP' : 'Identyfikator' }} {{ invoice.buyerIdentifier }}</p>{% endif %}
+        {% if buyer %}
+            <p class="text-sm text-antracyt-500">{{ [buyer.addressLine1, buyer.addressLine2]|filter(v => v)|join(', ') }}</p>
+        {% endif %}
+    </section>
+</div>
+
+<dl class="dl mt-4">
+    <dt>Data wystawienia</dt><dd>{{ invoice.issueDate|pl_date }}</dd>
+    {% if parsed and parsed.saleDate %}<dt>Data sprzedaży</dt><dd>{{ parsed.saleDate|pl_date }}</dd>{% endif %}
+    <dt>Przyjęta w KSeF</dt><dd>{{ invoice.ksefReceivedAt|pl_datetime }}</dd>
+    <dt>Numer KSeF</dt><dd class="break-all">{{ invoice.ksefNumber }}</dd>
+    {% if parsed and parsed.correctionReason %}<dt>Przyczyna korekty</dt><dd>{{ parsed.correctionReason }}</dd>{% endif %}
+</dl>
+
+<section class="mt-6">
+    <h3 class="font-semibold mb-2">Pozycje</h3>
+    {{ include('invoice/_items.html.twig', {compact: false, context: null}) }}
+</section>
+
+{% if parsed and parsed.vatSummary is not empty %}
+    <section class="mt-6">
+        <h3 class="font-semibold mb-2">Podsumowanie stawek VAT</h3>
+        <div class="table-wrap">
+            <table class="table">
+                <thead><tr><th>Stawka</th><th class="text-right">Netto</th><th class="text-right">{{ parsed.rr ? 'Zwrot podatku' : 'VAT' }}</th><th class="text-right">Brutto</th></tr></thead>
+                <tbody>
+                    {% for row in parsed.vatSummary %}
+                        <tr>
+                            <td>{{ row.rate }}</td>
+                            <td class="num">{{ row.net|amount }}</td>
+                            <td class="num">{{ row.vat|amount }}</td>
+                            <td class="num">{{ (row.net + row.vat)|amount }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr><td>Razem ({{ invoice.currency }})</td><td class="num">{{ invoice.net|amount }}</td><td class="num">{{ invoice.vat|amount }}</td><td class="num">{{ invoice.gross|amount }}</td></tr>
+                </tfoot>
+            </table>
+        </div>
+    </section>
+{% else %}
+    <dl class="dl mt-6">
+        <dt>Netto</dt><dd class="tabular-nums">{{ invoice.net|money(invoice.currency) }}</dd>
+        <dt>VAT</dt><dd class="tabular-nums">{{ invoice.vat|money('PLN') }}</dd>
+        <dt>Brutto</dt><dd class="tabular-nums font-semibold">{{ invoice.gross|money(invoice.currency) }}</dd>
+    </dl>
+{% endif %}
+
+<section class="mt-6">
+    <h3 class="font-semibold mb-2">Płatność</h3>
+    <dl class="dl">
+        <dt>Termin</dt><dd>{{ invoice.paymentDue ? invoice.paymentDue|pl_date : '—' }}</dd>
+        <dt>Forma</dt><dd>{{ parsed and parsed.paymentForm ? parsed.paymentForm : '—' }}</dd>
+        {% if parsed and parsed.bankAccounts is not empty %}
+            <dt>Rachunek</dt><dd>{% for account in parsed.bankAccounts %}<span class="block tabular-nums">{{ account }}</span>{% endfor %}</dd>
+        {% endif %}
+        {% if invoice.paid %}<dt>Zapłacono</dt><dd>{{ invoice.paidAt ? invoice.paidAt|pl_date : 'tak' }}</dd>{% endif %}
+    </dl>
+</section>
+
+{% if parsed and (parsed.annotations is not empty or parsed.additionalInfo is not empty) %}
+    <section class="mt-6">
+        <h3 class="font-semibold mb-2">Adnotacje</h3>
+        <ul class="text-sm list-disc pl-5 space-y-1">
+            {% for annotation in parsed.annotations %}<li>{{ annotation }}</li>{% endfor %}
+            {% for info in parsed.additionalInfo %}<li>{{ info.key }}: {{ info.value }}</li>{% endfor %}
+        </ul>
+    </section>
+{% endif %}

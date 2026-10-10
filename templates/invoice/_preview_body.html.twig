@@ -1,0 +1,55 @@
+{% import '_partials/macros.html.twig' as m %}
+<div class="p-4 space-y-5">
+    {% for type, messages in app.flashes(['error']) %}
+        {% for message in messages %}<div class="alert alert-danger">{{ message }}</div>{% endfor %}
+    {% endfor %}
+
+    <div>
+        <div class="flex flex-wrap items-center gap-2 mb-1">
+            <twig:Badge tone="{{ invoice.status.tone }}">{{ invoice.status.label }}</twig:Badge>
+            <twig:Badge tone="neutral">{{ invoice.kind.label }}</twig:Badge>
+            {% if invoice.type.value != 'invoice' %}<twig:Badge tone="info">{{ invoice.type.label }}</twig:Badge>{% endif %}
+            <twig:Badge tone="{{ invoice.payment.tone }}">{{ invoice.payment.label }}</twig:Badge>
+        </div>
+        <h2 class="text-lg font-semibold break-all">{{ invoice.number }}</h2>
+        <p class="text-sm text-antracyt-500 break-all">KSeF {{ invoice.ksefNumber }}</p>
+    </div>
+
+    <dl class="dl">
+        <dt>Kontrahent</dt>
+        <dd>
+            {% if invoice.contractor and is_granted('CONTRACTOR_VIEW') %}
+                <a href="{{ path('app_contractor_show', {id: invoice.contractor.id}) }}" data-turbo-frame="_top">{{ invoice.contractor.name }}</a>
+            {% else %}
+                {{ invoice.contractorLabel }}
+            {% endif %}
+            {% if invoice.contractorNip %}<span class="block text-antracyt-500">NIP {{ invoice.contractorNip }}</span>{% endif %}
+        </dd>
+        <dt>Data wystawienia</dt><dd>{{ invoice.issueDate|pl_date }}</dd>
+        <dt>Przyjęta w KSeF</dt><dd>{{ invoice.ksefReceivedAt|pl_datetime }}</dd>
+        <dt>Termin płatności</dt><dd>{{ m.deadline(invoice.paymentDue, 3, invoice.paid or not invoice.cost) }}{% if invoice.paid and invoice.paidAt %} · opłacona {{ invoice.paidAt|pl_date }}{% endif %}</dd>
+        <dt>Netto</dt><dd class="tabular-nums">{{ invoice.net|money(invoice.currency) }}</dd>
+        <dt>VAT</dt><dd class="tabular-nums">{{ invoice.vat|money('PLN') }}</dd>
+        <dt>Brutto</dt><dd class="tabular-nums font-semibold">{{ invoice.gross|money(invoice.currency) }}</dd>
+        {% if invoice.contract %}
+            <dt>Umowa</dt><dd><a href="{{ path('app_contract_show', {id: invoice.contract.id}) }}" data-turbo-frame="_top">{{ invoice.contract.number }}</a> – {{ invoice.contract.subject }}</dd>
+        {% endif %}
+        {% if invoice.costCenter or invoice.costCategory %}
+            <dt>Koszt</dt><dd>{{ [invoice.costCenter ? invoice.costCenter.name, invoice.costCategory ? invoice.costCategory.name]|filter(v => v)|join(' · ') }}</dd>
+        {% endif %}
+        {% if invoice.correctedInvoice %}
+            <dt>Koryguje</dt><dd><a href="{{ path('app_invoice_show', {id: invoice.correctedInvoice.id}) }}" data-turbo-frame="_top">{{ invoice.correctedInvoice.number }}</a></dd>
+        {% elseif invoice.correctedNumber %}
+            <dt>Koryguje</dt><dd>{{ invoice.correctedNumber }}</dd>
+        {% endif %}
+    </dl>
+
+    <section>
+        <h3 class="font-semibold mb-2">Pozycje</h3>
+        {{ include('invoice/_items.html.twig', {compact: true, context: context|default(null)}) }}
+    </section>
+
+    {{ include('invoice/_actions.html.twig', {context: context|default(null)}) }}
+
+    <a href="{{ path('app_invoice_show', {id: invoice.id}) }}" class="btn btn-ghost w-full" data-turbo-frame="_top">Pełny widok {{ ux_icon('lucide:arrow-right') }}</a>
+</div>

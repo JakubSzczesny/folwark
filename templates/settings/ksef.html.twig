@@ -1,0 +1,73 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}KSeF · Ustawienia{% endblock %}
+{% block active_menu %}settings{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="KSeF" subtitle="Krajowy System e-Faktur – tylko odczyt faktur" back="{{ path('app_settings') }}">
+        <form method="post" action="{{ path('app_settings_ksef_test') }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('ksef-settings') }}">
+            <button type="submit" class="btn btn-secondary">{{ ux_icon('lucide:plug') }} Test połączenia</button>
+        </form>
+        <form method="post" action="{{ path('app_settings_ksef_sync') }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('ksef-settings') }}">
+            <button type="submit" class="btn btn-secondary">{{ ux_icon('lucide:refresh-cw') }} Synchronizuj teraz</button>
+        </form>
+    </twig:PageHeader>
+
+    {% if blocked_until and blocked_until > date() %}
+        <div class="alert alert-warning mb-4">KSeF ograniczył liczbę zapytań. Kolejna automatyczna synchronizacja po {{ blocked_until|pl_datetime }}.</div>
+    {% endif %}
+
+    <div class="grid gap-6 xl:grid-cols-[minmax(0,640px)_1fr]">
+        <section class="card card-body">
+            {{ form_start(form) }}
+                {{ form_widget(form) }}
+                <button type="submit" class="btn btn-primary">Zapisz</button>
+            {{ form_end(form) }}
+        </section>
+
+        <div class="space-y-6">
+            <section class="card">
+                <div class="card-header">
+                    <h2 class="card-title">Ostatnie synchronizacje</h2>
+                </div>
+                {% if syncs is empty %}
+                    <p class="px-4 py-6 text-sm text-antracyt-500">Jeszcze nie synchronizowano.</p>
+                {% else %}
+                    <div class="table-wrap">
+                        <table class="table table-cards">
+                            <thead><tr><th>Start</th><th>Koniec</th><th class="text-right">Nowe</th><th>Wynik</th></tr></thead>
+                            <tbody>
+                                {% for sync in syncs %}
+                                    <tr>
+                                        <td data-label="Start" class="tabular-nums whitespace-nowrap">{{ sync.startedAt|pl_datetime }}{% if sync.manual %} <span class="text-xs text-antracyt-500">(ręcznie)</span>{% endif %}</td>
+                                        <td data-label="Koniec" class="tabular-nums whitespace-nowrap">{{ sync.finishedAt ? sync.finishedAt|date('H:i:s') : '—' }}</td>
+                                        <td data-label="Nowe" class="num">{{ sync.newCount }}</td>
+                                        <td data-label="Wynik">
+                                            {% if sync.running %}<twig:Badge tone="info">W toku</twig:Badge>
+                                            {% elseif sync.failed %}<twig:Badge tone="danger">Błąd</twig:Badge> <span class="block text-sm text-blad">{{ sync.error }}</span>
+                                            {% else %}<twig:Badge tone="positive">OK</twig:Badge>{% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            </section>
+
+            <section class="card card-body">
+                <h2 class="card-title mb-2">Postęp pobierania</h2>
+                <dl class="dl mb-4">
+                    <dt>Faktury kosztowe</dt><dd>{{ cursors.Subject2 is defined ? 'do ' ~ date(cursors.Subject2)|pl_datetime : 'jeszcze nie pobierano' }}</dd>
+                    <dt>Faktury przychodowe</dt><dd>{{ cursors.Subject1 is defined ? 'do ' ~ date(cursors.Subject1)|pl_datetime : 'jeszcze nie pobierano' }}</dd>
+                </dl>
+                <form method="post" action="{{ path('app_settings_ksef_reset') }}" data-turbo-confirm="Pobrać metadane ponownie od daty początkowej? Faktury już zapisane nie zostaną zdublowane.">
+                    <input type="hidden" name="_token" value="{{ csrf_token('ksef-settings') }}">
+                    <button type="submit" class="btn btn-ghost btn-sm">Pobierz ponownie od daty początkowej</button>
+                </form>
+            </section>
+        </div>
+    </div>
+{% endblock %}

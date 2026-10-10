@@ -1,0 +1,163 @@
+{% extends 'layout.html.twig' %}
+{% import '_partials/macros.html.twig' as m %}
+
+{% block title %}Faktury{% endblock %}
+{% block active_menu %}invoices{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="Faktury" subtitle="{{ last_sync ? 'Ostatnia synchronizacja z KSeF: ' ~ last_sync.startedAt|pl_datetime ~ (last_sync.running ? ' (w toku)' : (last_sync.failed ? ' – błąd' : '')) : 'Faktury pochodzą wyłącznie z KSeF.' }}">
+        {% if is_granted('EXPORT') %}
+            <a href="{{ path('app_invoice_export', filter.toQuery) }}" class="btn btn-secondary" data-turbo="false">{{ ux_icon('lucide:download') }} Eksport XLSX</a>
+        {% endif %}
+        {% if is_granted('INVOICE_MANAGE') %}
+            <form method="post" action="{{ path('app_invoice_sync') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('invoice') }}">
+                <button type="submit" class="btn btn-primary">{{ ux_icon('lucide:refresh-cw') }} Synchronizuj teraz</button>
+            </form>
+        {% endif %}
+    </twig:PageHeader>
+
+    <nav class="tabs" aria-label="Rodzaj faktur">
+        {% for key, kind in constant('App\\Invoice\\InvoiceFilter::TABS') %}
+            <a href="{{ path('app_invoice_index', filter.toQuery|merge({rodzaj: key, status: filter.status and filter.status.value == 'new' ? 'new' : null})|filter(v => v is not null)) }}" class="tab {{ filter.tab == key ? 'tab-active' }}" {% if filter.tab == key %}aria-current="page"{% endif %}>
+                {{ kind ? kind.plural : 'Wszystkie' }}
+                {% if new_counts[key] is defined and new_counts[key] > 0 %}<span class="count" title="Nowe">{{ new_counts[key] }}</span>{% endif %}
+            </a>
+        {% endfor %}
+    </nav>
+
+    <div data-controller="filters">
+    {{ include('_partials/filters_toggle.html.twig', {active: filter.toQuery|length - 1}) }}
+    <form method="get" class="filter-bar is-collapsible" data-filters-target="panel" data-controller="autosubmit" data-turbo-action="replace">
+        <input type="hidden" name="rodzaj" value="{{ filter.tab }}">
+        <div class="field">
+            <label class="label" for="f-period">Okres</label>
+            <select id="f-period" name="okres" class="select" data-action="autosubmit#submit">
+                {% for key, label in constant('App\\Invoice\\InvoiceFilter::PERIODS') %}
+                    <option value="{{ key }}" {{ filter.period == key ? 'selected' }}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% if filter.period == 'zakres' %}
+            <div class="field">
+                <label class="label" for="f-from">Od</label>
+                <input id="f-from" type="date" name="od" class="input" value="{{ filter.from ? filter.from|date('Y-m-d') }}" data-action="autosubmit#submit">
+            </div>
+            <div class="field">
+                <label class="label" for="f-to">Do</label>
+                <input id="f-to" type="date" name="do" class="input" value="{{ filter.to ? filter.to|date('Y-m-d') }}" data-action="autosubmit#submit">
+            </div>
+        {% endif %}
+        <div class="field min-w-[220px]">
+            <label class="label" for="f-contractor">Kontrahent</label>
+            <select id="f-contractor" name="kontrahent"
+                    data-controller="symfony--ux-autocomplete--autocomplete"
+                    data-symfony--ux-autocomplete--autocomplete-url-value="{{ path('ux_entity_autocomplete', {alias: 'contractor'}) }}"
+                    data-symfony--ux-autocomplete--autocomplete-preload-value="focus"
+                    data-action="change->autosubmit#submit">
+                <option value="">Wszyscy</option>
+                {% if selected_contractor %}<option value="{{ selected_contractor.id }}" selected>{{ selected_contractor.name }}</option>{% endif %}
+            </select>
+        </div>
+        <div class="field">
+            <label class="label" for="f-status">Status</label>
+            <select id="f-status" name="status" class="select" data-action="autosubmit#submit">
+                <option value="">Wszystkie</option>
+                {% for status in statuses %}
+                    <option value="{{ status.value }}" {{ filter.status == status ? 'selected' }}>{{ status.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="field">
+            <label class="label" for="f-payment">Płatność</label>
+            <select id="f-payment" name="platnosc" class="select" data-action="autosubmit#submit">
+                <option value="">Wszystkie</option>
+                {% for payment in payments %}
+                    <option value="{{ payment.value }}" {{ filter.payment == payment ? 'selected' }}>{{ payment.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% if filter.tab != 'przychodowe' %}
+            <div class="field">
+                <label class="label" for="f-category">Kategoria kosztu</label>
+                <select id="f-category" name="kategoria" class="select" data-action="autosubmit#submit">
+                    <option value="">Wszystkie</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}" {{ filter.costCategoryId == category.id ? 'selected' }}>{{ category.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        {% endif %}
+        <div class="field w-28">
+            <label class="label" for="f-amount-from">Brutto od</label>
+            <input id="f-amount-from" name="kwota_od" class="input" inputmode="decimal" value="{{ filter.amountFrom }}" data-action="input->autosubmit#debounced">
+        </div>
+        <div class="field w-28">
+            <label class="label" for="f-amount-to">Brutto do</label>
+            <input id="f-amount-to" name="kwota_do" class="input" inputmode="decimal" value="{{ filter.amountTo }}" data-action="input->autosubmit#debounced">
+        </div>
+        <div class="field">
+            <label class="label" for="f-text">Numer</label>
+            <input id="f-text" type="search" name="szukaj" class="input" value="{{ filter.text }}" placeholder="np. FV/12/2026" data-action="input->autosubmit#debounced">
+        </div>
+        {% if filter.hasActiveFilters %}
+            <a href="{{ path('app_invoice_index', {wyczysc: 1}) }}" class="btn btn-ghost">Wyczyść</a>
+        {% endif %}
+    </form>
+    </div>
+
+    <div data-controller="panel" data-action="keydown@window->panel#keydown">
+        <div class="card">
+            {% if pager.items is empty %}
+                <twig:EmptyState text="{{ filter.hasActiveFilters ? 'Brak faktur spełniających filtry.' : 'Nie ma jeszcze faktur – pojawią się po synchronizacji z KSeF.' }}"
+                                 actionLabel="{{ filter.hasActiveFilters ? 'Wyczyść filtry' : null }}"
+                                 actionUrl="{{ filter.hasActiveFilters ? path('app_invoice_index', {wyczysc: 1}) : null }}" />
+            {% else %}
+                <div class="table-wrap">
+                    <table class="table table-cards {{ filter.tab != 'wszystkie' ? 'hide-kind' }}" data-controller="table-nav" data-action="keydown@window->table-nav#keydown">
+                        <thead>
+                            <tr>
+                                <th class="w-4 !pr-0"><span class="sr-only">Nowa</span></th>
+                                {{ m.sort_th('Data wystawienia', 'data', filter) }}
+                                {{ m.sort_th('Numer', 'numer', filter) }}
+                                {{ m.sort_th('Kontrahent', 'kontrahent', filter) }}
+                                {{ m.sort_th('Netto', 'netto', filter, 'text-right') }}
+                                {{ m.sort_th('Brutto', 'brutto', filter, 'text-right') }}
+                                {{ m.sort_th('Termin płatności', 'termin', filter) }}
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in pager.items %}
+                                {{ include('invoice/_row.html.twig') }}
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            {% for currency, sum in sums %}
+                                <tr>
+                                    <td></td>
+                                    <td colspan="3" data-label="Razem">Razem{{ sums|length > 1 ? ' (' ~ currency ~ ')' }}: {{ sum.count }} {{ sum.count|plural('faktura', 'faktury', 'faktur') }} · VAT {{ sum.vat|money(currency) }}</td>
+                                    <td class="num" data-label="Netto">{{ sum.net|money(currency) }}</td>
+                                    <td class="num" data-label="Brutto">{{ sum.gross|money(currency) }}</td>
+                                    <td colspan="2"></td>
+                                </tr>
+                            {% endfor %}
+                        </tfoot>
+                    </table>
+                </div>
+                {{ include('_partials/pagination.html.twig') }}
+                <p class="hidden lg:block px-4 pb-3 text-xs text-antracyt-500">
+                    <span class="kbd">↑</span> <span class="kbd">↓</span> wybór · <span class="kbd">Spacja</span> podgląd · <span class="kbd">Enter</span> pełny widok · <span class="kbd">Esc</span> zamknij podgląd
+                </p>
+            {% endif %}
+        </div>
+
+        <aside data-panel-target="panel" class="slide-panel translate-x-full" hidden aria-label="Podgląd faktury">
+            <div class="flex items-center justify-between border-b border-szary-200 px-4" style="min-height:56px">
+                <span class="font-semibold">Podgląd</span>
+                <button type="button" class="btn btn-ghost btn-icon" data-action="panel#close" aria-label="Zamknij podgląd">{{ ux_icon('lucide:x') }}</button>
+            </div>
+            <turbo-frame id="preview" data-panel-target="frame" class="block flex-1 overflow-y-auto"></turbo-frame>
+        </aside>
+    </div>
+{% endblock %}

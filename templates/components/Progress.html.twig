@@ -1,0 +1,13 @@
+{% props value = 0, max = 0, label = null, caption = null %}
+{% set pct = max > 0 ? value / max * 100 : 0 %}
+<div {{ attributes }}>
+    {% if label or caption %}
+        <div class="flex items-baseline justify-between gap-3 text-sm mb-1">
+            <span>{{ label }}</span>
+            <span class="tabular-nums text-antracyt-500">{{ caption ?? pct|percent }}</span>
+        </div>
+    {% endif %}
+    <div class="progress" role="progressbar" aria-valuenow="{{ pct|round }}" aria-valuemin="0" aria-valuemax="100" {% if label %}aria-label="{{ label }}"{% endif %}>
+        <div class="progress-bar {{ pct > 100 ? 'is-over' }}" style="width: {{ min(pct, 100)|round(1) }}%"></div>
+    </div>
+</div>

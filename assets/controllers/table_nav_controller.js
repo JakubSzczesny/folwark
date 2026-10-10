@@ -1,0 +1,77 @@
+import { Controller } from '@hotwired/stimulus';
+import * as Turbo from '@hotwired/turbo';
+
+/*
+ * Obsługa klawiatury w tabelach: ↑/↓ wybór wiersza, Spacja podgląd, Enter pełny widok.
+ * Kliknięcie wiersza otwiera podgląd (jeśli jest), w przeciwnym razie kartę obiektu.
+ */
+export default class extends Controller {
+    static targets = ['row'];
+    static values = { frame: { type: String, default: 'preview' } };
+
+    connect() {
+        this.selected = this.rowTargets.findIndex((row) => row.classList.contains('is-selected'));
+    }
+
+    keydown(event) {
+        if (this.isTyping() || document.querySelector('dialog[open]') || event.ctrlKey || event.metaKey || event.altKey) {
+            return;
+        }
+
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            const delta = event.key === 'ArrowDown' ? 1 : -1;
+            const next = Math.max(0, Math.min(this.rowTargets.length - 1, this.selected + delta));
+            this.select(next);
+        } else if (event.key === ' ' && this.selected >= 0) {
+            event.preventDefault();
+            this.preview(this.rowTargets[this.selected]);
+        } else if (event.key === 'Enter' && this.selected >= 0) {
+            event.preventDefault();
+            const href = this.rowTargets[this.selected].dataset.href;
+            if (href) {
+                Turbo.visit(href);
+            }
+        }
+    }
+
+    click(event) {
+        if (event.target.closest('a, button, input, select, label, form')) {
+            return;
+        }
+        const row = event.currentTarget;
+        this.select(this.rowTargets.indexOf(row));
+        if (row.dataset.previewUrl) {
+            this.preview(row);
+        } else if (row.dataset.href) {
+            Turbo.visit(row.dataset.href);
+        }
+    }
+
+    select(index) {
+        this.rowTargets.forEach((row, i) => row.classList.toggle('is-selected', i === index));
+        this.selected = index;
+        this.rowTargets[index]?.scrollIntoView({ block: 'nearest' });
+    }
+
+    preview(row) {
+        const frame = document.getElementById(this.frameValue);
+        if (!row.dataset.previewUrl || !frame) {
+            if (row.dataset.href) {
+                Turbo.visit(row.dataset.href);
+            }
+            return;
+        }
+        row.classList.remove('is-unread');
+        if (frame.getAttribute('src') === row.dataset.previewUrl) {
+            frame.reload();
+        } else {
+            frame.src = row.dataset.previewUrl;
+        }
+    }
+
+    isTyping() {
+        const el = document.activeElement;
+        return el && (['INPUT', 'TEXTAREA', 'SELECT'].includes(el.tagName) || el.isContentEditable);
+    }
+}

@@ -1,0 +1,33 @@
+<turbo-frame id="notification-bell" target="_top">
+    <div class="flex items-center justify-between gap-2 px-4 py-2 border-b border-szary-200">
+        <span class="font-semibold text-sm">Powiadomienia</span>
+        {% if unread > 0 %}
+            <form method="post" action="{{ path('app_notification_read_all') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('notifications') }}">
+                <button type="submit" class="text-sm text-zielen-600 hover:text-zielen-700 font-semibold">Oznacz wszystkie jako przeczytane</button>
+            </form>
+        {% endif %}
+    </div>
+    {% if items is empty %}
+        <p class="px-4 py-6 text-sm text-antracyt-500">Brak powiadomień.</p>
+    {% else %}
+        <ul class="max-h-[60vh] overflow-y-auto divide-y divide-szary-200">
+            {% for n in items %}
+                <li>
+                    <a href="{{ path('app_notification_open', {id: n.id}) }}" class="flex gap-3 px-4 py-3 text-tekst hover:bg-szary-100 hover:text-tekst">
+                        <span class="mt-1.5 shrink-0">{% if not n.read %}<span class="dot-new" aria-label="nieprzeczytane"></span>{% else %}<span class="inline-block" style="width:8px"></span>{% endif %}</span>
+                        <span class="min-w-0 flex-1">
+                            <span class="block text-sm {{ n.read ? '' : 'font-semibold' }}">{{ n.title }}</span>
+                            {% if n.body %}<span class="block text-sm text-antracyt-500 truncate">{{ n.body }}</span>{% endif %}
+                            <span class="mt-1 flex items-center gap-2 text-xs text-antracyt-500">
+                                {% if n.priority.value != 'info' %}<twig:Badge tone="{{ n.priority.tone }}">{{ n.priority.label }}</twig:Badge>{% endif %}
+                                {{ n.createdAt|pl_datetime }}
+                            </span>
+                        </span>
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+    <a href="{{ path('app_notification_index') }}" class="block border-t border-szary-200 px-4 py-3 text-center text-sm font-semibold">Zobacz wszystkie</a>
+</turbo-frame>

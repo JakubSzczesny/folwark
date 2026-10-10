@@ -1,0 +1,23 @@
+liip_imagine:
+    driver: gd
+    loaders:
+        storage:
+            flysystem:
+                filesystem_service: 'default.storage'
+    data_loader: storage
+    filter_sets:
+        thumb:
+            quality: 80
+            filters:
+                auto_rotate: ~
+                thumbnail: { size: [96, 96], mode: outbound }
+        card:
+            quality: 82
+            filters:
+                auto_rotate: ~
+                thumbnail: { size: [480, 320], mode: outbound }
+        photo:
+            quality: 85
+            filters:
+                auto_rotate: ~
+                relative_resize: { widen: 1600 }

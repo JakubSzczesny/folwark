@@ -1,0 +1,18 @@
+{% if pager.total > 0 %}
+    {% set route = app.request.attributes.get('_route') %}
+    {% set params = app.request.attributes.get('_route_params')|merge(app.request.query.all) %}
+    <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm text-antracyt-500">
+        <span>{{ pager.firstIndex }}–{{ pager.lastIndex }} z {{ pager.total }}</span>
+        {% if pager.pages > 1 %}
+            <div class="flex items-center gap-2">
+                {% if pager.hasPrevious %}
+                    <a class="btn btn-secondary btn-sm" href="{{ path(route, params|merge({strona: pager.page - 1})) }}" rel="prev">{{ ux_icon('lucide:chevron-left') }} Poprzednia</a>
+                {% endif %}
+                <span class="tabular-nums">Strona {{ pager.page }} z {{ pager.pages }}</span>
+                {% if pager.hasNext %}
+                    <a class="btn btn-secondary btn-sm" href="{{ path(route, params|merge({strona: pager.page + 1})) }}" rel="next">Następna {{ ux_icon('lucide:chevron-right') }}</a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+{% endif %}

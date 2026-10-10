@@ -1,0 +1,9 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Pulpit{% endblock %}
+{% block active_menu %}dashboard{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="Pulpit" subtitle="{{ farm_name() }}" />
+    <twig:Dashboard />
+{% endblock %}

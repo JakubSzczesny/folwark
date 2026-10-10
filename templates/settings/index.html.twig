@@ -1,0 +1,16 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Ustawienia{% endblock %}
+{% block active_menu %}settings{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="Ustawienia" />
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        {% for section in sections %}
+            <a href="{{ section.url }}" class="card card-body block text-tekst hover:border-zielen-600 hover:text-tekst">
+                <span class="flex items-center justify-between gap-2 font-semibold">{{ section.title }} {{ ux_icon('lucide:chevron-right') }}</span>
+                <span class="block mt-1 text-sm text-antracyt-500">{{ section.text }}</span>
+            </a>
+        {% endfor %}
+    </div>
+{% endblock %}

@@ -1,0 +1,13 @@
+parameters:
+    level: 8
+    paths:
+        - src/
+        - tests/
+    excludePaths:
+        - src/DataFixtures/
+    symfony:
+        containerXmlPath: var/cache/dev/App_KernelDevDebugContainer.xml
+        consoleApplicationLoader: tests/console-application.php
+    doctrine:
+        objectManagerLoader: tests/object-manager.php
+    treatPhpDocTypesAsCertain: false

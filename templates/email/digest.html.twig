@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="pl">
+<body style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif; color: #1E2226; background: #F6F7F8; margin: 0; padding: 24px;">
+    <div style="max-width: 600px; margin: 0 auto; background: #FFFFFF; border: 1px solid #DDE1E4; border-radius: 6px;">
+        <div style="padding: 16px 20px; border-bottom: 1px solid #DDE1E4;">
+            <strong style="font-size: 16px;">Folwark – {{ farm }}</strong>
+            <div style="color: #5F666D; font-size: 14px;">Podsumowanie dla: {{ user.fullName }}</div>
+        </div>
+        <ul style="list-style: none; margin: 0; padding: 0;">
+            {% for item in items %}
+                <li style="padding: 12px 20px; border-bottom: 1px solid #DDE1E4;">
+                    <div style="font-size: 12px; font-weight: 600; color: {{ item.priority.value == 'urgent' ? '#B3261E' : (item.priority.value == 'warning' ? '#8A5700' : '#5F666D') }};">{{ item.type.label }} · {{ item.priority.label }}</div>
+                    <div style="font-weight: 600; margin-top: 2px;">
+                        {% if item.link %}<a href="{{ url('app_notification_open', {id: item.id}) }}" style="color: #2E7D46;">{{ item.title }}</a>{% else %}{{ item.title }}{% endif %}
+                    </div>
+                    {% if item.body %}<div style="color: #5F666D; font-size: 14px; margin-top: 2px;">{{ item.body }}</div>{% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+        <div style="padding: 12px 20px; color: #5F666D; font-size: 12px;">Wiadomość wysłana automatycznie. Ustawienia powiadomień zmienisz w „Moje konto”.</div>
+    </div>
+</body>
+</html>

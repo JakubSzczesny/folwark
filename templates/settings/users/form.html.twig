@@ -1,0 +1,17 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}{{ is_new ? 'Nowy użytkownik' : user.fullName }}{% endblock %}
+{% block active_menu %}settings{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="{{ is_new ? 'Nowy użytkownik' : user.fullName }}" back="{{ path('app_settings_users') }}" />
+    <div class="card card-body max-w-2xl">
+        {{ form_start(form) }}
+            {{ form_widget(form) }}
+            <div class="flex gap-2">
+                <button type="submit" class="btn btn-primary">Zapisz</button>
+                <a href="{{ path('app_settings_users') }}" class="btn btn-ghost">Anuluj</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}

@@ -1,0 +1,15 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}{{ title }} · Ustawienia{% endblock %}
+{% block active_menu %}settings{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="{{ title }}" back="{{ path('app_settings') }}" />
+    <div class="card card-body max-w-2xl">
+        {% block before_form %}{% endblock %}
+        {{ form_start(form) }}
+            {{ form_widget(form) }}
+            <button type="submit" class="btn btn-primary">Zapisz</button>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}

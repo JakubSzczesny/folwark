@@ -1,0 +1,27 @@
+{% macro sort_th(label, field, sort, class = '') %}
+    {% set route = app.request.attributes.get('_route') %}
+    {% set params = app.request.attributes.get('_route_params')|merge(app.request.query.all)|merge({sort: field, kierunek: sort.directionFor(field), strona: 1}) %}
+    <th class="{{ class }}" {% if sort.isActive(field) %}aria-sort="{{ sort.direction == 'asc' ? 'ascending' : 'descending' }}"{% endif %}>
+        <a href="{{ path(route, params) }}" class="inline-flex items-center gap-1">
+            {{ label }}
+            {% if sort.isActive(field) %}{{ ux_icon(sort.direction == 'asc' ? 'lucide:arrow-up' : 'lucide:arrow-down', {width: 14, height: 14}) }}{% endif %}
+        </a>
+    </th>
+{% endmacro %}
+
+{% macro deadline(date, warn_days = 30, settled = false) %}
+    {% if date %}
+        {% set tone = settled ? null : deadline_tone(date, warn_days) %}
+        <span class="{{ tone ? 'tone-' ~ tone }}" {% if tone %}title="{{ days_label(days_left(date)) }}"{% endif %}>{{ date|pl_date }}</span>
+        {% if tone %}<span class="sr-only">({{ days_label(days_left(date)) }})</span>{% endif %}
+    {% else %}
+        <span class="text-antracyt-500">—</span>
+    {% endif %}
+{% endmacro %}
+
+{% macro post_button(url, label, token_id, class = 'btn btn-secondary', confirm = null, icon = null) %}
+    <form method="post" action="{{ url }}" class="inline" {% if confirm %}data-turbo-confirm="{{ confirm }}"{% endif %}>
+        <input type="hidden" name="_token" value="{{ csrf_token(token_id) }}">
+        <button type="submit" class="{{ class }}">{% if icon %}{{ ux_icon('lucide:' ~ icon) }}{% endif %}{{ label }}</button>
+    </form>
+{% endmacro %}

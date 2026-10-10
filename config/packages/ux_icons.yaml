@@ -1,0 +1,12 @@
+ux_icons:
+    default_icon_attributes:
+        fill: none
+        stroke: currentColor
+        height: '18'
+        width: '18'
+        aria-hidden: 'true'
+    ignore_not_found: false
+
+when@prod:
+    ux_icons:
+        ignore_not_found: true

@@ -1,0 +1,8 @@
+{% props text, actionLabel = null, actionUrl = null %}
+<div {{ attributes.defaults({class: 'empty-state'}) }}>
+    <p>{{ text }}</p>
+    {% if actionUrl %}
+        <a href="{{ actionUrl }}" class="btn btn-primary">{{ actionLabel }}</a>
+    {% endif %}
+    {% block content %}{% endblock %}
+</div>

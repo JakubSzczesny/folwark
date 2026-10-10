@@ -1,0 +1,14 @@
+twig:
+    file_name_pattern: '*.twig'
+    form_themes: ['form/theme.html.twig']
+    date:
+        format: 'd.m.Y'
+        timezone: 'Europe/Warsaw'
+    number_format:
+        decimals: 2
+        decimal_point: ','
+        thousands_separator: ' '
+
+when@test:
+    twig:
+        strict_variables: true

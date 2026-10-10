@@ -1,0 +1,64 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Powiadomienia{% endblock %}
+{% block active_menu %}notifications{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="Powiadomienia">
+        <form method="post" action="{{ path('app_notification_read_all') }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('notifications') }}">
+            <button type="submit" class="btn btn-secondary">{{ ux_icon('lucide:check-check') }} Oznacz wszystkie jako przeczytane</button>
+        </form>
+    </twig:PageHeader>
+
+    <form method="get" class="filter-bar" data-controller="autosubmit" data-turbo-action="replace">
+        <div class="field">
+            <label class="label" for="f-type">Typ</label>
+            <select id="f-type" name="typ" class="select" data-action="autosubmit#submit">
+                <option value="">Wszystkie</option>
+                {% for type in types %}
+                    <option value="{{ type.value }}" {{ filters.type == type.value ? 'selected' }}>{{ type.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="field">
+            <label class="label" for="f-from">Od</label>
+            <input id="f-from" type="date" name="od" class="input" value="{{ filters.from ? filters.from|date('Y-m-d') }}" data-action="autosubmit#submit">
+        </div>
+        <div class="field">
+            <label class="label" for="f-to">Do</label>
+            <input id="f-to" type="date" name="do" class="input" value="{{ filters.to ? filters.to|date('Y-m-d') }}" data-action="autosubmit#submit">
+        </div>
+        <label class="inline-flex items-center gap-2 cursor-pointer" style="min-height:40px">
+            <input type="checkbox" class="checkbox" name="nieprzeczytane" value="1" {{ filters.unread ? 'checked' }} data-action="autosubmit#submit">
+            Tylko nieprzeczytane
+        </label>
+        <a href="{{ path('app_notification_index', {wyczysc: 1}) }}" class="btn btn-ghost">Wyczyść</a>
+    </form>
+
+    <div class="card">
+        {% if pager.items is empty %}
+            <twig:EmptyState text="Brak powiadomień spełniających filtry." />
+        {% else %}
+            <ul class="divide-y divide-szary-200">
+                {% for n in pager.items %}
+                    <li>
+                        <a href="{{ path('app_notification_open', {id: n.id}) }}" class="flex flex-wrap items-start gap-3 px-4 py-3 text-tekst hover:bg-szary-100 hover:text-tekst">
+                            <span class="mt-1.5">{% if not n.read %}<span class="dot-new" aria-label="nieprzeczytane"></span>{% else %}<span class="inline-block" style="width:8px"></span>{% endif %}</span>
+                            <span class="min-w-0 flex-1">
+                                <span class="block {{ n.read ? '' : 'font-semibold' }}">{{ n.title }}</span>
+                                {% if n.body %}<span class="block text-sm text-antracyt-500">{{ n.body }}</span>{% endif %}
+                            </span>
+                            <span class="flex items-center gap-2 text-sm text-antracyt-500">
+                                <twig:Badge tone="{{ n.priority.tone }}">{{ n.priority.label }}</twig:Badge>
+                                <span>{{ n.type.label }}</span>
+                                <span class="tabular-nums">{{ n.createdAt|pl_datetime }}</span>
+                            </span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+            {{ include('_partials/pagination.html.twig') }}
+        {% endif %}
+    </div>
+{% endblock %}

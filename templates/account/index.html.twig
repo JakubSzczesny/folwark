@@ -1,0 +1,80 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Moje konto{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="Moje konto" subtitle="{{ app.user.fullName }} · {{ app.user.email }} · {{ app.user.role.label }}" />
+
+    <div class="grid gap-6 lg:grid-cols-2">
+        <section class="card">
+            <div class="card-header"><h2 class="card-title">Zmiana hasła</h2></div>
+            <div class="card-body">
+                {{ form_start(password_form) }}
+                    {{ form_widget(password_form) }}
+                    <button type="submit" class="btn btn-primary">Zmień hasło</button>
+                {{ form_end(password_form) }}
+            </div>
+        </section>
+
+        <section class="card">
+            <div class="card-header"><h2 class="card-title">Logowanie PIN-em</h2></div>
+            <div class="card-body">
+                <p class="text-sm text-antracyt-500 mb-4">Na zaufanym urządzeniu (np. własnym telefonie) zamiast hasła wystarczy PIN. Po 5 błędnych próbach urządzenie traci zaufanie.</p>
+                {% if current_device %}
+                    <div class="alert alert-success mb-4">To urządzenie jest zaufane: {{ current_device.name }}.</div>
+                {% endif %}
+                {{ form_start(device_form) }}
+                    {{ form_widget(device_form) }}
+                    <button type="submit" class="btn btn-primary">{{ current_device ? 'Zmień PIN tego urządzenia' : 'Zaufaj temu urządzeniu' }}</button>
+                {{ form_end(device_form) }}
+
+                {% if devices is not empty %}
+                    <h3 class="font-semibold mt-6 mb-2">Zaufane urządzenia</h3>
+                    <ul class="divide-y divide-szary-200 border border-szary-200 rounded-ui">
+                        {% for device in devices %}
+                            <li class="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                                <span>
+                                    <span class="font-semibold">{{ device.name }}</span>
+                                    {% if current_device and current_device.id == device.id %}<twig:Badge tone="positive">to urządzenie</twig:Badge>{% endif %}
+                                    <span class="block text-antracyt-500">dodane {{ device.createdAt|pl_date }}{% if device.lastUsedAt %}, ostatnio {{ device.lastUsedAt|pl_datetime }}{% endif %}</span>
+                                </span>
+                                <form method="post" action="{{ path('app_account_device_revoke', {id: device.id}) }}" data-turbo-confirm="Usunąć urządzenie z zaufanych?">
+                                    <input type="hidden" name="_token" value="{{ csrf_token('device') }}">
+                                    <button type="submit" class="btn btn-danger btn-sm">Usuń</button>
+                                </form>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </div>
+        </section>
+
+        <section class="card lg:col-span-2">
+            <div class="card-header"><h2 class="card-title">Powiadomienia</h2></div>
+            <form method="post" action="{{ path('app_account_notifications') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('notification-preferences') }}">
+                <div class="table-wrap">
+                    <table class="table">
+                        <thead>
+                            <tr><th>Typ</th><th class="text-center">W aplikacji</th><th class="text-center">E-mail (dzienny skrót)</th></tr>
+                        </thead>
+                        <tbody>
+                            {% for type in types %}
+                                {% set pref = preferences[type.value] ?? null %}
+                                <tr>
+                                    <td>{{ type.label }}</td>
+                                    <td class="text-center"><input type="checkbox" class="checkbox" name="enabled[{{ type.value }}]" value="1" {{ pref is null or pref.enabled ? 'checked' }} aria-label="{{ type.label }} w aplikacji"></td>
+                                    <td class="text-center"><input type="checkbox" class="checkbox" name="email[{{ type.value }}]" value="1" {{ pref and pref.email ? 'checked' }} aria-label="{{ type.label }} e-mailem"></td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-body flex items-center justify-between gap-3 flex-wrap">
+                    <p class="text-sm text-antracyt-500">Powiadomienia trafiają do osób, których dotyczą (np. terminy płatności – do właściciela). Skrót e-mail wysyłany jest codziennie o 6:00, jeśli właściciel włączył go w ustawieniach.</p>
+                    <button type="submit" class="btn btn-primary">Zapisz</button>
+                </div>
+            </form>
+        </section>
+    </div>
+{% endblock %}

@@ -1,0 +1,46 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Dziennik zdarzeń{% endblock %}
+{% block active_menu %}settings{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="Dziennik zdarzeń" back="{{ path('app_settings') }}" />
+
+    <form method="get" class="filter-bar" data-controller="autosubmit">
+        <div class="field">
+            <label class="label" for="f-entity">Obiekt</label>
+            <select id="f-entity" name="obiekt" class="select" data-action="autosubmit#submit">
+                <option value="">Wszystkie</option>
+                {% for name in entities %}
+                    <option value="{{ name }}" {{ entity == name ? 'selected' }}>{{ name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+
+    <div class="card">
+        {% if pager.items is empty %}
+            <twig:EmptyState text="Brak wpisów." />
+        {% else %}
+            <div class="table-wrap">
+                <table class="table table-cards">
+                    <thead>
+                        <tr><th>Czas</th><th>Użytkownik</th><th>Obiekt</th><th>Akcja</th><th>Zmiany</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for log in pager.items %}
+                            <tr>
+                                <td data-label="Czas" class="tabular-nums whitespace-nowrap">{{ log.createdAt|pl_datetime }}</td>
+                                <td data-label="Użytkownik">{{ log.user ? log.user.fullName : 'system' }}</td>
+                                <td data-label="Obiekt">{{ log.entity }} #{{ log.entityId }}</td>
+                                <td data-label="Akcja">{{ log.action }}</td>
+                                <td data-label="Zmiany"><code class="text-xs break-all">{{ log.changes|json_encode(constant('JSON_UNESCAPED_UNICODE')) }}</code></td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {{ include('_partials/pagination.html.twig') }}
+        {% endif %}
+    </div>
+{% endblock %}

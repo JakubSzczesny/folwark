@@ -1,0 +1,17 @@
+{% if query|length < min_length %}
+    <p class="px-4 py-6 text-sm text-antracyt-500">Wpisz co najmniej {{ min_length }} znaki.</p>
+{% elseif groups is empty %}
+    <p class="px-4 py-6 text-sm text-antracyt-500">Nic nie znaleziono dla „{{ query }}”.</p>
+{% else %}
+    <div role="listbox" aria-label="Wyniki wyszukiwania">
+        {% for group in groups %}
+            <div class="px-4 pt-3 pb-1 text-xs font-semibold uppercase tracking-wide text-antracyt-500">{{ group.group }}</div>
+            {% for result in group.results %}
+                <a href="{{ result.url }}" data-search-item role="option" class="flex items-baseline justify-between gap-3 px-4 py-2 text-tekst hover:bg-szary-100 hover:text-tekst">
+                    <span class="truncate font-semibold text-sm">{{ result.title }}</span>
+                    {% if result.subtitle %}<span class="truncate text-sm text-antracyt-500">{{ result.subtitle }}</span>{% endif %}
+                </a>
+            {% endfor %}
+        {% endfor %}
+    </div>
+{% endif %}

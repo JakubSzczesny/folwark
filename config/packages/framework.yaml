@@ -1,0 +1,26 @@
+framework:
+    secret: '%env(APP_SECRET)%'
+    default_locale: pl
+    enabled_locales: ['pl']
+    session:
+        cookie_lifetime: 0
+        cookie_secure: auto
+        cookie_samesite: lax
+        gc_maxlifetime: 43200
+    http_client:
+        default_options:
+            timeout: 30
+    rate_limiter:
+        white_list:
+            policy: fixed_window
+            limit: '%env(int:WHITE_LIST_DAILY_LIMIT)%'
+            interval: '1 day'
+
+parameters:
+    env(WHITE_LIST_DAILY_LIMIT): '90'
+
+when@test:
+    framework:
+        test: true
+        session:
+            storage_factory_id: session.storage.factory.mock_file

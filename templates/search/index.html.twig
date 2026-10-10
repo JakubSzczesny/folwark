@@ -1,0 +1,17 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Wyszukiwanie{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="Wyszukiwanie" />
+    <form method="get" class="filter-bar">
+        <div class="field flex-1 max-w-xl">
+            <label class="label" for="q">Szukaj</label>
+            <input id="q" type="search" name="q" class="input" value="{{ query }}" autofocus>
+        </div>
+        <button type="submit" class="btn btn-primary">Szukaj</button>
+    </form>
+    <div class="card">
+        {{ include('search/_results.html.twig') }}
+    </div>
+{% endblock %}

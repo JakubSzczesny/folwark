@@ -8,6 +8,7 @@ final class FetchInvoiceXml implements AsyncMessage
 {
     public function __construct(
         public readonly int $invoiceId,
+        public readonly int $farmId,
     ) {
     }
 }

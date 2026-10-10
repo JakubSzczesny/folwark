@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Farm\BelongsToFarm;
+use App\Farm\FarmScoped;
 use App\Repository\InvoiceRuleRepository;
 use App\Validator\ValidNip;
 use Doctrine\DBAL\Types\Types;
@@ -15,15 +17,18 @@ use Symfony\Component\Validator\Constraints as Assert;
  * Reguła automatyczna: faktury kosztowe od danego NIP od razu jako „tylko koszt”.
  */
 #[ORM\Entity(repositoryClass: InvoiceRuleRepository::class)]
+#[ORM\UniqueConstraint(columns: ['farm_id', 'contractor_nip'])]
 #[UniqueEntity(fields: ['contractorNip'], message: 'Dla tego NIP istnieje już reguła.')]
-class InvoiceRule
+class InvoiceRule implements FarmScoped
 {
+    use BelongsToFarm;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 10, unique: true)]
+    #[ORM\Column(length: 10)]
     #[Assert\NotBlank]
     #[ValidNip]
     private string $contractorNip = '';

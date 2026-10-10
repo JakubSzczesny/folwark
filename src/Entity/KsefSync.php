@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Farm\BelongsToFarm;
+use App\Farm\FarmScoped;
 use App\Repository\KsefSyncRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: KsefSyncRepository::class)]
-#[ORM\Index(columns: ['started_at'])]
-class KsefSync
+#[ORM\Index(columns: ['farm_id', 'started_at'])]
+class KsefSync implements FarmScoped
 {
+    use BelongsToFarm;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

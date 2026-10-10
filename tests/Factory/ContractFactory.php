@@ -27,6 +27,7 @@ final class ContractFactory extends PersistentObjectFactory
             'subject' => 'Sprzedaż pszenicy',
             'kind' => ContractKind::Sale,
             'status' => ContractStatus::Active,
+            'farm' => FarmFactory::testFarm(),
         ];
     }
 }

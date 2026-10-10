@@ -4,13 +4,17 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Farm\BelongsToFarm;
+use App\Farm\FarmScoped;
 use App\Repository\ContractAttachmentRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: ContractAttachmentRepository::class)]
-class ContractAttachment
+class ContractAttachment implements FarmScoped
 {
+    use BelongsToFarm;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

@@ -4,27 +4,30 @@ declare(strict_types=1);
 
 namespace App\Controller\Settings;
 
-use App\Form\Settings\FarmSettingsType;
+use App\Audit\AuditLogger;
+use App\Entity\Farm;
+use App\Farm\FarmContext;
+use App\Form\FarmType;
 use App\Form\Settings\NotificationSettingsType;
 use App\Repository\AuditLogRepository;
-use App\Settings\SettingKey;
-use App\Settings\Settings;
+use App\Security\Permission;
 use App\Settings\SettingsForm;
 use App\Ui\Pager;
-use App\Util\Nip;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/ustawienia')]
+#[IsGranted(Permission::SETTINGS)]
 final class SettingsController extends AbstractController
 {
     private const array SECTIONS = [
         ['route' => 'app_settings_farm', 'title' => 'Gospodarstwo', 'text' => 'Nazwa i NIP gospodarstwa.'],
-        ['route' => 'app_settings_users', 'title' => 'Użytkownicy i role', 'text' => 'Konta, role, blokowanie dostępu.'],
+        ['route' => 'app_settings_members', 'title' => 'Członkowie gospodarstwa', 'text' => 'Kto ma dostęp i z jaką rolą.'],
         ['route' => 'app_settings_ksef', 'title' => 'KSeF', 'text' => 'Token, środowisko, synchronizacja faktur, Biała lista VAT.'],
         ['route' => 'app_settings_orders', 'title' => 'Zamówienia', 'text' => 'Wyprzedzenie przypomnień, progi przewidywania.'],
         ['route' => 'app_settings_notifications', 'title' => 'Powiadomienia', 'text' => 'Progi dni, dzienny skrót e-mail.'],
@@ -32,10 +35,10 @@ final class SettingsController extends AbstractController
         ['route' => 'app_settings_rules', 'title' => 'Reguły faktur', 'text' => 'Automatyczne „tylko koszt” dla wybranych dostawców.'],
         ['route' => 'admin', 'title' => 'Słowniki', 'text' => 'Kategorie, jednostki, magazyny, ośrodki kosztów, pola, rodzaje serwisu…'],
         ['route' => 'app_settings_audit', 'title' => 'Dziennik zdarzeń', 'text' => 'Kto, co i kiedy zmienił.'],
+        ['route' => 'app_settings_danger', 'title' => 'Strefa niebezpieczna', 'text' => 'Wyczyszczenie wszystkich danych albo usunięcie gospodarstwa.', 'danger' => true],
     ];
 
     public function __construct(
-        private readonly Settings $settings,
         private readonly SettingsForm $settingsForm,
         private readonly EntityManagerInterface $em,
     ) {
@@ -56,12 +59,22 @@ final class SettingsController extends AbstractController
     }
 
     #[Route('/gospodarstwo', name: 'app_settings_farm', methods: ['GET', 'POST'])]
-    public function farm(Request $request): Response
+    public function farm(Request $request, FarmContext $context, AuditLogger $audit): Response
     {
-        return $this->handleSettings($request, FarmSettingsType::class, FarmSettingsType::KEYS, 'Gospodarstwo', 'app_settings_farm', function (): void {
-            $nip = $this->settings->string(SettingKey::FARM_NIP);
-            $this->settings->set(SettingKey::FARM_NIP, Nip::normalize($nip), false);
-        });
+        $farm = $this->em->find(Farm::class, $context->farmId()) ?? throw $this->createNotFoundException();
+        $before = ['name' => $farm->getName(), 'nip' => $farm->getNip()];
+        $form = $this->createForm(FarmType::class, $farm);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $audit->log('Farm', $farm->getId(), 'update', ['old' => $before, 'new' => ['name' => $farm->getName(), 'nip' => $farm->getNip()]]);
+            $this->em->flush();
+            $this->addFlash('success', 'Zapisano dane gospodarstwa.');
+
+            return $this->redirectToRoute('app_settings_farm', [], Response::HTTP_SEE_OTHER);
+        }
+
+        return $this->render('settings/form.html.twig', ['form' => $form, 'title' => 'Gospodarstwo']);
     }
 
     #[Route('/powiadomienia', name: 'app_settings_notifications', methods: ['GET', 'POST'])]

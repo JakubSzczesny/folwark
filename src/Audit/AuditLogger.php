@@ -27,6 +27,9 @@ class AuditLogger
     public function log(string $entity, int|string|null $entityId, string $action, array $changes = [], ?User $user = null): void
     {
         $user ??= $this->currentUser();
+        if (null !== $user && null !== $user->getId() && !$this->em->contains($user)) {
+            $user = $this->em->getReference(User::class, $user->getId());
+        }
         $this->em->persist(new AuditLog($user, $entity, (string) $entityId, $action, $changes));
     }
 

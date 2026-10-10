@@ -8,7 +8,7 @@
     <twig:PageHeader title="{{ title }}" back="{{ contract.id ? path('app_contract_show', {id: contract.id}) : path('app_contract_index') }}" />
 
     <div class="card card-body max-w-3xl">
-        {{ form_start(form) }}
+        {{ form_start(form, {attr: {'data-controller': 'contract-form'}}) }}
             {{ form_row(form.contractor) }}
             <div class="form-grid">
                 {{ form_row(form.number) }}
@@ -27,6 +27,14 @@
                 {{ form_row(form.price) }}
                 {{ form_row(form.priceUnit) }}
             </div>
+            <fieldset class="rounded-ui border border-szary-200 p-4 mb-4" data-contract-form-target="lease">
+                <legend class="px-1 text-sm font-semibold">Płatności dzierżawy</legend>
+                <div class="grid gap-x-4 sm:grid-cols-3">
+                    {{ form_row(form.rentAmount) }}
+                    {{ form_row(form.paymentFrequency) }}
+                    {{ form_row(form.firstPaymentDate) }}
+                </div>
+            </fieldset>
             {{ form_row(form.qualityTerms) }}
             {{ form_row(form.status) }}
             {{ form_row(form.notes) }}

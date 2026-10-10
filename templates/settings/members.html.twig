@@ -1,0 +1,55 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Członkowie gospodarstwa{% endblock %}
+{% block active_menu %}settings{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="Członkowie gospodarstwa" subtitle="{{ current_farm().name }}" back="{{ path('app_settings') }}" />
+
+    <div class="grid gap-6 xl:grid-cols-[1fr_420px]">
+        <section class="card">
+            <div class="table-wrap">
+                <table class="table table-cards">
+                    <thead><tr><th>Osoba</th><th>Rola</th><th>Ostatnie logowanie</th><th><span class="sr-only">Akcje</span></th></tr></thead>
+                    <tbody>
+                        {% for membership in memberships %}
+                            {% set user = membership.user %}
+                            <tr>
+                                <td class="card-title-cell">
+                                    {{ user.fullName }}
+                                    {% if user == app.user %}<twig:Badge tone="neutral">to Ty</twig:Badge>{% endif %}
+                                    {% if not user.active %}<twig:Badge tone="danger">konto wyłączone</twig:Badge>{% endif %}
+                                    <span class="block text-xs font-normal text-antracyt-500">{{ user.email }}</span>
+                                </td>
+                                <td data-label="Rola">
+                                    <form method="post" action="{{ path('app_settings_member_role', {id: membership.id}) }}" class="flex items-center gap-2" data-controller="autosubmit">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('member') }}">
+                                        <select name="role" class="select input-sm" data-action="autosubmit#submit" aria-label="Rola: {{ user.fullName }}">
+                                            {% for role in roles %}<option value="{{ role.value }}" {{ membership.role == role ? 'selected' }}>{{ role.label }}</option>{% endfor %}
+                                        </select>
+                                    </form>
+                                </td>
+                                <td data-label="Ostatnie logowanie" class="tabular-nums">{{ user.lastLoginAt ? user.lastLoginAt|pl_datetime : '—' }}</td>
+                                <td class="text-right">
+                                    <form method="post" action="{{ path('app_settings_member_remove', {id: membership.id}) }}" data-turbo-confirm="{{ user == app.user ? 'Usunąć siebie z gospodarstwa? Stracisz do niego dostęp.' : 'Odebrać dostęp: ' ~ user.fullName ~ '?' }}">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('member') }}">
+                                        <button type="submit" class="btn btn-ghost btn-sm text-blad">Usuń</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="card card-body">
+            <h2 class="card-title mb-1">Dodaj osobę</h2>
+            <p class="text-sm text-antracyt-500 mb-4">Dostęp do gospodarstwa daje tylko właściciel. Osoba może sama się zarejestrować – wtedy wystarczy jej e-mail.</p>
+            {{ form_start(form) }}
+                {{ form_widget(form) }}
+                <button type="submit" class="btn btn-primary">Dodaj do gospodarstwa</button>
+            {{ form_end(form) }}
+        </section>
+    </div>
+{% endblock %}

@@ -6,13 +6,16 @@ namespace App\Tests\Functional;
 
 use App\Audit\AuditLogger;
 use App\Crypto\SecretBox;
+use App\Farm\FarmContext;
 use App\Ksef\Dto\MetadataQuery;
 use App\Ksef\Http\HttpKsefClient;
 use App\Ksef\Http\KsefTokenEncryptor;
+use App\Ksef\KsefIdentity;
 use App\Ksef\KsefRateLimitException;
 use App\Ksef\SubjectType;
 use App\Settings\SettingKey;
 use App\Settings\Settings;
+use App\Tests\Factory\FarmFactory;
 use App\Tests\Support\TestCertificate;
 use Psr\Log\NullLogger;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
@@ -122,8 +125,8 @@ final class HttpKsefClientTest extends KernelTestCase
         self::bootKernel();
         $container = static::getContainer();
 
+        $container->get(FarmContext::class)->set(FarmFactory::testFarm());
         $settings = $container->get(Settings::class);
-        $settings->set(SettingKey::FARM_NIP, '5841000001', false);
         $settings->set(SettingKey::KSEF_TOKEN, $container->get(SecretBox::class)->encrypt('token-testowy'));
 
         $index = 0;
@@ -140,6 +143,7 @@ final class HttpKsefClientTest extends KernelTestCase
         return new HttpKsefClient(
             $http,
             $settings,
+            $container->get(KsefIdentity::class),
             $container->get(SecretBox::class),
             new KsefTokenEncryptor(),
             new ArrayAdapter(),

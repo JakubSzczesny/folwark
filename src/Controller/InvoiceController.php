@@ -13,6 +13,7 @@ use App\Enum\InvoiceStatus;
 use App\Enum\PaymentStatus;
 use App\Export\PdfRenderer;
 use App\Export\XlsxExporter;
+use App\Farm\FarmContext;
 use App\Form\CostOnlyType;
 use App\Invoice\InvoiceActions;
 use App\Invoice\InvoiceFilter;
@@ -51,6 +52,7 @@ final class InvoiceController extends AbstractController
         private readonly InvoiceActions $actions,
         private readonly InvoiceXmlService $xml,
         private readonly EntityManagerInterface $em,
+        private readonly FarmContext $farmContext,
     ) {
     }
 
@@ -148,7 +150,7 @@ final class InvoiceController extends AbstractController
     public function sync(Request $request, MessageBusInterface $bus, #[CurrentUser] User $user): Response
     {
         $this->assertToken($request);
-        $bus->dispatch(new SyncKsefMetadata(true, $user->getId()));
+        $bus->dispatch(new SyncKsefMetadata(true, $user->getId(), $this->farmContext->farmId()));
         $this->addFlash('success', 'Synchronizacja z KSeF została zlecona. Nowe faktury pojawią się za chwilę.');
 
         return $this->redirectToRoute('app_invoice_index', [], Response::HTTP_SEE_OTHER);

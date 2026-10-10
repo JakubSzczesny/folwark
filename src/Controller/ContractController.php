@@ -153,7 +153,8 @@ final class ContractController extends AbstractController
             if (!$file instanceof UploadedFile) {
                 continue;
             }
-            $path = $this->storage->storeUpload($file, 'contracts/'.$contract->getId());
+            $farm = $contract->getFarm() ?? throw new \LogicException('Umowa bez gospodarstwa.');
+            $path = $this->storage->storeUpload($file, FileStorage::farmDirectory($farm).'/contracts/'.$contract->getId());
             $contract->addAttachment(new ContractAttachment($contract, $path, $file->getClientOriginalName()));
         }
     }

@@ -24,6 +24,7 @@ final class InvoiceFactory extends PersistentObjectFactory
             'ksefNumber' => '7311000000-20260101-'.strtoupper(self::faker()->unique()->regexify('[0-9A-F]{6}-[0-9A-F]{6}-[0-9A-F]{2}')),
             'number' => 'FV/'.self::faker()->unique()->numberBetween(1, 99999).'/2026',
             'kind' => InvoiceKind::Cost,
+            'farm' => FarmFactory::testFarm(),
             'issueDate' => \DateTimeImmutable::createFromMutable(self::faker()->dateTimeBetween('-6 months'))->setTime(0, 0),
         ];
     }

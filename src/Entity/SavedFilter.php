@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Farm\BelongsToFarm;
+use App\Farm\FarmScoped;
 use App\Repository\SavedFilterRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: SavedFilterRepository::class)]
-#[ORM\UniqueConstraint(columns: ['user_id', 'list_key'])]
-class SavedFilter
+#[ORM\UniqueConstraint(columns: ['user_id', 'farm_id', 'list_key'])]
+class SavedFilter implements FarmScoped
 {
+    use BelongsToFarm;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Storage;
 
+use App\Entity\Farm;
 use League\Flysystem\FilesystemOperator;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -21,6 +22,18 @@ class FileStorage
         #[Autowire(service: 'default.storage')]
         private readonly FilesystemOperator $storage,
     ) {
+    }
+
+    public static function farmDirectory(Farm $farm): string
+    {
+        return 'farms/'.$farm->getId();
+    }
+
+    public function deleteDirectory(string $path): void
+    {
+        if ($this->storage->directoryExists($path)) {
+            $this->storage->deleteDirectory($path);
+        }
     }
 
     public function write(string $path, string $contents): void

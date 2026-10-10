@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace App\Controller\Admin;
 
 use App\Entity\Unit;
+use App\Security\Permission;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
  * @extends AbstractCrudController<Unit>
  */
+#[IsGranted(Permission::SETTINGS)]
 final class UnitCrudController extends AbstractCrudController
 {
     public static function getEntityFqcn(): string

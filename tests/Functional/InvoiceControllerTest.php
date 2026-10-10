@@ -105,6 +105,7 @@ final class InvoiceControllerTest extends FunctionalTestCase
 
     public function testCostOnlyAssignsCenterAndCategory(): void
     {
+        $this->useFarm();
         $this->service(\App\Setup\StartupData::class)->seed();
         $invoice = InvoiceFactory::createOne();
         $this->loginAs(UserFactory::owner());
@@ -142,6 +143,7 @@ final class InvoiceControllerTest extends FunctionalTestCase
         $paid->setPaymentDue(new \DateTimeImmutable('-1 day'))->markPaid();
         $this->service(EntityManagerInterface::class)->flush();
 
+        $this->useFarm();
         $deadlines = $this->service(\App\Notification\DeadlineNotifications::class);
         $deadlines->generate();
         $deadlines->generate();

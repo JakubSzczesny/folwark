@@ -11,6 +11,7 @@ use App\Ksef\Dto\MetadataPage;
 use App\Ksef\Dto\MetadataQuery;
 use App\Ksef\KsefClient;
 use App\Ksef\KsefException;
+use App\Ksef\KsefIdentity;
 use App\Ksef\KsefRateLimitException;
 use App\Settings\SettingKey;
 use App\Settings\Settings;
@@ -32,6 +33,7 @@ final class HttpKsefClient implements KsefClient
     public function __construct(
         private readonly HttpClientInterface $http,
         private readonly Settings $settings,
+        private readonly KsefIdentity $identity,
         private readonly SecretBox $secrets,
         private readonly KsefTokenEncryptor $encryptor,
         #[Autowire(service: 'cache.app')]
@@ -327,7 +329,7 @@ final class HttpKsefClient implements KsefClient
 
     private function nip(): string
     {
-        $nip = $this->settings->string(SettingKey::KSEF_NIP) ?? $this->settings->string(SettingKey::FARM_NIP);
+        $nip = $this->identity->nip();
         if (null === $nip) {
             throw new KsefException('Uzupełnij NIP gospodarstwa w ustawieniach KSeF.');
         }

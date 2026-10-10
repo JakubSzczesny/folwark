@@ -6,17 +6,23 @@ namespace App\Entity;
 
 use App\Enum\ContractKind;
 use App\Enum\ContractStatus;
+use App\Enum\PaymentFrequency;
+use App\Farm\BelongsToFarm;
+use App\Farm\FarmScoped;
 use App\Repository\ContractRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ORM\Entity(repositoryClass: ContractRepository::class)]
-#[ORM\Index(columns: ['status', 'valid_to'])]
-class Contract implements \Stringable
+#[ORM\Index(columns: ['farm_id', 'status', 'valid_to'])]
+class Contract implements \Stringable, FarmScoped
 {
+    use BelongsToFarm;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -64,6 +70,17 @@ class Contract implements \Stringable
 
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $qualityTerms = null;
+
+    /** Kwota jednej płatności dzierżawy (czynszu). */
+    #[ORM\Column(type: Types::DECIMAL, precision: 14, scale: 2, nullable: true)]
+    #[Assert\PositiveOrZero]
+    private ?string $rentAmount = null;
+
+    #[ORM\Column(length: 12, nullable: true, enumType: PaymentFrequency::class)]
+    private ?PaymentFrequency $paymentFrequency = null;
+
+    #[ORM\Column(type: Types::DATE_IMMUTABLE, nullable: true)]
+    private ?\DateTimeImmutable $firstPaymentDate = null;
 
     #[ORM\Column(length: 12, enumType: ContractStatus::class)]
     private ContractStatus $status = ContractStatus::Active;
@@ -233,6 +250,101 @@ class Contract implements \Stringable
         $this->qualityTerms = $qualityTerms;
 
         return $this;
+    }
+
+    public function getRentAmount(): ?string
+    {
+        return $this->rentAmount;
+    }
+
+    public function setRentAmount(?string $rentAmount): static
+    {
+        $this->rentAmount = $rentAmount;
+
+        return $this;
+    }
+
+    public function getPaymentFrequency(): ?PaymentFrequency
+    {
+        return $this->paymentFrequency;
+    }
+
+    public function setPaymentFrequency(?PaymentFrequency $paymentFrequency): static
+    {
+        $this->paymentFrequency = $paymentFrequency;
+
+        return $this;
+    }
+
+    public function getFirstPaymentDate(): ?\DateTimeImmutable
+    {
+        return $this->firstPaymentDate;
+    }
+
+    public function setFirstPaymentDate(?\DateTimeImmutable $firstPaymentDate): static
+    {
+        $this->firstPaymentDate = $firstPaymentDate;
+
+        return $this;
+    }
+
+    public function isLease(): bool
+    {
+        return ContractKind::Lease === $this->kind;
+    }
+
+    /**
+     * Najbliższy termin płatności dzierżawy (dziś lub później), w okresie obowiązywania umowy.
+     */
+    public function nextPaymentDate(?\DateTimeImmutable $today = null): ?\DateTimeImmutable
+    {
+        if (!$this->isLease() || !$this->isActive() || null === $this->firstPaymentDate || null === $this->paymentFrequency) {
+            return null;
+        }
+
+        $today = ($today ?? new \DateTimeImmutable('today'))->setTime(0, 0);
+        $step = $this->paymentFrequency->months();
+        $day = (int) $this->firstPaymentDate->format('j');
+        $first = $this->firstPaymentDate->setTime(0, 0);
+
+        for ($i = 0; $i < 1200; $i += $step) {
+            $month = $first->modify('first day of this month')->modify(\sprintf('+%d months', $i));
+            $date = $month->setDate((int) $month->format('Y'), (int) $month->format('n'), min($day, (int) $month->format('t')));
+            if (null !== $this->validTo && $date > $this->validTo) {
+                return null;
+            }
+            if ($date >= $today) {
+                return $date;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Suma czynszu w skali roku.
+     */
+    public function yearlyRent(): ?float
+    {
+        if (null === $this->rentAmount || null === $this->paymentFrequency) {
+            return null;
+        }
+
+        return (float) $this->rentAmount * 12 / $this->paymentFrequency->months();
+    }
+
+    #[Assert\Callback]
+    public function validateLease(ExecutionContextInterface $context): void
+    {
+        if (!$this->isLease()) {
+            return;
+        }
+        if (null !== $this->rentAmount && null === $this->paymentFrequency) {
+            $context->buildViolation('Podaj, jak często płacona jest dzierżawa.')->atPath('paymentFrequency')->addViolation();
+        }
+        if (null !== $this->paymentFrequency && null === $this->firstPaymentDate) {
+            $context->buildViolation('Podaj termin pierwszej płatności – od niego liczą się kolejne.')->atPath('firstPaymentDate')->addViolation();
+        }
     }
 
     public function getStatus(): ContractStatus

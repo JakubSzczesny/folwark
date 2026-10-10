@@ -3,7 +3,7 @@
 {% block title %}Moje konto{% endblock %}
 
 {% block content %}
-    <twig:PageHeader title="Moje konto" subtitle="{{ app.user.fullName }} · {{ app.user.email }} · {{ app.user.role.label }}" />
+    <twig:PageHeader title="Moje konto" subtitle="{{ app.user.fullName }} · {{ app.user.email }}{{ current_role() ? ' · ' ~ current_role().label ~ ' w gospodarstwie ' ~ current_farm().name }}" />
 
     <div class="grid gap-6 lg:grid-cols-2">
         <section class="card">
@@ -71,7 +71,7 @@
                     </table>
                 </div>
                 <div class="card-body flex items-center justify-between gap-3 flex-wrap">
-                    <p class="text-sm text-antracyt-500">Powiadomienia trafiają do osób, których dotyczą (np. terminy płatności – do właściciela). Skrót e-mail wysyłany jest codziennie o 6:00, jeśli właściciel włączył go w ustawieniach.</p>
+                    <p class="text-sm text-antracyt-500">Ustawienia dotyczą wszystkich Twoich gospodarstw. Powiadomienia trafiają do osób, których dotyczą (np. terminy płatności – do właściciela). Skrót e-mail wysyłany jest codziennie o 6:00, jeśli właściciel gospodarstwa włączył go w ustawieniach.</p>
                     <button type="submit" class="btn btn-primary">Zapisz</button>
                 </div>
             </form>

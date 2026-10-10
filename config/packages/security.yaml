@@ -16,7 +16,7 @@ security:
 
     firewalls:
         dev:
-            pattern: ^/(_profiler|_wdt|assets|build|media)/
+            pattern: ^/(_profiler|_wdt|assets|build)/
             security: false
         main:
             lazy: true
@@ -28,7 +28,8 @@ security:
                 username_parameter: email
                 password_parameter: password
                 enable_csrf: true
-                default_target_path: app_dashboard
+                default_target_path: app_farm_index
+                always_use_default_target_path: true
             custom_authenticators:
                 - App\Security\PinAuthenticator
             entry_point: form_login
@@ -47,7 +48,7 @@ security:
     access_control:
         - { path: ^/logowanie, roles: PUBLIC_ACCESS }
         - { path: ^/pin, roles: PUBLIC_ACCESS }
-        - { path: ^/ustawienia, roles: ROLE_OWNER }
+        - { path: ^/rejestracja, roles: PUBLIC_ACCESS }
         - { path: ^/, roles: ROLE_USER }
 
 when@test:

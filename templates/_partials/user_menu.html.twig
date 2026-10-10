@@ -1,0 +1,18 @@
+<div class="relative" data-controller="dropdown" data-action="keydown@window->dropdown#hideOnEscape">
+    <button type="button" class="flex items-center gap-2 rounded-ui px-2 hover:bg-szary-100" style="min-height:40px" data-dropdown-target="button" data-action="dropdown#toggle" aria-haspopup="true" aria-expanded="false" aria-label="Menu użytkownika">
+        <span class="inline-flex items-center justify-center rounded-full bg-szary-100 text-sm font-semibold text-antracyt-700" style="width:32px;height:32px">{{ app.user.initials }}</span>
+        <span class="hidden lg:block text-left leading-tight">
+            <span class="block text-sm font-semibold">{{ app.user.fullName }}</span>
+            {% if current_role() %}<span class="block text-xs text-antracyt-500">{{ current_role().label }}</span>{% endif %}
+        </span>
+        <span class="hidden lg:block text-antracyt-500">{{ ux_icon('lucide:chevron-down') }}</span>
+    </button>
+    <div data-dropdown-target="menu" class="dropdown right-0 w-56 py-1" hidden>
+        <div class="px-3 py-2 lg:hidden border-b border-szary-200 mb-1">
+            <div class="text-sm font-semibold">{{ app.user.fullName }}</div>
+            {% if current_role() %}<div class="text-xs text-antracyt-500">{{ current_role().label }}</div>{% endif %}
+        </div>
+        <a href="{{ path('app_account') }}" class="dropdown-item">{{ ux_icon('lucide:circle-user') }} Moje konto</a>
+        <a href="{{ logout_path('main') }}" class="dropdown-item" data-turbo="false">{{ ux_icon('lucide:log-out') }} Wyloguj</a>
+    </div>
+</div>

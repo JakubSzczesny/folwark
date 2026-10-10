@@ -43,6 +43,7 @@ class KsefSynchronizer
         private readonly KsefClient $client,
         private readonly InvoiceImporter $importer,
         private readonly Settings $settings,
+        private readonly KsefIdentity $identity,
         private readonly EntityManagerInterface $em,
         private readonly KsefSyncRepository $syncs,
         private readonly Notifier $notifier,
@@ -58,7 +59,7 @@ class KsefSynchronizer
 
     public function isConfigured(): bool
     {
-        return null !== ($this->settings->string(SettingKey::KSEF_NIP) ?? $this->settings->string(SettingKey::FARM_NIP));
+        return null !== $this->identity->nip();
     }
 
     /**
@@ -236,8 +237,9 @@ class KsefSynchronizer
         }
 
         foreach ($invoices as $invoice) {
-            if ($invoice->isCost() && null !== $invoice->getId()) {
-                $this->bus->dispatch(new FetchInvoiceXml($invoice->getId()));
+            $farmId = $invoice->getFarm()?->getId();
+            if ($invoice->isCost() && null !== $invoice->getId() && null !== $farmId) {
+                $this->bus->dispatch(new FetchInvoiceXml($invoice->getId(), $farmId));
             }
         }
     }

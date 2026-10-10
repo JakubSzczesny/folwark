@@ -26,6 +26,7 @@ final class ContractorFactory extends PersistentObjectFactory
             'city' => self::faker()->city(),
             'kind' => ContractorKind::Supplier,
             'active' => true,
+            'farm' => FarmFactory::testFarm(),
         ];
     }
 }

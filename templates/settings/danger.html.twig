@@ -1,0 +1,37 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Strefa niebezpieczna{% endblock %}
+{% block active_menu %}settings{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="Strefa niebezpieczna" subtitle="Operacji poniżej nie da się cofnąć." back="{{ path('app_settings') }}" />
+
+    <div class="space-y-6 max-w-3xl">
+        <section class="card card-body border-blad">
+            <h2 class="card-title text-blad mb-1">Wyczyść wszystkie dane gospodarstwa</h2>
+            <p class="text-sm mb-3">Usuwa faktury, kontrahentów, umowy, reguły, słowniki, ustawienia (także token KSeF), powiadomienia, dziennik zdarzeń i zapisane pliki. Słowniki startowe tworzą się od nowa. Gospodarstwo i jego członkowie zostają.</p>
+            <p class="text-sm text-antracyt-500 mb-4">Przydatne np. po próbach na środowisku testowym KSeF – zmiana środowiska w ustawieniach nie usuwa pobranych wcześniej faktur.</p>
+            <form method="post" action="{{ path('app_settings_danger_wipe') }}" class="flex flex-col gap-3 sm:flex-row sm:items-end" data-turbo-confirm="Na pewno wyczyścić wszystkie dane gospodarstwa „{{ farm.name }}”?">
+                <input type="hidden" name="_token" value="{{ csrf_token('danger-wipe') }}">
+                <div class="field flex-1 mb-0">
+                    <label class="label" for="wipe-confirm">Wpisz nazwę gospodarstwa: <span class="font-normal">{{ farm.name }}</span></label>
+                    <input id="wipe-confirm" name="confirm" class="input" autocomplete="off" required>
+                </div>
+                <button type="submit" class="btn btn-danger">Wyczyść dane</button>
+            </form>
+        </section>
+
+        <section class="card card-body border-blad">
+            <h2 class="card-title text-blad mb-1">Usuń gospodarstwo</h2>
+            <p class="text-sm mb-4">Usuwa gospodarstwo razem ze wszystkimi danymi i dostępem wszystkich członków. Konta użytkowników zostają.</p>
+            <form method="post" action="{{ path('app_settings_danger_delete') }}" class="flex flex-col gap-3 sm:flex-row sm:items-end" data-turbo-confirm="Na pewno usunąć gospodarstwo „{{ farm.name }}”?">
+                <input type="hidden" name="_token" value="{{ csrf_token('danger-delete') }}">
+                <div class="field flex-1 mb-0">
+                    <label class="label" for="delete-confirm">Wpisz nazwę gospodarstwa: <span class="font-normal">{{ farm.name }}</span></label>
+                    <input id="delete-confirm" name="confirm" class="input" autocomplete="off" required>
+                </div>
+                <button type="submit" class="btn btn-danger">Usuń gospodarstwo</button>
+            </form>
+        </section>
+    </div>
+{% endblock %}

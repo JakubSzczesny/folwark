@@ -43,7 +43,8 @@ class InvoiceXmlService
         $xml = $this->ksef->downloadInvoice($invoice->getKsefNumber());
         $parsed = $this->parser->parse($xml);
 
-        $path = \sprintf('ksef/%s/%s.xml', $invoice->getIssueDate()->format('Y/m'), $invoice->getKsefNumber());
+        $farm = $invoice->getFarm() ?? throw new \LogicException('Faktura bez gospodarstwa.');
+        $path = \sprintf('%s/ksef/%s/%s.xml', FileStorage::farmDirectory($farm), $invoice->getIssueDate()->format('Y/m'), $invoice->getKsefNumber());
         $this->storage->write($path, $xml);
         $invoice->setXml($path);
         $this->parsed[$invoice->getKsefNumber()] = $parsed;

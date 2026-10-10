@@ -1,0 +1,45 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Gospodarstwa{% endblock %}
+
+{% block content %}
+    <div class="mb-6">
+        <h1 class="page-title">Witaj, {{ app.user.fullName }}</h1>
+        <p class="page-subtitle">Wybierz gospodarstwo, w którym chcesz pracować.</p>
+    </div>
+
+    <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {% for membership in memberships %}
+            {% set farm = membership.farm %}
+            {% set is_current = current and current.id == farm.id %}
+            <form method="post" action="{{ path('app_farm_select', {id: farm.id}) }}" data-turbo="false">
+                <input type="hidden" name="_token" value="{{ csrf_token('farm-select') }}">
+                <button type="submit" class="card card-body w-full h-full text-left flex flex-col gap-4 hover:border-zielen-600 focus-visible:border-zielen-600 {{ is_current or (not current and app.user.lastFarm and app.user.lastFarm.id == farm.id) ? 'border-zielen-600' }}" style="min-height:150px">
+                    <span class="flex items-start gap-3">
+                        <span class="inline-flex items-center justify-center rounded-ui bg-[#2E5A3C] text-[#F0EBDC] text-xl font-semibold shrink-0" style="width:48px;height:48px">{{ farm.initial }}</span>
+                        <span class="min-w-0">
+                            <span class="block font-semibold text-base leading-snug">{{ farm.name }}</span>
+                            <span class="block text-sm text-antracyt-500">{{ farm.nip ? 'NIP ' ~ farm.nip : 'bez NIP' }}</span>
+                        </span>
+                    </span>
+                    <span class="mt-auto flex items-center justify-between gap-2 text-sm">
+                        <twig:Badge tone="{{ membership.owner ? 'positive' : 'neutral' }}">{{ membership.role.label }}</twig:Badge>
+                        <span class="text-antracyt-500">{{ member_counts[farm.id] ?? 1 }} {{ (member_counts[farm.id] ?? 1)|plural('osoba', 'osoby', 'osób') }}</span>
+                    </span>
+                    {% if is_current %}<span class="text-xs font-semibold text-zielen-700">Bieżące gospodarstwo</span>{% endif %}
+                </button>
+            </form>
+        {% endfor %}
+
+        <a href="{{ path('app_farm_new') }}" class="card card-body flex flex-col items-center justify-center gap-2 border-dashed text-antracyt-500 hover:border-zielen-600 hover:text-zielen-700" style="min-height:150px">
+            <span class="inline-flex items-center justify-center rounded-ui border border-dashed border-current" style="width:48px;height:48px">{{ ux_icon('lucide:plus', {width: 22, height: 22}) }}</span>
+            <span class="font-semibold">Nowe gospodarstwo</span>
+        </a>
+    </div>
+
+    {% if memberships is empty %}
+        <div class="alert alert-info mt-6">
+            Nie masz jeszcze dostępu do żadnego gospodarstwa. Utwórz własne albo poproś właściciela istniejącego gospodarstwa, żeby dodał Cię w Ustawieniach – wystarczy mu Twój e-mail: <strong>{{ app.user.email }}</strong>.
+        </div>
+    {% endif %}
+{% endblock %}

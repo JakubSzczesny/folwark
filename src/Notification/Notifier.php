@@ -8,23 +8,25 @@ use App\Entity\Notification;
 use App\Entity\User;
 use App\Enum\NotificationPriority;
 use App\Enum\NotificationType;
+use App\Farm\FarmContext;
+use App\Repository\FarmMembershipRepository;
 use App\Repository\NotificationPreferenceRepository;
 use App\Repository\NotificationRepository;
-use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManagerInterface;
 
 class Notifier
 {
     public function __construct(
         private readonly EntityManagerInterface $em,
-        private readonly UserRepository $users,
+        private readonly FarmMembershipRepository $memberships,
+        private readonly FarmContext $context,
         private readonly NotificationRepository $notifications,
         private readonly NotificationPreferenceRepository $preferences,
     ) {
     }
 
     /**
-     * Tworzy powiadomienie dla domyślnych odbiorców typu (lub podanych użytkowników).
+     * Tworzy powiadomienie w bieżącym gospodarstwie dla domyślnych odbiorców typu (lub podanych użytkowników).
      * Klucz deduplikacji sprawia, że to samo zdarzenie nie trafia do użytkownika drugi raz.
      *
      * @param list<User>|null $recipients
@@ -40,7 +42,12 @@ class Notifier
         ?string $dedupKey = null,
         ?array $recipients = null,
     ): int {
-        $recipients ??= $this->users->findActiveByRoles($type->defaultRecipients());
+        $farm = $this->context->getFarm();
+        if (null === $farm) {
+            throw new \LogicException('Powiadomienia tworzy się w kontekście gospodarstwa.');
+        }
+
+        $recipients ??= $this->memberships->findActiveUsers($farm, $type->defaultRecipients());
         $disabled = $this->preferences->findDisabledUserIds($type);
         $created = 0;
 

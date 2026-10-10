@@ -6,15 +6,18 @@ namespace App\Controller\Admin;
 
 use App\Entity\CostCenter;
 use App\Enum\CostCenterType;
+use App\Security\Permission;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Crud;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractCrudController;
 use EasyCorp\Bundle\EasyAdminBundle\Field\BooleanField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\ChoiceField;
 use EasyCorp\Bundle\EasyAdminBundle\Field\TextField;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
  * @extends AbstractCrudController<CostCenter>
  */
+#[IsGranted(Permission::SETTINGS)]
 final class CostCenterCrudController extends AbstractCrudController
 {
     public static function getEntityFqcn(): string

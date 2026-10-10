@@ -9,6 +9,7 @@ use App\Entity\NotificationPreference;
 use App\Enum\NotificationPriority;
 use App\Enum\NotificationType;
 use App\Notification\Notifier;
+use App\Tests\Factory\FarmFactory;
 use App\Tests\Factory\UserFactory;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -19,12 +20,14 @@ final class NotificationTest extends FunctionalTestCase
         $owner = UserFactory::owner();
         $accountant = UserFactory::accountant();
         UserFactory::worker();
+        UserFactory::owner(FarmFactory::createOne());
+        $this->useFarm();
 
         $notifier = $this->service(Notifier::class);
         $created = $notifier->notify(NotificationType::NewInvoices, NotificationPriority::Info, '3 nowe faktury kosztowe', dedupKey: 'sync:1');
         $again = $notifier->notify(NotificationType::NewInvoices, NotificationPriority::Info, '3 nowe faktury kosztowe', dedupKey: 'sync:1');
 
-        self::assertSame(2, $created);
+        self::assertSame(2, $created, 'Właściciel i księgowa tego gospodarstwa – nie właściciel innego');
         self::assertSame(0, $again);
 
         $repo = $this->service(EntityManagerInterface::class)->getRepository(Notification::class);
@@ -38,6 +41,7 @@ final class NotificationTest extends FunctionalTestCase
         $em = $this->service(EntityManagerInterface::class);
         $em->persist(new NotificationPreference($owner, NotificationType::PaymentDue, enabled: false));
         $em->flush();
+        $this->useFarm();
 
         $created = $this->service(Notifier::class)->notify(NotificationType::PaymentDue, NotificationPriority::Warning, 'Termin płatności');
 
@@ -47,6 +51,7 @@ final class NotificationTest extends FunctionalTestCase
     public function testBellAndOpeningMarksAsRead(): void
     {
         $owner = UserFactory::owner();
+        $this->useFarm();
         $this->service(Notifier::class)->notify(NotificationType::KsefError, NotificationPriority::Urgent, 'Błąd synchronizacji KSeF', link: '/waga');
 
         $this->loginAs($owner);

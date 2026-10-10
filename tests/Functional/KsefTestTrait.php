@@ -4,26 +4,30 @@ declare(strict_types=1);
 
 namespace App\Tests\Functional;
 
+use App\Entity\Farm;
+use App\Farm\FarmContext;
 use App\Ksef\Fake\Fa3Builder;
 use App\Ksef\Fake\FakeKsefClient;
 use App\Ksef\KsefSynchronizer;
 use App\Settings\SettingKey;
 use App\Settings\Settings;
+use App\Tests\Factory\FarmFactory;
 
 /**
  * Wspólne kroki testów z symulatorem KSeF.
  */
 trait KsefTestTrait
 {
-    protected const string FARM_NIP = '5841000001';
+    protected const string FARM_NIP = FarmFactory::TEST_NIP;
     protected const string SUPPLIER_NIP = '7311000000';
 
-    protected function configureFarm(): void
+    protected function configureFarm(): Farm
     {
-        $settings = static::getContainer()->get(Settings::class);
-        $settings->set(SettingKey::FARM_NIP, self::FARM_NIP, false);
-        $settings->set(SettingKey::FARM_NAME, 'Gospodarstwo testowe', false);
-        $settings->set(SettingKey::KSEF_SYNC_FROM, '2026-01-01');
+        $farm = FarmFactory::testFarm();
+        static::getContainer()->get(FarmContext::class)->set($farm);
+        static::getContainer()->get(Settings::class)->set(SettingKey::KSEF_SYNC_FROM, '2026-01-01');
+
+        return $farm;
     }
 
     protected function fakeKsef(): FakeKsefClient

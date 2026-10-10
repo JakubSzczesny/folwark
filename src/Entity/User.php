@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
-use App\Enum\UserRole;
 use App\Repository\UserRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
@@ -32,9 +31,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[Assert\NotBlank]
     private string $fullName = '';
 
-    #[ORM\Column(enumType: UserRole::class, length: 20)]
-    private UserRole $role = UserRole::Worker;
-
     #[ORM\Column]
     private string $password = '';
 
@@ -46,6 +42,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $lastLoginAt = null;
+
+    #[ORM\ManyToOne(targetEntity: Farm::class)]
+    #[ORM\JoinColumn(onDelete: 'SET NULL')]
+    private ?Farm $lastFarm = null;
 
     public function __construct()
     {
@@ -81,18 +81,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getRole(): UserRole
-    {
-        return $this->role;
-    }
-
-    public function setRole(UserRole $role): static
-    {
-        $this->role = $role;
-
-        return $this;
-    }
-
     public function getUserIdentifier(): string
     {
         \assert('' !== $this->email);
@@ -102,7 +90,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function getRoles(): array
     {
-        return [$this->role->value];
+        return ['ROLE_USER'];
     }
 
     public function getPassword(): string
@@ -142,6 +130,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setLastLoginAt(?\DateTimeImmutable $lastLoginAt): static
     {
         $this->lastLoginAt = $lastLoginAt;
+
+        return $this;
+    }
+
+    public function getLastFarm(): ?Farm
+    {
+        return $this->lastFarm;
+    }
+
+    public function setLastFarm(?Farm $farm): static
+    {
+        $this->lastFarm = $farm;
 
         return $this;
     }

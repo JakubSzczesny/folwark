@@ -4,11 +4,11 @@
 {% block active_menu %}settings{% endblock %}
 
 {% block content %}
-    <twig:PageHeader title="Ustawienia" />
+    <twig:PageHeader title="Ustawienia" subtitle="{{ current_farm().name }}" />
     <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {% for section in sections %}
-            <a href="{{ section.url }}" class="card card-body block text-tekst hover:border-zielen-600 hover:text-tekst">
-                <span class="flex items-center justify-between gap-2 font-semibold">{{ section.title }} {{ ux_icon('lucide:chevron-right') }}</span>
+            <a href="{{ section.url }}" class="card card-body block text-tekst hover:text-tekst {{ section.danger|default(false) ? 'hover:border-blad' : 'hover:border-zielen-600' }}">
+                <span class="flex items-center justify-between gap-2 font-semibold {{ section.danger|default(false) ? 'text-blad' }}">{{ section.title }} {{ ux_icon('lucide:chevron-right') }}</span>
                 <span class="block mt-1 text-sm text-antracyt-500">{{ section.text }}</span>
             </a>
         {% endfor %}

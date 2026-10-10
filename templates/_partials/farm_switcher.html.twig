@@ -1,0 +1,29 @@
+{% set farm = current_farm() %}
+<div class="relative" data-controller="dropdown" data-action="keydown@window->dropdown#hideOnEscape">
+    <button type="button" class="flex items-center gap-2 rounded-ui border border-szary-200 bg-white px-2 hover:bg-szary-100 max-w-[44vw] md:max-w-[260px]" style="min-height:40px" data-dropdown-target="button" data-action="dropdown#toggle" aria-haspopup="true" aria-expanded="false" title="Zmień gospodarstwo">
+        <span class="inline-flex items-center justify-center rounded bg-[#2E5A3C] text-[#F0EBDC] text-xs font-semibold shrink-0" style="width:24px;height:24px">{{ farm ? farm.initial : '?' }}</span>
+        <span class="truncate text-sm font-semibold">{{ farm ? farm.name : 'Wybierz gospodarstwo' }}</span>
+        <span class="text-antracyt-500 shrink-0">{{ ux_icon('lucide:chevrons-up-down', {width: 16, height: 16}) }}</span>
+    </button>
+    <div data-dropdown-target="menu" class="dropdown right-0 w-72 py-1" hidden>
+        <div class="px-3 pt-2 pb-1 text-xs font-semibold uppercase tracking-wide text-antracyt-500">Twoje gospodarstwa</div>
+        {% for membership in user_memberships() %}
+            <form method="post" action="{{ path('app_farm_select', {id: membership.farm.id}) }}" data-turbo="false">
+                <input type="hidden" name="_token" value="{{ csrf_token('farm-select') }}">
+                <button type="submit" class="dropdown-item w-full text-left {{ farm and farm.id == membership.farm.id ? 'font-semibold' }}">
+                    <span class="inline-flex items-center justify-center rounded bg-szary-100 text-xs font-semibold shrink-0" style="width:24px;height:24px">{{ membership.farm.initial }}</span>
+                    <span class="flex-1 min-w-0">
+                        <span class="block truncate">{{ membership.farm.name }}</span>
+                        <span class="block text-xs text-antracyt-500 font-normal">{{ membership.role.label }}</span>
+                    </span>
+                    {% if farm and farm.id == membership.farm.id %}<span class="text-zielen-600">{{ ux_icon('lucide:check') }}</span>{% endif %}
+                </button>
+            </form>
+        {% else %}
+            <p class="px-3 py-2 text-sm text-antracyt-500">Nie należysz jeszcze do żadnego gospodarstwa.</p>
+        {% endfor %}
+        <hr class="my-1 border-szary-200">
+        <a href="{{ path('app_farm_index') }}" class="dropdown-item">{{ ux_icon('lucide:layout-grid') }} Wszystkie gospodarstwa</a>
+        <a href="{{ path('app_farm_new') }}" class="dropdown-item">{{ ux_icon('lucide:plus') }} Nowe gospodarstwo</a>
+    </div>
+</div>

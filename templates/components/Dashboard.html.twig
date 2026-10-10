@@ -31,16 +31,5 @@
 
     {% block below %}{% endblock %}
 
-    {% set weighbridge = this.weighbridgeProgress %}
-    {% if weighbridge.total > 0 and weighbridge.done < weighbridge.total %}
-        <section class="card card-body mb-6">
-            <div class="flex items-center justify-between gap-3 mb-2">
-                <h2 class="card-title">Moduł wagi w przygotowaniu</h2>
-                <a href="{{ path('app_weighbridge') }}" class="text-sm">Lista do zrobienia</a>
-            </div>
-            <twig:Progress value="{{ weighbridge.done }}" max="{{ weighbridge.total }}" caption="{{ weighbridge.done }} / {{ weighbridge.total }}" />
-        </section>
-    {% endif %}
-
     <p class="text-xs text-antracyt-500">Odświeżono {{ this.refreshedAt|date('H:i:s') }}</p>
 </div>

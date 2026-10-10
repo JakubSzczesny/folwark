@@ -1,22 +1,21 @@
 {% extends 'base.html.twig' %}
 
-{% set menu = app_menu() %}
+{% set farm = current_farm() %}
+{% set menu = farm ? app_menu() : [] %}
 {% set active_menu = block('active_menu') is defined ? block('active_menu')|trim : '' %}
 {% set collapsed = app.request.cookies.get('sidebar') == 'collapsed' %}
 
 {% block body %}
+{% if farm %}
 <div data-controller="sidebar" class="{{ collapsed ? 'is-collapsed' }}" data-action="keydown@window->sidebar#closeOnEscape">
     <div data-sidebar-target="backdrop" class="fixed inset-0 z-40 bg-antracyt-900/50 lg:hidden" data-action="click->sidebar#close" hidden></div>
 
     <aside data-sidebar-target="drawer" class="app-sidebar" aria-label="Menu główne">
         <div class="flex items-center justify-between gap-2 px-3" style="height: 56px">
-            <a href="{{ path('app_dashboard') }}" class="flex items-center gap-2 text-white hover:text-white font-semibold">
-                <span class="inline-flex items-center justify-center rounded-ui bg-zielen-600 text-white shrink-0" style="width:32px;height:32px">F</span>
-                <span class="sidebar-label">Folwark</span>
+            <a href="{{ path('app_dashboard') }}" class="flex items-center gap-2 text-white hover:text-white font-semibold min-w-0">
+                <twig:Logo size="32" />
+                <span class="sidebar-label truncate">Folwark</span>
             </a>
-            <button type="button" class="btn-ghost rounded-ui p-2 text-antracyt-300 hover:text-white hover:bg-antracyt-700 hidden lg:inline-flex sidebar-label" data-action="sidebar#toggleCollapsed" title="Zwiń menu" aria-label="Zwiń menu">
-                {{ ux_icon('lucide:panel-left-close') }}
-            </button>
             <button type="button" class="rounded-ui p-2 text-antracyt-300 hover:text-white hover:bg-antracyt-700 lg:hidden" data-action="sidebar#close" aria-label="Zamknij menu">
                 {{ ux_icon('lucide:x') }}
             </button>
@@ -53,9 +52,9 @@
             </button>
 
             <div class="flex-1 min-w-0" data-controller="search" data-search-url-value="{{ path('app_search') }}" data-action="keydown@window->search#shortcut">
-                <button type="button" class="flex items-center gap-2 w-full max-w-md rounded-ui border border-szary-200 bg-szary-50 px-3 text-sm text-antracyt-500 hover:border-antracyt-300" style="min-height:40px" data-action="search#open">
+                <button type="button" class="flex items-center gap-2 w-full max-w-md rounded-ui border border-szary-200 bg-szary-50 px-3 text-sm text-antracyt-500 hover:border-antracyt-300" style="min-height:40px" data-action="search#open" aria-label="Szukaj">
                     {{ ux_icon('lucide:search') }}
-                    <span class="flex-1 text-left truncate">Szukaj faktur, kontrahentów, maszyn…</span>
+                    <span class="flex-1 text-left truncate hidden sm:block">Szukaj faktur, kontrahentów, maszyn…</span>
                     <span class="kbd hidden md:inline-flex">Ctrl K</span>
                 </button>
 
@@ -71,6 +70,8 @@
                 </dialog>
             </div>
 
+            {{ include('_partials/farm_switcher.html.twig') }}
+
             {% set unread = menu|filter(i => i.key == 'notifications')|first.badge|default(0) %}
             <div class="relative" data-controller="dropdown" data-action="keydown@window->dropdown#hideOnEscape">
                 <button type="button" class="btn btn-ghost btn-icon relative" data-dropdown-target="button" data-action="dropdown#toggle" aria-haspopup="true" aria-expanded="false" aria-label="Powiadomienia{% if unread > 0 %}, nieprzeczytane: {{ unread }}{% endif %}">
@@ -84,33 +85,11 @@
                 </div>
             </div>
 
-            <div class="relative" data-controller="dropdown" data-action="keydown@window->dropdown#hideOnEscape">
-                <button type="button" class="flex items-center gap-2 rounded-ui px-2 hover:bg-szary-100" style="min-height:40px" data-dropdown-target="button" data-action="dropdown#toggle" aria-haspopup="true" aria-expanded="false">
-                    <span class="inline-flex items-center justify-center rounded-full bg-szary-100 text-sm font-semibold text-antracyt-700" style="width:32px;height:32px">{{ app.user.initials }}</span>
-                    <span class="hidden md:block text-left leading-tight">
-                        <span class="block text-sm font-semibold">{{ app.user.fullName }}</span>
-                        <span class="block text-xs text-antracyt-500">{{ app.user.role.label }}</span>
-                    </span>
-                    <span class="hidden md:block text-antracyt-500">{{ ux_icon('lucide:chevron-down') }}</span>
-                </button>
-                <div data-dropdown-target="menu" class="dropdown right-0 w-56 py-1" hidden>
-                    <div class="px-3 py-2 md:hidden border-b border-szary-200 mb-1">
-                        <div class="text-sm font-semibold">{{ app.user.fullName }}</div>
-                        <div class="text-xs text-antracyt-500">{{ app.user.role.label }}</div>
-                    </div>
-                    <a href="{{ path('app_account') }}" class="dropdown-item">{{ ux_icon('lucide:circle-user') }} Moje konto</a>
-                    <a href="{{ logout_path('main') }}" class="dropdown-item" data-turbo="false">{{ ux_icon('lucide:log-out') }} Wyloguj</a>
-                </div>
-            </div>
+            {{ include('_partials/user_menu.html.twig') }}
         </header>
 
         <main class="app-content" id="main">
-            {% for type, messages in app.flashes %}
-                {% for message in messages %}
-                    <div class="alert alert-{{ type == 'error' ? 'danger' : type }} mb-4" role="status">{{ message }}</div>
-                {% endfor %}
-            {% endfor %}
-
+            {{ include('_partials/flashes.html.twig') }}
             {% block content %}{% endblock %}
         </main>
     </div>
@@ -131,4 +110,21 @@
         <turbo-frame id="modal" data-modal-target="frame"></turbo-frame>
     </dialog>
 </div>
+{% else %}
+<div class="min-h-screen flex flex-col">
+    <header class="app-topbar">
+        <a href="{{ path('app_farm_index') }}" class="flex items-center gap-2 font-semibold text-tekst hover:text-tekst">
+            <twig:Logo size="32" />
+            <span>Folwark</span>
+        </a>
+        <span class="flex-1"></span>
+        {% if user_memberships() is not empty %}{{ include('_partials/farm_switcher.html.twig') }}{% endif %}
+        {{ include('_partials/user_menu.html.twig') }}
+    </header>
+    <main class="flex-1 w-full max-w-5xl mx-auto p-4 md:p-8" id="main">
+        {{ include('_partials/flashes.html.twig') }}
+        {% block content_without_farm %}{{ block('content') }}{% endblock %}
+    </main>
+</div>
+{% endif %}
 {% endblock %}

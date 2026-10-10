@@ -7,7 +7,6 @@ namespace App\Tests\Functional;
 use App\Entity\User;
 use App\Enum\UserRole;
 use App\Tests\Factory\UserFactory;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\PasswordHasher\Hasher\UserPasswordHasherInterface;
 
 final class SecurityTest extends FunctionalTestCase
@@ -19,16 +18,17 @@ final class SecurityTest extends FunctionalTestCase
         self::assertResponseRedirects('/logowanie');
     }
 
-    public function testLoginWithEmailAndPassword(): void
+    public function testLoginLeadsToFarmPicker(): void
     {
-        $user = UserFactory::createOne(['email' => 'jan@folwark.test', 'role' => UserRole::Owner, 'password' => $this->hash('tajne-haslo-123')]);
+        $user = UserFactory::member(UserRole::Owner, null, ['email' => 'jan@folwark.test', 'password' => $this->hash('tajne-haslo-123')]);
 
         $this->client->request('GET', '/logowanie');
         $this->client->submitForm('Zaloguj', ['email' => 'jan@folwark.test', 'password' => 'tajne-haslo-123']);
 
-        self::assertResponseRedirects('/');
+        self::assertResponseRedirects('/gospodarstwa');
         $this->client->followRedirect();
-        self::assertSelectorTextContains('h1', 'Pulpit');
+        self::assertSelectorTextContains('h1', 'Witaj, '.$user->getFullName());
+        self::assertSelectorTextContains('main', 'Gospodarstwo testowe');
         self::assertNotNull(UserFactory::repository()->find($user->getId())?->getLastLoginAt());
     }
 
@@ -69,49 +69,40 @@ final class SecurityTest extends FunctionalTestCase
 
         $crawler = $this->client->request('GET', '/logowanie');
         $this->client->submit($crawler->selectButton('Zaloguj')->form(['pin' => '4321']));
-        self::assertResponseRedirects('/');
+        self::assertResponseRedirects('/gospodarstwa');
     }
 
-    public function testRoleRestrictions(): void
+    public function testRoleRestrictionsFollowFarmRole(): void
     {
         $this->loginAs(UserFactory::worker());
         $this->client->request('GET', '/ustawienia');
         self::assertResponseStatusCodeSame(403);
 
+        $this->client->request('GET', '/ustawienia/slowniki');
+        self::assertResponseStatusCodeSame(403);
+
         $this->client->request('GET', '/waga');
         self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('main', 'RHEWA 82c');
     }
 
-    public function testOwnerCannotRemoveLastOwner(): void
+    public function testRegistrationCreatesAccountWithoutFarm(): void
     {
-        $owner = UserFactory::owner();
-        $this->loginAs($owner);
-
-        $this->client->request('GET', '/ustawienia/uzytkownicy/'.$owner->getId());
-        $this->client->submitForm('Zapisz', ['user[role]' => UserRole::Worker->value]);
-
-        self::assertResponseStatusCodeSame(422);
-        self::assertSelectorTextContains('.form-error', 'co najmniej jeden aktywny właściciel');
-        $this->service(EntityManagerInterface::class)->clear();
-        self::assertSame(UserRole::Owner, UserFactory::repository()->find($owner->getId())?->getRole());
-    }
-
-    public function testOwnerCreatesUser(): void
-    {
-        $this->loginAs(UserFactory::owner());
-
-        $this->client->request('GET', '/ustawienia/uzytkownicy/nowy');
-        $this->client->submitForm('Zapisz', [
-            'user[fullName]' => 'Maria Księgowa',
-            'user[email]' => 'Maria@Folwark.test',
-            'user[role]' => UserRole::Accountant->value,
-            'user[plainPassword]' => 'bezpieczne-haslo',
+        $this->client->request('GET', '/rejestracja');
+        $this->client->submitForm('Załóż konto', [
+            'registration[fullName]' => 'Maria Nowa',
+            'registration[email]' => 'Maria@Folwark.test',
+            'registration[plainPassword][first]' => 'bezpieczne-haslo',
+            'registration[plainPassword][second]' => 'bezpieczne-haslo',
         ]);
 
-        self::assertResponseRedirects('/ustawienia/uzytkownicy');
-        $created = UserFactory::repository()->findOneBy(['email' => 'maria@folwark.test']);
-        self::assertInstanceOf(User::class, $created);
-        self::assertSame(UserRole::Accountant, $created->getRole());
+        self::assertResponseRedirects('/gospodarstwa');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'Nie masz jeszcze dostępu do żadnego gospodarstwa');
+        self::assertSelectorTextContains('main', 'maria@folwark.test');
+
+        $this->client->request('GET', '/faktury');
+        self::assertResponseRedirects('/gospodarstwa', null, 'Bez gospodarstwa strony modułów prowadzą do wyboru gospodarstwa');
     }
 
     private function hash(string $password): string

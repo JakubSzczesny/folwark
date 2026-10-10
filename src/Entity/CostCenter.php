@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace App\Entity;
 
 use App\Enum\CostCenterType;
+use App\Farm\BelongsToFarm;
+use App\Farm\FarmScoped;
 use App\Repository\CostCenterRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: CostCenterRepository::class)]
-class CostCenter implements \Stringable
+class CostCenter implements \Stringable, FarmScoped
 {
+    use BelongsToFarm;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

@@ -4,14 +4,18 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Farm\BelongsToFarm;
+use App\Farm\FarmScoped;
 use App\Repository\RecentChoiceRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: RecentChoiceRepository::class)]
-#[ORM\UniqueConstraint(columns: ['user_id', 'kind', 'entity_id'])]
-class RecentChoice
+#[ORM\UniqueConstraint(columns: ['user_id', 'farm_id', 'kind', 'entity_id'])]
+class RecentChoice implements FarmScoped
 {
+    use BelongsToFarm;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

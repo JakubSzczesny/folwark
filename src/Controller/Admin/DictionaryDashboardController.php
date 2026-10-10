@@ -7,6 +7,7 @@ namespace App\Controller\Admin;
 use App\Entity\CostCategory;
 use App\Entity\CostCenter;
 use App\Entity\Unit;
+use App\Security\Permission;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Assets;
 use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
@@ -14,11 +15,13 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 /**
  * Proste słowniki edytowane przez EasyAdmin. Ekrany główne aplikacji są budowane ręcznie.
  */
 #[AdminDashboard(routePath: '/ustawienia/slowniki', routeName: 'admin')]
+#[IsGranted(Permission::SETTINGS)]
 final class DictionaryDashboardController extends AbstractDashboardController
 {
     public function __construct(

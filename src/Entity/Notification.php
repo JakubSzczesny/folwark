@@ -6,15 +6,19 @@ namespace App\Entity;
 
 use App\Enum\NotificationPriority;
 use App\Enum\NotificationType;
+use App\Farm\BelongsToFarm;
+use App\Farm\FarmScoped;
 use App\Repository\NotificationRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: NotificationRepository::class)]
-#[ORM\UniqueConstraint(columns: ['user_id', 'dedup_key'])]
+#[ORM\UniqueConstraint(columns: ['farm_id', 'user_id', 'dedup_key'])]
 #[ORM\Index(columns: ['user_id', 'read_at'])]
-class Notification
+class Notification implements FarmScoped
 {
+    use BelongsToFarm;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]

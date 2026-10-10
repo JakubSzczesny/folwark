@@ -13,6 +13,7 @@ use App\Entity\Notification;
 use App\Enum\InvoiceKind;
 use App\Enum\InvoiceStatus;
 use App\Enum\NotificationType;
+use App\Tests\Factory\FarmFactory;
 use App\Tests\Factory\UserFactory;
 use Doctrine\ORM\EntityManagerInterface;
 
@@ -154,9 +155,9 @@ final class KsefSyncTest extends FunctionalTestCase
 
     public function testErrorIsRecordedAndNotified(): void
     {
-        $owner = UserFactory::owner();
-        $settings = static::getContainer()->get(\App\Settings\Settings::class);
-        $settings->set(\App\Settings\SettingKey::FARM_NIP, null);
+        $farm = FarmFactory::createOne(['nip' => null]);
+        $owner = UserFactory::owner($farm);
+        $this->useFarm($farm);
 
         $this->syncKsef();
 

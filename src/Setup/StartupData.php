@@ -7,41 +7,15 @@ namespace App\Setup;
 use App\Entity\CostCategory;
 use App\Entity\CostCenter;
 use App\Entity\Unit;
-use App\Entity\WeighbridgeTask;
 use App\Enum\CostCenterType;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Dane startowe ze specyfikacji. Każda grupa wstawiana jest tylko wtedy, gdy tabela jest pusta,
- * więc polecenie można uruchamiać wielokrotnie.
+ * Dane startowe bieżącego gospodarstwa. Każda grupa wstawiana jest tylko wtedy,
+ * gdy w gospodarstwie jej jeszcze nie ma, więc można to uruchamiać wielokrotnie.
  */
 final class StartupData
 {
-    private const array WEIGHBRIDGE_TASKS = [
-        'Terminal wagi (RHEWA 82c)' => [
-            'Sprawdzić złącza danych terminala (RS232 / RS485 / Ethernet / USB): tył obudowy, tabliczka, menu konfiguracji.',
-            'Ustalić, czym jest urządzenie pod terminalem i do czego jest podłączone.',
-            'Uzyskać od serwisu wagi (kontakt na naklejce na terminalu) dokumentację protokołu transmisji i ustawień interfejsu.',
-            'Ustalić tryb wysyłki (ciągły / na zapytanie), format ramki, prędkość, bity danych, parzystość.',
-            'Ustalić, czy ramka zawiera flagę stabilności, znak, jednostkę i numer ważenia z pamięci.',
-            'Uzgodnić z serwisem, że podłączenie nie narusza legalizacji (plomby).',
-            'Nagrać próbkę transmisji (~10 min: pusta waga, wjazd, postój, zjazd) do pliku – do symulatora i testów.',
-        ],
-        'Kamery' => [
-            'Wybrać miejsce montażu: widok ładunku z góry i tablicy rejestracyjnej; oświetlenie nocne.',
-            'Ustalić model kamer, zasilanie (PoE), stały adres IP, dane logowania.',
-            'Sprawdzić w przeglądarce adres zdjęcia (snapshot HTTP) lub strumienia RTSP.',
-            'Zmierzyć czas pobrania zdjęcia (cel < 2 s).',
-        ],
-        'Infrastruktura' => [
-            'Zdecydować, gdzie działa nasłuch wagi (serwer czy mini PC przy wadze); połączenie kablowe; UPS.',
-        ],
-        'Dane i parametry' => [
-            'Uzupełnić tary maszyn w module Maszyny.',
-            'Potwierdzić parametry automatu: próg 400 kg, tolerancja ± 20 kg, czas stabilności 10 s, zmiana masy dla nowego pomiaru 100 kg.',
-        ],
-    ];
-
     private const array UNITS = [
         'kg' => 'kilogram',
         't' => 'tona',
@@ -84,24 +58,10 @@ final class StartupData
             $this->em->persist((new CostCenter())->setType(CostCenterType::HerdGroup)->setName('Stado mleczne'));
             $seeded[] = 'ośrodki kosztów';
         }
-        if ($this->isEmpty(WeighbridgeTask::class)) {
-            $this->seedWeighbridgeTasks();
-            $seeded[] = 'lista do zrobienia wagi';
-        }
 
         $this->em->flush();
 
         return $seeded;
-    }
-
-    private function seedWeighbridgeTasks(): void
-    {
-        $position = 0;
-        foreach (self::WEIGHBRIDGE_TASKS as $group => $tasks) {
-            foreach ($tasks as $content) {
-                $this->em->persist((new WeighbridgeTask())->setGroupName($group)->setContent($content)->setPosition(++$position));
-            }
-        }
     }
 
     /**

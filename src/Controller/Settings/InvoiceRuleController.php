@@ -9,14 +9,17 @@ use App\Entity\InvoiceRule;
 use App\Form\InvoiceRuleType;
 use App\Repository\ContractorRepository;
 use App\Repository\InvoiceRuleRepository;
+use App\Security\Permission;
 use App\Util\Nip;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
+use Symfony\Component\Security\Http\Attribute\IsGranted;
 
 #[Route('/ustawienia/reguly')]
+#[IsGranted(Permission::SETTINGS)]
 final class InvoiceRuleController extends AbstractController
 {
     public function __construct(

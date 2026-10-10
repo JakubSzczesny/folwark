@@ -4,18 +4,28 @@ declare(strict_types=1);
 
 namespace App\Twig;
 
-use App\Settings\SettingKey;
-use App\Settings\Settings;
+use App\Entity\Farm;
+use App\Entity\FarmMembership;
+use App\Entity\User;
+use App\Enum\UserRole;
+use App\Farm\FarmContext;
+use App\Repository\FarmMembershipRepository;
 use App\Ui\Navigation;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Twig\Attribute\AsTwigFunction;
 
 final class AppExtension
 {
+    /** @var list<FarmMembership>|null */
+    private ?array $memberships = null;
+
     public function __construct(
         private readonly Navigation $navigation,
-        private readonly Settings $settings,
+        private readonly FarmContext $farmContext,
+        private readonly FarmMembershipRepository $membershipRepository,
+        private readonly Security $security,
         private readonly UrlGeneratorInterface $urls,
     ) {
     }
@@ -38,16 +48,38 @@ final class AppExtension
         return $this->navigation->mobileItems();
     }
 
+    #[AsTwigFunction('current_farm')]
+    public function currentFarm(): ?Farm
+    {
+        return $this->farmContext->getFarm();
+    }
+
+    #[AsTwigFunction('current_role')]
+    public function currentRole(): ?UserRole
+    {
+        return $this->farmContext->getRole();
+    }
+
     #[AsTwigFunction('farm_name')]
     public function farmName(): string
     {
-        return $this->settings->string(SettingKey::FARM_NAME) ?? 'Gospodarstwo';
+        return $this->farmContext->getFarm()?->getName() ?? 'Folwark';
     }
 
-    #[AsTwigFunction('farm_nip')]
-    public function farmNip(): ?string
+    /**
+     * Gospodarstwa zalogowanego użytkownika – do przełącznika w górnym pasku.
+     *
+     * @return list<FarmMembership>
+     */
+    #[AsTwigFunction('user_memberships')]
+    public function userMemberships(): array
     {
-        return $this->settings->string(SettingKey::FARM_NIP);
+        $user = $this->security->getUser();
+        if (!$user instanceof User) {
+            return [];
+        }
+
+        return $this->memberships ??= $this->membershipRepository->findForUser($user);
     }
 
     /**

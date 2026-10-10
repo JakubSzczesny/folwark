@@ -27,13 +27,11 @@ final class Permission
     public const string DOCUMENT_VIEW = 'DOCUMENT_VIEW';
     public const string DOCUMENT_EDIT = 'DOCUMENT_EDIT';
     public const string EXPORT = 'EXPORT';
-    public const string WEIGHBRIDGE_CHECK = 'WEIGHBRIDGE_CHECK';
-    public const string WEIGHBRIDGE_MANAGE = 'WEIGHBRIDGE_MANAGE';
     public const string SETTINGS = 'SETTINGS';
 
     /**
-     * Minimalna rola wymagana dla uprawnienia. Właściciel dziedziczy role
-     * pracownika i księgowej (security.role_hierarchy).
+     * Minimalna rola w gospodarstwie wymagana dla uprawnienia. Właściciel dziedziczy role
+     * pracownika i księgowej (security.role_hierarchy). Null = każdy członek gospodarstwa.
      */
     public const array REQUIRED_ROLE = [
         self::INVOICE_VIEW => UserRole::Accountant,
@@ -55,8 +53,6 @@ final class Permission
         self::DOCUMENT_VIEW => UserRole::Accountant,
         self::DOCUMENT_EDIT => UserRole::Owner,
         self::EXPORT => UserRole::Accountant,
-        self::WEIGHBRIDGE_CHECK => UserRole::Worker,
-        self::WEIGHBRIDGE_MANAGE => UserRole::Owner,
         self::SETTINGS => UserRole::Owner,
     ];
 }

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\User;
-use App\Enum\UserRole;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 use Symfony\Component\Security\Core\Exception\UnsupportedUserException;
@@ -32,46 +31,8 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
         $this->getEntityManager()->flush();
     }
 
-    /**
-     * @param list<UserRole> $roles
-     *
-     * @return list<User>
-     */
-    public function findActiveByRoles(array $roles): array
+    public function findOneByEmail(string $email): ?User
     {
-        if ([] === $roles) {
-            return [];
-        }
-
-        return $this->createQueryBuilder('u')
-            ->where('u.active = true')
-            ->andWhere('u.role IN (:roles)')
-            ->setParameter('roles', array_map(static fn (UserRole $r): string => $r->value, $roles))
-            ->orderBy('u.fullName')
-            ->getQuery()
-            ->getResult();
-    }
-
-    /**
-     * @return list<User>
-     */
-    public function findAllOrdered(): array
-    {
-        return $this->createQueryBuilder('u')
-            ->orderBy('u.active', 'DESC')
-            ->addOrderBy('u.fullName')
-            ->getQuery()
-            ->getResult();
-    }
-
-    public function countActiveOwners(): int
-    {
-        return (int) $this->createQueryBuilder('u')
-            ->select('COUNT(u.id)')
-            ->where('u.active = true')
-            ->andWhere('u.role = :role')
-            ->setParameter('role', UserRole::Owner->value)
-            ->getQuery()
-            ->getSingleScalarResult();
+        return $this->findOneBy(['email' => mb_strtolower(trim($email))]);
     }
 }

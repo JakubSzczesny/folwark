@@ -67,6 +67,7 @@ final class ContractorAndContractTest extends FunctionalTestCase
 
     public function testContractRealizationFromInvoiceItems(): void
     {
+        $this->useFarm();
         $this->service(StartupData::class)->seed();
         $em = $this->service(EntityManagerInterface::class);
         $tons = $em->getRepository(Unit::class)->findOneBy(['symbol' => 't']);
@@ -93,6 +94,7 @@ final class ContractorAndContractTest extends FunctionalTestCase
         ContractFactory::createOne(['number' => 'UM/EXP', 'validTo' => new \DateTimeImmutable('+10 days')]);
         ContractFactory::createOne(['number' => 'UM/LATER', 'validTo' => new \DateTimeImmutable('+90 days')]);
 
+        $this->useFarm();
         $this->service(\App\Notification\DeadlineNotifications::class)->generate();
         $count = $this->service(EntityManagerInterface::class)->getRepository(\App\Entity\Notification::class)->count(['user' => $owner]);
         self::assertSame(1, $count);

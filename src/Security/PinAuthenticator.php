@@ -19,12 +19,9 @@ use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Credentials\CustomCredentials;
 use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
 use Symfony\Component\Security\Http\SecurityRequestAttributes;
-use Symfony\Component\Security\Http\Util\TargetPathTrait;
 
 final class PinAuthenticator extends AbstractAuthenticator
 {
-    use TargetPathTrait;
-
     private const string DEVICE_ATTRIBUTE = '_trusted_device';
 
     public function __construct(
@@ -65,9 +62,7 @@ final class PinAuthenticator extends AbstractAuthenticator
             $this->em->flush();
         }
 
-        $target = $this->getTargetPath($request->getSession(), $firewallName);
-
-        return new RedirectResponse($target ?? $this->urls->generate('app_dashboard'));
+        return new RedirectResponse($this->urls->generate('app_farm_index'));
     }
 
     public function onAuthenticationFailure(Request $request, AuthenticationException $exception): Response

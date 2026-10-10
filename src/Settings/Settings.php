@@ -6,34 +6,36 @@ namespace App\Settings;
 
 use App\Audit\AuditLogger;
 use App\Entity\Setting;
+use App\Farm\FarmContext;
 use App\Repository\SettingRepository;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Contracts\Service\ResetInterface;
 
+/**
+ * Ustawienia bieżącego gospodarstwa z wartościami domyślnymi.
+ */
 class Settings implements ResetInterface
 {
-    /** @var array<string, Setting>|null */
-    private ?array $loaded = null;
+    /** @var array<int, array<string, Setting>> id gospodarstwa => ustawienia */
+    private array $loaded = [];
 
     public function __construct(
         private readonly SettingRepository $repository,
         private readonly EntityManagerInterface $em,
         private readonly AuditLogger $audit,
+        private readonly FarmContext $context,
     ) {
     }
 
     public function get(string $key): mixed
     {
-        $this->load();
-        if (isset($this->loaded[$key])) {
-            return $this->loaded[$key]->getValue();
-        }
-
         if (!\array_key_exists($key, SettingKey::DEFAULTS)) {
             throw new \InvalidArgumentException(\sprintf('Nieznane ustawienie "%s".', $key));
         }
 
-        return SettingKey::DEFAULTS[$key];
+        $settings = $this->load();
+
+        return isset($settings[$key]) ? $settings[$key]->getValue() : SettingKey::DEFAULTS[$key];
     }
 
     public function string(string $key): ?string
@@ -83,14 +85,15 @@ class Settings implements ResetInterface
 
     public function set(string $key, mixed $value, bool $flush = true): void
     {
-        $this->load();
-        $setting = $this->loaded[$key] ?? null;
+        $farmId = $this->context->farmId() ?? throw new \LogicException('Ustawienia zapisuje się w kontekście gospodarstwa.');
+        $settings = $this->load();
+        $setting = $settings[$key] ?? null;
         $old = $setting?->getValue() ?? (SettingKey::DEFAULTS[$key] ?? null);
 
         if (null === $setting) {
             $setting = new Setting($key);
             $this->em->persist($setting);
-            $this->loaded[$key] = $setting;
+            $this->loaded[$farmId][$key] = $setting;
         }
         $setting->setValue($value);
 
@@ -109,18 +112,26 @@ class Settings implements ResetInterface
 
     public function reset(): void
     {
-        $this->loaded = null;
+        $this->loaded = [];
     }
 
-    private function load(): void
+    /**
+     * @return array<string, Setting>
+     */
+    private function load(): array
     {
-        if (null !== $this->loaded) {
-            return;
+        $farmId = $this->context->farmId();
+        if (null === $farmId) {
+            return [];
         }
 
-        $this->loaded = [];
-        foreach ($this->repository->findAll() as $setting) {
-            $this->loaded[$setting->getName()] = $setting;
+        if (!isset($this->loaded[$farmId])) {
+            $this->loaded[$farmId] = [];
+            foreach ($this->repository->findAll() as $setting) {
+                $this->loaded[$farmId][$setting->getName()] = $setting;
+            }
         }
+
+        return $this->loaded[$farmId];
     }
 }

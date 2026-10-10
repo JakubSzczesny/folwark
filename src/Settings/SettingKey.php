@@ -6,9 +6,6 @@ namespace App\Settings;
 
 final class SettingKey
 {
-    public const string FARM_NAME = 'farm.name';
-    public const string FARM_NIP = 'farm.nip';
-
     public const string KSEF_TOKEN = 'ksef.token';
     public const string KSEF_NIP = 'ksef.nip';
     public const string KSEF_ENVIRONMENT = 'ksef.environment';
@@ -42,8 +39,6 @@ final class SettingKey
     public const string WAREHOUSE_NUMBER_PATTERN = 'warehouse.number_pattern';
 
     public const array DEFAULTS = [
-        self::FARM_NAME => 'Gospodarstwo rolne',
-        self::FARM_NIP => null,
         self::KSEF_TOKEN => null,
         self::KSEF_NIP => null,
         self::KSEF_ENVIRONMENT => 'test',

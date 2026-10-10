@@ -93,6 +93,24 @@ class ContractRepository extends ServiceEntityRepository
     /**
      * @return list<Contract>
      */
+    public function findActiveLeases(): array
+    {
+        return $this->createQueryBuilder('k')
+            ->join('k.contractor', 'c')
+            ->addSelect('c')
+            ->where('k.kind = :lease')
+            ->andWhere('k.status = :active')
+            ->andWhere('k.firstPaymentDate IS NOT NULL')
+            ->andWhere('k.paymentFrequency IS NOT NULL')
+            ->setParameter('lease', ContractKind::Lease)
+            ->setParameter('active', ContractStatus::Active)
+            ->getQuery()
+            ->getResult();
+    }
+
+    /**
+     * @return list<Contract>
+     */
     public function search(string $query, int $limit): array
     {
         return $this->createQueryBuilder('k')

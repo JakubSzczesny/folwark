@@ -3,74 +3,16 @@
 {% block title %}Waga{% endblock %}
 {% block active_menu %}weighbridge{% endblock %}
 
-{% block stylesheets %}
-    <meta name="turbo-refresh-method" content="morph">
-    <meta name="turbo-refresh-scroll" content="preserve">
-{% endblock %}
-
 {% block content %}
-    <twig:PageHeader title="Moduł wagi w przygotowaniu" subtitle="Komunikacja z wagą i kamerami nie jest jeszcze ustalona. Poniżej lista rzeczy do zrobienia.">
-        {% if is_granted('WEIGHBRIDGE_MANAGE') %}
-            <a href="{{ path('app_weighbridge_new') }}" class="btn btn-primary">{{ ux_icon('lucide:plus') }} Dodaj punkt</a>
-        {% endif %}
-    </twig:PageHeader>
+    <twig:PageHeader title="Waga" subtitle="Moduł w przygotowaniu" />
 
-    <div class="card card-body mb-6">
-        <twig:Progress value="{{ progress.done }}" max="{{ progress.total }}" label="Postęp" caption="{{ progress.done }} / {{ progress.total }}" />
+    <div class="card card-body max-w-3xl space-y-3 text-sm leading-relaxed">
+        <p>Moduł wagi ruszy, gdy ustalimy, jak odczytywać dane z wagi i kamer. Do zrobienia:</p>
+        <ul class="list-disc pl-5 space-y-1">
+            <li>Terminal RHEWA 82c – sprawdzić złącze (RS232/RS485/Ethernet/USB) i zdobyć od serwisu wagi opis protokołu; nagrać ok. 10 min transmisji do testów. Podłączenie nie może naruszać legalizacji.</li>
+            <li>Kamery – miejsce montażu (ładunek i tablica rejestracyjna), model, zasilanie PoE, stały adres IP i adres zdjęcia.</li>
+            <li>Zdecydować, gdzie działa nasłuch wagi (serwer czy mini PC przy wadze), plus kabel i UPS.</li>
+            <li>Uzupełnić tary maszyn i potwierdzić parametry: próg 400 kg, tolerancja ±20 kg, stabilizacja 10 s.</li>
+        </ul>
     </div>
-
-    {% if groups is empty %}
-        <div class="card">
-            <twig:EmptyState text="Lista jest pusta." actionLabel="{{ is_granted('WEIGHBRIDGE_MANAGE') ? 'Dodaj punkt' : null }}" actionUrl="{{ is_granted('WEIGHBRIDGE_MANAGE') ? path('app_weighbridge_new') : null }}" />
-        </div>
-    {% endif %}
-
-    {% set can_check = is_granted('WEIGHBRIDGE_CHECK') %}
-    {% for group, tasks in groups %}
-        <section class="card mb-6">
-            <div class="card-header">
-                <h2 class="card-title">{{ group }}</h2>
-                <span class="text-sm text-antracyt-500 tabular-nums">{{ tasks|filter(t => t.done)|length }} / {{ tasks|length }}</span>
-            </div>
-            <ul class="divide-y divide-szary-200">
-                {% for task in tasks %}
-                    <li id="task-{{ task.id }}" class="px-4 py-3">
-                        <div class="flex items-start gap-3">
-                            <form method="post" action="{{ path('app_weighbridge_toggle', {id: task.id}) }}" class="shrink-0">
-                                <input type="hidden" name="_token" value="{{ csrf_token('weighbridge') }}">
-                                <button type="submit" class="inline-flex items-center justify-center rounded-ui border {{ task.done ? 'bg-zielen-600 border-zielen-600 text-white' : 'bg-white border-szary-200 text-transparent hover:border-zielen-600' }}" style="width:32px;height:32px" {{ can_check ? '' : 'disabled' }} aria-label="{{ task.done ? 'Oznacz jako niezrobione' : 'Oznacz jako zrobione' }}" aria-pressed="{{ task.done ? 'true' : 'false' }}">
-                                    {{ ux_icon('lucide:check') }}
-                                </button>
-                            </form>
-                            <div class="flex-1 min-w-0">
-                                <p class="{{ task.done ? 'text-antracyt-500 line-through' : '' }}">{{ task.position }}. {{ task.content }}</p>
-                                {% if task.done %}
-                                    <p class="mt-1 text-sm text-antracyt-500">
-                                        <twig:Badge tone="positive">Zrobione</twig:Badge>
-                                        {{ task.doneBy ? task.doneBy.fullName : 'użytkownik usunięty' }}, {{ task.doneAt|pl_datetime }}
-                                    </p>
-                                {% endif %}
-                                {% if task.note %}
-                                    <p class="mt-1 text-sm whitespace-pre-line">{{ task.note }}</p>
-                                {% endif %}
-                                {% if can_check %}
-                                    <details class="mt-1">
-                                        <summary class="cursor-pointer text-sm text-zielen-600 inline-flex items-center" style="min-height:32px">{{ task.note ? 'Edytuj notatkę' : 'Dodaj notatkę' }}</summary>
-                                        <form method="post" action="{{ path('app_weighbridge_note', {id: task.id}) }}" class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-start">
-                                            <input type="hidden" name="_token" value="{{ csrf_token('weighbridge') }}">
-                                            <textarea name="note" class="textarea flex-1" rows="2">{{ task.note }}</textarea>
-                                            <button type="submit" class="btn btn-secondary">Zapisz</button>
-                                        </form>
-                                    </details>
-                                {% endif %}
-                            </div>
-                            {% if is_granted('WEIGHBRIDGE_MANAGE') %}
-                                <a href="{{ path('app_weighbridge_edit', {id: task.id}) }}" class="btn btn-ghost btn-icon btn-sm shrink-0" aria-label="Edytuj punkt">{{ ux_icon('lucide:pencil') }}</a>
-                            {% endif %}
-                        </div>
-                    </li>
-                {% endfor %}
-            </ul>
-        </section>
-    {% endfor %}
 {% endblock %}

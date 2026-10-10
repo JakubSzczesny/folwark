@@ -4,22 +4,27 @@ declare(strict_types=1);
 
 namespace App\Entity;
 
+use App\Farm\BelongsToFarm;
+use App\Farm\FarmScoped;
 use App\Repository\UnitRepository;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: UnitRepository::class)]
-#[UniqueEntity(fields: ['symbol'])]
-class Unit implements \Stringable
+#[ORM\UniqueConstraint(columns: ['farm_id', 'symbol'])]
+#[UniqueEntity(fields: ['symbol'], message: 'Taka jednostka już istnieje.')]
+class Unit implements \Stringable, FarmScoped
 {
+    use BelongsToFarm;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
     public function __construct(
-        #[ORM\Column(length: 12, unique: true)]
+        #[ORM\Column(length: 12)]
         #[Assert\NotBlank]
         private string $symbol = '',
         #[ORM\Column(length: 60)]

@@ -6,10 +6,10 @@
 <main class="min-h-screen flex items-center justify-center p-4">
     <div class="w-full max-w-sm">
         <div class="flex items-center gap-3 mb-6">
-            <span class="inline-flex items-center justify-center rounded-ui bg-zielen-600 text-white font-semibold" style="width:40px;height:40px">F</span>
+            <twig:Logo size="44" />
             <div>
                 <div class="text-lg font-semibold leading-tight">Folwark</div>
-                <div class="text-sm text-antracyt-500">{{ farm_name() }}</div>
+                <div class="text-sm text-antracyt-500">Zarządzanie gospodarstwem</div>
             </div>
         </div>
 
@@ -50,6 +50,7 @@
                 </form>
             {% endif %}
         </div>
+        <p class="mt-4 text-sm text-center">Nie masz konta? <a href="{{ path('app_register') }}">Zarejestruj się</a></p>
     </div>
 </main>
 {% endblock %}

@@ -8,6 +8,8 @@ use App\Enum\InvoiceKind;
 use App\Enum\InvoiceStatus;
 use App\Enum\InvoiceType;
 use App\Enum\PaymentStatus;
+use App\Farm\BelongsToFarm;
+use App\Farm\FarmScoped;
 use App\Repository\InvoiceRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
@@ -15,20 +17,23 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 
 #[ORM\Entity(repositoryClass: InvoiceRepository::class)]
-#[ORM\Index(columns: ['issue_date'])]
-#[ORM\Index(columns: ['kind', 'status'])]
-#[ORM\Index(columns: ['kind', 'issue_date'])]
-#[ORM\Index(columns: ['contractor_nip'])]
-#[ORM\Index(columns: ['payment', 'payment_due'])]
+#[ORM\UniqueConstraint(columns: ['farm_id', 'ksef_number'])]
+#[ORM\Index(columns: ['farm_id', 'issue_date'])]
+#[ORM\Index(columns: ['farm_id', 'kind', 'status'])]
+#[ORM\Index(columns: ['farm_id', 'kind', 'issue_date'])]
+#[ORM\Index(columns: ['farm_id', 'contractor_nip'])]
+#[ORM\Index(columns: ['farm_id', 'payment', 'payment_due'])]
 #[ORM\Index(columns: ['corrected_ksef_number'])]
-class Invoice implements \Stringable
+class Invoice implements \Stringable, FarmScoped
 {
+    use BelongsToFarm;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 36, unique: true)]
+    #[ORM\Column(length: 36)]
     private string $ksefNumber;
 
     #[ORM\Column(length: 256)]

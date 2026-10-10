@@ -1,0 +1,17 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Nowe gospodarstwo{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="Nowe gospodarstwo" subtitle="Zostaniesz jego właścicielem. Pozostałe osoby dodasz potem w Ustawieniach." back="{{ path('app_farm_index') }}" />
+
+    <div class="card card-body max-w-xl">
+        {{ form_start(form) }}
+            {{ form_widget(form) }}
+            <div class="flex gap-2">
+                <button type="submit" class="btn btn-primary">Utwórz gospodarstwo</button>
+                <a href="{{ path('app_farm_index') }}" class="btn btn-ghost">Anuluj</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}

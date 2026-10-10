@@ -6,6 +6,10 @@ doctrine:
         validate_xml_mapping: true
         naming_strategy: doctrine.orm.naming_strategy.underscore
         auto_mapping: true
+        filters:
+            farm:
+                class: App\Farm\FarmFilter
+                enabled: false
         mappings:
             App:
                 type: attribute
@@ -31,3 +35,9 @@ when@prod:
                     adapter: cache.app
                 doctrine.system_cache_pool:
                     adapter: cache.system
+
+when@test:
+    services:
+        # SQLite domyślnie nie pilnuje kluczy obcych; w testach mają działać jak w MariaDB (kaskady).
+        Doctrine\DBAL\Driver\AbstractSQLiteDriver\Middleware\EnableForeignKeys:
+            tags: [{ name: 'doctrine.middleware', priority: 200 }]

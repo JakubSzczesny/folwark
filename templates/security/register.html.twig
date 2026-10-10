@@ -1,0 +1,27 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Rejestracja{% endblock %}
+
+{% block body %}
+<main class="min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-sm">
+        <div class="flex items-center gap-3 mb-6">
+            <twig:Logo size="44" />
+            <div>
+                <div class="text-lg font-semibold leading-tight">Folwark</div>
+                <div class="text-sm text-antracyt-500">Zarządzanie gospodarstwem</div>
+            </div>
+        </div>
+
+        <div class="card card-body">
+            <h1 class="text-base font-semibold mb-1">Załóż konto</h1>
+            <p class="text-sm text-antracyt-500 mb-4">Po rejestracji utworzysz własne gospodarstwo albo właściciel doda Cię do swojego.</p>
+            {{ form_start(form, {attr: {'data-turbo': 'false'}}) }}
+                {{ form_widget(form) }}
+                <button type="submit" class="btn btn-primary w-full">Załóż konto</button>
+            {{ form_end(form) }}
+        </div>
+        <p class="mt-4 text-sm text-center">Masz już konto? <a href="{{ path('app_login') }}">Zaloguj się</a></p>
+    </div>
+</main>
+{% endblock %}

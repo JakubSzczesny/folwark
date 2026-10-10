@@ -6,6 +6,8 @@ namespace App\Entity;
 
 use App\Enum\ContractorKind;
 use App\Enum\DataSource;
+use App\Farm\BelongsToFarm;
+use App\Farm\FarmScoped;
 use App\Repository\ContractorRepository;
 use App\Validator\ValidNip;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -16,10 +18,13 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ContractorRepository::class)]
-#[ORM\Index(columns: ['name'])]
+#[ORM\Index(columns: ['farm_id', 'name'])]
+#[ORM\UniqueConstraint(columns: ['farm_id', 'nip'])]
 #[UniqueEntity(fields: ['nip'], message: 'Kontrahent z tym NIP już istnieje.')]
-class Contractor implements \Stringable
+class Contractor implements \Stringable, FarmScoped
 {
+    use BelongsToFarm;
+
     public const array ADDRESS_FIELDS = ['street', 'postalCode', 'city', 'country'];
 
     #[ORM\Id]
@@ -27,7 +32,7 @@ class Contractor implements \Stringable
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 10, unique: true, nullable: true)]
+    #[ORM\Column(length: 10, nullable: true)]
     #[ValidNip]
     private ?string $nip = null;
 

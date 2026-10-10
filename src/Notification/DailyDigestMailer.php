@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Notification;
 
+use App\Farm\FarmContext;
 use App\Repository\NotificationPreferenceRepository;
 use App\Repository\NotificationRepository;
 use App\Settings\SettingKey;
@@ -21,6 +22,7 @@ class DailyDigestMailer
         private readonly NotificationPreferenceRepository $preferences,
         private readonly MailerInterface $mailer,
         private readonly EntityManagerInterface $em,
+        private readonly FarmContext $context,
         #[Autowire('%env(MAILER_FROM)%')]
         private readonly string $from,
     ) {
@@ -48,7 +50,7 @@ class DailyDigestMailer
                 ->to($user->getEmail())
                 ->subject(\sprintf('Folwark – podsumowanie dnia (%d)', \count($items)))
                 ->htmlTemplate('email/digest.html.twig')
-                ->context(['user' => $user, 'items' => $items, 'farm' => $this->settings->string(SettingKey::FARM_NAME)]));
+                ->context(['user' => $user, 'items' => $items, 'farm' => $this->context->getFarm()?->getName()]));
 
             foreach ($items as $item) {
                 $item->markEmailed();

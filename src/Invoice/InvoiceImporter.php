@@ -10,12 +10,11 @@ use App\Enum\ContractKind;
 use App\Enum\InvoiceStatus;
 use App\Enum\InvoiceType;
 use App\Ksef\Dto\InvoiceMetadata;
+use App\Ksef\KsefIdentity;
 use App\Ksef\SubjectType;
 use App\Repository\ContractRepository;
 use App\Repository\InvoiceRepository;
 use App\Repository\InvoiceRuleRepository;
-use App\Settings\SettingKey;
-use App\Settings\Settings;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
@@ -32,7 +31,7 @@ class InvoiceImporter
         private readonly ContractorResolver $contractors,
         private readonly InvoiceRuleRepository $rules,
         private readonly ContractRepository $contracts,
-        private readonly Settings $settings,
+        private readonly KsefIdentity $identity,
         private readonly EntityManagerInterface $em,
     ) {
     }
@@ -44,7 +43,7 @@ class InvoiceImporter
         }
         $this->seen[$metadata->ksefNumber] = true;
 
-        $kind = $this->classifier->classify($metadata, $this->settings->string(SettingKey::FARM_NIP), $queriedAs);
+        $kind = $this->classifier->classify($metadata, $this->identity->farmNip(), $queriedAs);
         $counterparty = $this->classifier->counterparty($metadata, $kind);
 
         $invoice = (new Invoice($metadata->ksefNumber, $metadata->invoiceNumber, $kind, $metadata->issueDate))

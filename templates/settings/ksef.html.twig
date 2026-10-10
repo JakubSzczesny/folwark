@@ -15,6 +15,10 @@
         </form>
     </twig:PageHeader>
 
+    {% if simulator %}
+        <div class="alert alert-info mb-4">Działa symulator KSeF (KSEF_CLIENT=fake): faktury pochodzą z plików na serwerze, a środowisko i token poniżej nie są używane. Do prawdziwego KSeF ustaw KSEF_CLIENT=http.</div>
+    {% endif %}
+
     {% if blocked_until and blocked_until > date() %}
         <div class="alert alert-warning mb-4">KSeF ograniczył liczbę zapytań. Kolejna automatyczna synchronizacja po {{ blocked_until|pl_datetime }}.</div>
     {% endif %}

@@ -19,6 +19,8 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 final class ContractDeadlines implements DeadlineSource, AttentionSource
 {
+    private const int LEASE_PAYMENT_DAYS = 14;
+
     public function __construct(
         private readonly ContractRepository $contracts,
         private readonly Notifier $notifier,
@@ -61,6 +63,22 @@ final class ContractDeadlines implements DeadlineSource, AttentionSource
                 \sprintf('%s – %s', $contract->getNumber(), $contract->getContractor()?->getDisplayName()),
                 $this->urls->generate('app_contract_show', ['id' => $contract->getId()]),
                 'Wygasa '.FormatExtension::daysLabel($days),
+            );
+        }
+
+        foreach ($this->contracts->findActiveLeases() as $contract) {
+            $next = $contract->nextPaymentDate($today);
+            $days = FormatExtension::daysLeft($next, $today);
+            if (null === $days || $days > self::LEASE_PAYMENT_DAYS) {
+                continue;
+            }
+            $items[] = new AttentionItem(
+                $days,
+                $days <= 3 ? 'warning' : 'neutral',
+                'Dzierżawa',
+                \sprintf('%s – %s', $contract->getNumber(), $contract->getContractor()?->getDisplayName()),
+                $this->urls->generate('app_contract_show', ['id' => $contract->getId()]),
+                \sprintf('Płatność %s%s', FormatExtension::daysLabel($days), null !== $contract->getRentAmount() ? ' · '.FormatExtension::money($contract->getRentAmount()) : ''),
             );
         }
 

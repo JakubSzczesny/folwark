@@ -9,10 +9,9 @@ use App\Ksef\Dto\MetadataPage;
 use App\Ksef\Dto\MetadataQuery;
 use App\Ksef\KsefClient;
 use App\Ksef\KsefException;
+use App\Ksef\KsefIdentity;
 use App\Ksef\SubjectType;
 use App\Ksef\Xml\InvoiceXmlParser;
-use App\Settings\SettingKey;
-use App\Settings\Settings;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Contracts\Service\ResetInterface;
 
@@ -33,7 +32,7 @@ class FakeKsefClient implements KsefClient, ResetInterface
     public function __construct(
         #[Autowire('%env(resolve:KSEF_FAKE_DIR)%')]
         private readonly string $directory,
-        private readonly Settings $settings,
+        private readonly KsefIdentity $identity,
         private readonly InvoiceXmlParser $parser,
     ) {
     }
@@ -55,7 +54,7 @@ class FakeKsefClient implements KsefClient, ResetInterface
     public function queryMetadata(MetadataQuery $query): MetadataPage
     {
         ++$this->requests;
-        $contextNip = $this->settings->string(SettingKey::KSEF_NIP) ?? $this->settings->string(SettingKey::FARM_NIP);
+        $contextNip = $this->identity->nip();
         $to = $query->to ?? new \DateTimeImmutable();
 
         $matching = [];

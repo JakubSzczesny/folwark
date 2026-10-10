@@ -18,7 +18,10 @@
                     <td data-label="Rodzaj">{{ contract.kind.label }}</td>
                     <td data-label="Obowiązuje do">{% if contract.validTo %}{{ m.deadline(contract.validTo, 30, not contract.active) }}{% else %}bezterminowa{% endif %}</td>
                     <td data-label="Realizacja">
-                        {% if p and p.target %}
+                        {% if contract.lease %}
+                            {% if contract.rentAmount %}<span class="tabular-nums">{{ contract.rentAmount|money }} {{ contract.paymentFrequency ? contract.paymentFrequency.label }}</span>{% endif %}
+                            {% set next = contract.nextPaymentDate %}{% if next %}<span class="block text-xs text-antracyt-500">następna płatność {{ next|pl_date }}</span>{% endif %}
+                        {% elseif p and p.target %}
                             <twig:Progress value="{{ p.quantity }}" max="{{ p.target }}" caption="{{ p.quantity|qty }} / {{ p.target|qty }} {{ p.unit }}" />
                         {% elseif p and p.quantity > 0 %}
                             {{ p.quantity|qty }} {{ p.unit }}

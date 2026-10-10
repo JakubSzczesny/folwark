@@ -61,6 +61,12 @@
                     <dt>Obowiązuje</dt><dd>{{ contract.validFrom ? 'od ' ~ contract.validFrom|pl_date : '' }} {% if contract.validTo %}do {{ m.deadline(contract.validTo, 30, not contract.active) }}{% else %}bezterminowo{% endif %}</dd>
                     <dt>Ilość</dt><dd class="tabular-nums">{{ contract.contractedQuantity ? contract.contractedQuantity|qty ~ ' ' ~ (contract.quantityUnit ? contract.quantityUnit.symbol) : '—' }}</dd>
                     <dt>Cena netto</dt><dd class="tabular-nums">{{ contract.price ? contract.price|amount ~ ' zł' ~ (contract.priceUnit ? '/' ~ contract.priceUnit.symbol) : '—' }}</dd>
+                    {% if contract.lease %}
+                        <dt>Czynsz</dt>
+                        <dd class="tabular-nums">{% if contract.rentAmount %}{{ contract.rentAmount|money }} {{ contract.paymentFrequency ? contract.paymentFrequency.label }}{% if contract.yearlyRent %}<span class="block text-antracyt-500">{{ contract.yearlyRent|money }} rocznie</span>{% endif %}{% else %}—{% endif %}</dd>
+                        <dt>Następna płatność</dt>
+                        <dd>{% set next = contract.nextPaymentDate %}{{ next ? m.deadline(next, 14) : '—' }}</dd>
+                    {% endif %}
                 </dl>
                 {% if contract.qualityTerms %}<h3 class="font-semibold mt-4 mb-1">Warunki jakościowe</h3><p class="text-sm whitespace-pre-line">{{ contract.qualityTerms }}</p>{% endif %}
                 {% if contract.notes %}<h3 class="font-semibold mt-4 mb-1">Uwagi</h3><p class="text-sm whitespace-pre-line">{{ contract.notes }}</p>{% endif %}

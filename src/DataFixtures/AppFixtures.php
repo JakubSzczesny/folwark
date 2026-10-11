@@ -11,10 +11,15 @@ use App\Entity\Farm;
 use App\Entity\FarmMembership;
 use App\Entity\Invoice;
 use App\Entity\InvoiceRule;
+use App\Entity\ItemMapping;
 use App\Entity\Machine;
 use App\Entity\MachineCategory;
 use App\Entity\MachineInfoCategory;
 use App\Entity\MachineInfoEntry;
+use App\Entity\Product;
+use App\Entity\ProductCategory;
+use App\Entity\ProductLink;
+use App\Entity\ProductLinkCategory;
 use App\Entity\ServiceType;
 use App\Entity\Unit;
 use App\Entity\User;
@@ -31,6 +36,9 @@ use App\Ksef\KsefSynchronizer;
 use App\Machine\MachineInfo;
 use App\Machine\MachineManager;
 use App\Machine\ServiceRecorder;
+use App\Order\OrderPlanner;
+use App\Product\ItemAssigner;
+use App\Product\ProductMatcher;
 use App\Repository\ContractorRepository;
 use App\Settings\SettingKey;
 use App\Settings\Settings;
@@ -60,6 +68,8 @@ final class AppFixtures extends Fixture
         private readonly MachineManager $machines,
         private readonly MachineInfo $machineInfo,
         private readonly ServiceRecorder $serviceRecorder,
+        private readonly ItemAssigner $assigner,
+        private readonly OrderPlanner $planner,
         #[Autowire('%env(resolve:KSEF_FAKE_DIR)%')]
         private readonly string $fakeDirectory,
     ) {
@@ -158,10 +168,75 @@ final class AppFixtures extends Fixture
         }
 
         $manager->flush();
-        $this->loadMachines($manager, $owner);
+        $products = $this->loadProducts($manager);
+        $this->loadMachines($manager, $owner, $products);
     }
 
-    private function loadMachines(ObjectManager $manager, User $owner): void
+    /**
+     * Kartoteka towarów i zapamiętane przypisania pozycji z faktur pokazowych; faktury przypisują się
+     * same, jak przy synchronizacji, a zamówienia przeliczają się z ich historii.
+     *
+     * @return array<string, Product>
+     */
+    private function loadProducts(ObjectManager $manager): array
+    {
+        $unit = static fn (string $symbol): ?Unit => $manager->getRepository(Unit::class)->findOneBy(['symbol' => $symbol]);
+        $category = static fn (string $name): ?ProductCategory => $manager->getRepository(ProductCategory::class)->findOneBy(['name' => $name]);
+
+        $catalog = [
+            'on' => ['Olej napędowy', 'Paliwa', 'l', null, 2],
+            'mleko18' => ['Mieszanka paszowa MLEKO 18%', 'Pasze treściwe i mieszanki', 't', null, 3],
+            'bovimin' => ['Dodatek mineralny Bovi-Min', 'Dodatki mineralne', 'kg', null, 5],
+            'saletra' => ['Saletra amonowa 34%', 'Nawozy', 't', null, 7],
+            'polifoska' => ['Polifoska 6', 'Nawozy', 't', null, 7],
+            'donovan' => ['Pszenica ozima KWS Donovan C1', 'Nasiona', 't', null, 14],
+            'filtr-oleju' => ['Filtr oleju silnika JD', 'Filtry i części', 'szt', 'RE504836', 3],
+            'filtr-paliwa' => ['Filtr paliwa JD', 'Filtry i części', 'szt', 'RE522878', 3],
+            'olej-silnikowy' => ['Olej silnikowy 15W40', 'Oleje i smary', 'l', null, 3],
+            'synulox' => ['Synulox LC tubostrzykawka', 'Leki weterynaryjne', 'szt', null, 1],
+        ];
+        $products = [];
+        foreach ($catalog as $key => [$name, $categoryName, $symbol, $catalogNumber, $leadTime]) {
+            $products[$key] = (new Product())->setName($name)->setCategory($category($categoryName))->setBaseUnit($unit($symbol))->setCatalogNumber($catalogNumber)->setLeadTimeDays($leadTime);
+            $manager->persist($products[$key]);
+        }
+
+        $mappings = [
+            'petromex' => ['Olej napędowy ON' => 'on'],
+            'pasze' => ['Mieszanka paszowa MLEKO 18% luzem' => 'mleko18', 'Transport' => null, 'Dodatek mineralny Bovi-Min worek 25kg' => 'bovimin'],
+            'nawozy' => ['Saletra amonowa 34% big bag 500kg' => 'saletra', 'Polifoska 6 big bag 500kg' => 'polifoska'],
+            'nasiona' => ['Pszenica ozima KWS Donovan C1 worek 500kg' => 'donovan'],
+            'serwis' => ['Filtr oleju silnika JD RE504836' => 'filtr-oleju', 'Olej silnikowy 15W40 5L' => 'olej-silnikowy', 'Filtr paliwa RE522878' => 'filtr-paliwa', 'Robocizna serwisowa' => null],
+            'weterynarz' => ['Wizyta lekarsko-weterynaryjna' => null, 'Lek Synulox LC tubostrzykawka' => 'synulox'],
+        ];
+        foreach ($mappings as $partner => $items) {
+            $contractor = $this->contractors->findOneBy(['nip' => DemoInvoiceGenerator::PARTNERS[$partner]['nip']]);
+            foreach ($items as $itemName => $productKey) {
+                $mapping = new ItemMapping($contractor, ProductMatcher::key($itemName));
+                $mapping->remember(null !== $productKey ? $products[$productKey] : null, null === $productKey, null, null);
+                $manager->persist($mapping);
+            }
+        }
+
+        $shops = $manager->getRepository(ProductLinkCategory::class)->findOneBy(['name' => 'Sklepy']);
+        if (null !== $shops) {
+            $manager->persist((new ProductLink($products['filtr-oleju'], $shops))->setUrl('https://www.deere.pl')->setDescription('Części oryginalne John Deere'));
+        }
+        $manager->flush();
+
+        foreach ($manager->getRepository(Invoice::class)->findAll() as $invoice) {
+            $this->assigner->autoAssign($invoice);
+        }
+        $manager->flush();
+        $this->planner->recalculate();
+
+        return $products;
+    }
+
+    /**
+     * @param array<string, Product> $products
+     */
+    private function loadMachines(ObjectManager $manager, User $owner, array $products): void
     {
         $categories = $manager->getRepository(MachineCategory::class);
         $machine = function (string $name, string $category, array $data) use ($owner, $categories): Machine {
@@ -193,16 +268,16 @@ final class AppFixtures extends Fixture
         $infoCategories = $manager->getRepository(MachineInfoCategory::class);
         $filters = $infoCategories->findOneBy(['name' => 'Filtry', 'parent' => null]);
         foreach ([
-            [['Oleju silnika', $filters], 'Filtr oleju silnika', 'RE504836', 'John Deere', '1 szt.', 'John Deere – części https://www.deere.pl'],
-            [['Paliwa', $filters], 'Filtr paliwa', 'RE522878', 'John Deere', '1 szt.', ''],
-            [['Oleje i płyny', null], 'Olej silnikowy 15W40', 'Plus-50 II', 'John Deere', '19 l', ''],
-            [['Opony i koła', null], 'Opony tylne', null, 'Michelin', '710/70 R42', ''],
-        ] as [[$categoryName, $parent], $name, $catalog, $maker, $size, $links]) {
+            [['Oleju silnika', $filters], 'Filtr oleju silnika', 'RE504836', 'John Deere', '1 szt.', 'John Deere – części https://www.deere.pl', 'filtr-oleju'],
+            [['Paliwa', $filters], 'Filtr paliwa', 'RE522878', 'John Deere', '1 szt.', '', 'filtr-paliwa'],
+            [['Oleje i płyny', null], 'Olej silnikowy 15W40', 'Plus-50 II', 'John Deere', '19 l', '', 'olej-silnikowy'],
+            [['Opony i koła', null], 'Opony tylne', null, 'Michelin', '710/70 R42', '', null],
+        ] as [[$categoryName, $parent], $name, $catalog, $maker, $size, $links, $productKey]) {
             $infoCategory = $infoCategories->findOneBy(['name' => $categoryName, 'parent' => $parent]);
             if (null === $infoCategory) {
                 continue;
             }
-            $entry = (new MachineInfoEntry($deere, $infoCategory))->setName($name)->setCatalogNumber($catalog)->setManufacturer($maker)->setSizeQuantity($size);
+            $entry = (new MachineInfoEntry($deere, $infoCategory))->setName($name)->setCatalogNumber($catalog)->setManufacturer($maker)->setSizeQuantity($size)->setProduct($products[$productKey] ?? null);
             $this->machineInfo->saveEntry($entry, [], $links);
         }
 

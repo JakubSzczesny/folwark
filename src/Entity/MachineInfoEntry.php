@@ -49,6 +49,11 @@ class MachineInfoEntry implements FarmScoped
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $notes = null;
 
+    /** Towar z kartoteki – wtedy wpis pokazuje ostatni zakup i termin zamówienia. */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(onDelete: 'SET NULL')]
+    private ?Product $product = null;
+
     /** @var Collection<int, MachineInfoAttachment> */
     #[ORM\OneToMany(targetEntity: MachineInfoAttachment::class, mappedBy: 'entry', cascade: ['persist', 'remove'], orphanRemoval: true)]
     #[ORM\OrderBy(['id' => 'ASC'])]
@@ -145,6 +150,18 @@ class MachineInfoEntry implements FarmScoped
     public function setSizeQuantity(?string $sizeQuantity): static
     {
         $this->sizeQuantity = $sizeQuantity;
+
+        return $this;
+    }
+
+    public function getProduct(): ?Product
+    {
+        return $this->product;
+    }
+
+    public function setProduct(?Product $product): static
+    {
+        $this->product = $product;
 
         return $this;
     }

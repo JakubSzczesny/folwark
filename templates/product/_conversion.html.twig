@@ -1,0 +1,8 @@
+<div class="flex flex-wrap items-start gap-2" data-collection-item>
+    <span class="pt-2.5 text-sm text-antracyt-500">1</span>
+    <div class="w-32">{{ form_widget(conversion.unit, {attr: {class: 'select', 'aria-label': 'Jednostka'}}) }}{{ form_errors(conversion.unit) }}</div>
+    <span class="pt-2.5 text-sm text-antracyt-500">=</span>
+    <div class="w-36">{{ form_widget(conversion.factor, {attr: {class: 'input', 'aria-label': 'Ile jednostek podstawowych'}}) }}{{ form_errors(conversion.factor) }}</div>
+    <span class="pt-2.5 text-sm text-antracyt-500">jedn. podstawowych</span>
+    <button type="button" class="btn btn-ghost btn-icon" data-action="collection#remove" aria-label="Usuń przelicznik">{{ ux_icon('lucide:x') }}</button>
+</div>

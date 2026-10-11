@@ -42,6 +42,14 @@ class InvoiceItem
     #[ORM\JoinColumn(onDelete: 'SET NULL')]
     private ?CostCenter $costCenter = null;
 
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(onDelete: 'SET NULL')]
+    private ?Product $product = null;
+
+    /** Ilość przeliczona na jednostkę podstawową towaru (np. 4 kanistry × 5 l = 20 l). */
+    #[ORM\Column(type: Types::DECIMAL, precision: 15, scale: 4, nullable: true)]
+    private ?string $quantityInProductUnit = null;
+
     public function __construct(
         #[ORM\ManyToOne(inversedBy: 'items')]
         #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
@@ -129,6 +137,10 @@ class InvoiceItem
     public function setSkipped(bool $skipped): static
     {
         $this->skipped = $skipped;
+        if ($skipped) {
+            $this->product = null;
+            $this->quantityInProductUnit = null;
+        }
 
         return $this;
     }
@@ -141,6 +153,30 @@ class InvoiceItem
     public function setCostCenter(?CostCenter $costCenter): static
     {
         $this->costCenter = $costCenter;
+
+        return $this;
+    }
+
+    public function getProduct(): ?Product
+    {
+        return $this->product;
+    }
+
+    public function getQuantityInProductUnit(): ?string
+    {
+        return $this->quantityInProductUnit;
+    }
+
+    /**
+     * Przypisanie towaru; $factor to liczba jednostek podstawowych w jednej jednostce z faktury.
+     */
+    public function assignProduct(?Product $product, ?float $factor): static
+    {
+        $this->product = $product;
+        $this->skipped = false;
+        $this->quantityInProductUnit = null !== $product && null !== $factor && null !== $this->quantity
+            ? number_format((float) $this->quantity * $factor, 4, '.', '')
+            : null;
 
         return $this;
     }

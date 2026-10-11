@@ -68,6 +68,11 @@ class Contract implements \Stringable, FarmScoped
     #[ORM\ManyToOne]
     private ?Unit $priceUnit = null;
 
+    /** Towar umowy – po nim liczy się realizacja z pozycji faktur. */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(onDelete: 'SET NULL')]
+    private ?Product $product = null;
+
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $qualityTerms = null;
 
@@ -224,6 +229,18 @@ class Contract implements \Stringable, FarmScoped
     public function setPrice(?string $price): static
     {
         $this->price = $price;
+
+        return $this;
+    }
+
+    public function getProduct(): ?Product
+    {
+        return $this->product;
+    }
+
+    public function setProduct(?Product $product): static
+    {
+        $this->product = $product;
 
         return $this;
     }

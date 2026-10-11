@@ -1,0 +1,83 @@
+{% macro tree(nodes, parent_id, product, selected, show_all, can_edit) %}
+    {% import _self as self %}
+    <ul data-parent="{{ parent_id }}" class="{{ parent_id ? 'ml-4 border-l border-szary-200 pl-1' }}">
+        {% for node in nodes|filter(n => n.visible) %}
+            <li data-id="{{ node.id }}">
+                <div class="flex items-center">
+                    {% if can_edit %}<span class="drag-handle cursor-grab text-antracyt-300 hover:text-antracyt-500 px-0.5" title="Przeciągnij, aby zmienić kolejność">{{ ux_icon('lucide:grip-vertical', {width: 14, height: 14}) }}</span>{% endif %}
+                    <a href="{{ path('app_product_links', {id: product.id, kategoria: node.id, wszystkie: show_all ? 1 : null}) }}" class="tree-item flex-1 min-w-0 {{ selected and selected.id == node.id ? 'is-active' }}">
+                        <span class="truncate flex-1">{{ node.category.name }}</span>
+                        {% if node.total %}<span class="text-xs text-antracyt-500 tabular-nums">{{ node.total }}</span>{% endif %}
+                    </a>
+                </div>
+                {% if node.children|filter(n => n.visible) is not empty %}
+                    {{ self.tree(node.children, node.id, product, selected, show_all, can_edit) }}
+                {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+{% endmacro %}
+{% import _self as macros %}
+{% set can_edit = is_granted('PRODUCT_EDIT') %}
+{% set selected = tree.selected %}
+
+<div class="grid gap-6 lg:grid-cols-[280px_1fr]">
+    <aside class="card card-body self-start">
+        <div class="flex items-center justify-between gap-2 mb-2">
+            <h2 class="card-title">Kategorie</h2>
+            {% if can_edit %}
+                <a href="{{ path('app_product_link_category_new', {id: product.id}) }}" data-turbo-frame="modal" class="btn btn-ghost btn-sm">{{ ux_icon('lucide:folder-plus') }} Kategoria</a>
+            {% endif %}
+        </div>
+        {% if tree.nodes is not empty %}
+            <div {% if can_edit %}data-controller="sortable" data-sortable-url-value="{{ path('app_product_link_category_order') }}" data-sortable-token-value="{{ csrf_token('product-link') }}"{% endif %}>
+                {{ macros.tree(tree.nodes, '', product, selected, show_all, can_edit) }}
+            </div>
+            <div class="mt-3 text-sm">
+                {% if show_all %}
+                    <a href="{{ path('app_product_links', {id: product.id}) }}">Ukryj puste kategorie</a>
+                {% elseif tree.hidden > 0 %}
+                    <a href="{{ path('app_product_links', {id: product.id, wszystkie: 1}) }}">Pokaż wszystkie ({{ tree.hidden }} {{ tree.hidden|plural('pusta', 'puste', 'pustych') }})</a>
+                {% endif %}
+            </div>
+        {% endif %}
+        {% if can_edit and selected %}
+            <div class="mt-3 flex flex-wrap gap-2 border-t border-szary-200 pt-3">
+                <a href="{{ path('app_product_link_category_edit', {id: product.id, category: selected.id}) }}" data-turbo-frame="modal" class="btn btn-ghost btn-sm">{{ ux_icon('lucide:pencil') }} {{ selected.category.name }}</a>
+                <a href="{{ path('app_product_link_category_new', {id: product.id, rodzic: selected.id}) }}" data-turbo-frame="modal" class="btn btn-ghost btn-sm">{{ ux_icon('lucide:folder-plus') }} Podkategoria</a>
+            </div>
+        {% endif %}
+    </aside>
+
+    <div class="min-w-0">
+        {% if can_edit %}
+            <div class="flex justify-end mb-3">
+                <a href="{{ path('app_product_link_new', {id: product.id, kategoria: selected ? selected.id}) }}" data-turbo-frame="modal" class="btn btn-primary btn-sm">{{ ux_icon('lucide:link') }} Dodaj link</a>
+            </div>
+        {% endif %}
+        {% if sections is empty %}
+            <div class="card"><twig:EmptyState text="Brak linków – np. do sklepów, karty charakterystyki albo instrukcji." /></div>
+        {% else %}
+            <div class="space-y-4">
+                {% for section in sections %}
+                    <section class="card card-body {{ selected and selected.id == section.category.id ? 'ring-1 ring-zielen-600' }}">
+                        <h3 class="text-sm font-semibold text-antracyt-500 mb-2">{{ section.category.path }}</h3>
+                        <ul class="space-y-2">
+                            {% for link in section.links %}
+                                <li class="flex items-start justify-between gap-2">
+                                    <div class="min-w-0">
+                                        <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 font-semibold">{{ ux_icon('lucide:external-link', {width: 16, height: 16}) }}<span class="truncate">{{ link.name }}</span></a>
+                                        {% if link.description %}<p class="text-sm text-antracyt-500">{{ link.description }}</p>{% endif %}
+                                    </div>
+                                    {% if can_edit %}
+                                        <a href="{{ path('app_product_link_edit', {id: link.id}) }}" data-turbo-frame="modal" class="btn btn-ghost btn-icon btn-sm" aria-label="Edytuj link {{ link.name }}">{{ ux_icon('lucide:pencil') }}</a>
+                                    {% endif %}
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    </section>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</div>

@@ -1,0 +1,38 @@
+<twig:Modal title="{{ link.id ? 'Edycja linku' : 'Nowy link – ' ~ link.product.name }}">
+    <form method="post" action="{{ app.request.requestUri }}" data-turbo-frame="modal">
+        <input type="hidden" name="_token" value="{{ csrf_token('product-link') }}">
+        <div class="field">
+            <label class="label" for="link-url">Adres</label>
+            <input id="link-url" name="url" type="url" class="input" required autofocus value="{{ link.url }}" placeholder="https://…">
+            {% if errors.url is defined %}<p class="form-error">{{ errors.url }}</p>{% endif %}
+        </div>
+        <div class="field">
+            <label class="label" for="link-category">Kategoria</label>
+            <select id="link-category" name="category" class="select">
+                {% for category in choices %}
+                    <option value="{{ category.id }}" {{ category.id == link.category.id ? 'selected' }}>{{ category.path }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-grid">
+            <div class="field">
+                <label class="label" for="link-name">Nazwa</label>
+                <input id="link-name" name="name" class="input" maxlength="160" value="{{ link.id ? link.name }}" placeholder="domyślnie domena, np. agrihandel.pl">
+            </div>
+            <div class="field">
+                <label class="label" for="link-description">Opis</label>
+                <input id="link-description" name="description" class="input" maxlength="255" value="{{ link.description }}" placeholder="np. najtaniej w 2026, z dostawą">
+            </div>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-primary">Zapisz</button>
+            <button type="button" class="btn btn-ghost" data-action="modal#close">Anuluj</button>
+            {% if link.id %}<button type="submit" form="delete-link" class="btn btn-ghost text-danger ml-auto">{{ ux_icon('lucide:trash-2') }} Usuń</button>{% endif %}
+        </div>
+    </form>
+    {% if link.id %}
+        <form id="delete-link" method="post" action="{{ path('app_product_link_delete', {id: link.id}) }}" data-turbo-frame="modal" data-turbo-confirm="Usunąć link „{{ link.name }}”?">
+            <input type="hidden" name="_token" value="{{ csrf_token('product-link') }}">
+        </form>
+    {% endif %}
+</twig:Modal>

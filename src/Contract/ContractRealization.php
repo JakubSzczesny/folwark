@@ -10,6 +10,7 @@ use App\Repository\InvoiceItemRepository;
 
 /**
  * Realizacja umowy: suma ilości z pozycji faktur powiązanych z umową, w jednostce umowy.
+ * Gdy umowa ma towar, liczą się tylko pozycje przypisane do tego towaru.
  */
 class ContractRealization
 {
@@ -40,8 +41,14 @@ class ContractRealization
         $skipped = 0;
         $invoices = [];
 
+        $product = $contract->getProduct();
         foreach ($this->items->findForContract($contract) as $item) {
-            $converted = $this->convert($item, $unit);
+            if (null !== $product && $item->getProduct() !== $product) {
+                continue;
+            }
+            $converted = null !== $product && null !== $item->getQuantityInProductUnit()
+                ? $this->convertQuantity((float) $item->getQuantityInProductUnit(), $product->getUnitSymbol(), $unit)
+                : $this->convert($item, $unit);
             if (null === $converted) {
                 ++$skipped;
                 continue;
@@ -86,8 +93,12 @@ class ContractRealization
             return null;
         }
 
-        $quantity = (float) $item->getQuantity();
-        $itemUnit = self::normalizeUnit($item->getUnit());
+        return $this->convertQuantity((float) $item->getQuantity(), $item->getUnit(), $targetUnit);
+    }
+
+    private function convertQuantity(float $quantity, ?string $unit, ?string $targetUnit): ?float
+    {
+        $itemUnit = self::normalizeUnit($unit);
         $targetUnit = self::normalizeUnit($targetUnit);
 
         if (null === $targetUnit || $itemUnit === $targetUnit) {

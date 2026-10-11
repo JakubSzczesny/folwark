@@ -1,0 +1,106 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Przypisz towary · {{ invoice.number }}{% endblock %}
+{% block active_menu %}invoices{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="Przypisz towary" subtitle="{{ invoice.number }} · {{ invoice.contractorLabel }} · {{ invoice.issueDate|pl_date }}" back="{{ path('app_invoice_show', {id: invoice.id}) }}" />
+
+    {% if rows is empty %}
+        <div class="card card-body">
+            <p class="mb-3">Pozycje tej faktury nie są jeszcze pobrane z KSeF.</p>
+            {{ include('invoice/_items.html.twig', {invoice: invoice, items: []}) }}
+        </div>
+    {% else %}
+        <p class="text-sm text-antracyt-500 mb-4">
+            Wskaż towar z kartoteki dla każdej pozycji albo zaznacz „pomiń” (transport, usługa, opłata).
+            Zapamiętamy wybór – następne faktury od tego dostawcy wypełnią się same.
+        </p>
+
+        {% if errors is not empty %}
+            <div class="alert alert-danger mb-4">Uzupełnij zaznaczone pozycje.</div>
+        {% endif %}
+
+        <form method="post" action="{{ path('app_invoice_assign', {id: invoice.id}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('invoice-assign') }}">
+            <div class="space-y-3">
+                {% for row in rows %}
+                    {% set item = row.item %}
+                    {% set name = 'rows[' ~ item.id ~ ']' %}
+                    <section class="card card-body {{ errors[item.id] is defined ? 'ring-1 ring-blad' }} {{ item.beforeCorrection ? 'bg-szary-50' }}"
+                             data-controller="assign-row"
+                             data-assign-row-item-value="{{ item.id }}"
+                             data-assign-row-quantity-value="{{ item.quantity ?? '' }}"
+                             data-assign-row-factor-url-value="{{ path('app_invoice_assign_factor') }}"
+                             data-action="product-created->assign-row#created">
+                        <div class="flex flex-wrap items-start justify-between gap-2 mb-3">
+                            <div class="min-w-0">
+                                <p class="font-semibold">{{ item.position }}. {{ item.name }}</p>
+                                <p class="text-sm text-antracyt-500 tabular-nums">
+                                    {% if item.beforeCorrection %}<twig:Badge>przed korektą</twig:Badge> {% endif %}
+                                    {{ item.quantity is not null ? item.quantity|qty ~ ' ' ~ item.unit : '' }}
+                                    {% if item.unitPriceNet is not null %} · {{ item.unitPriceNet|amount(4) }} zł/{{ item.unit ?: 'jedn.' }}{% endif %}
+                                    {% if item.netValue is not null %} · {{ item.netValue|money }} netto{% endif %}
+                                </p>
+                            </div>
+                            {% if row.source and sources[row.source] is defined %}
+                                <twig:Badge tone="{{ row.source == 'proposal' ? 'warning' : 'positive' }}">{{ sources[row.source] }}</twig:Badge>
+                            {% endif %}
+                        </div>
+
+                        <div class="grid gap-3 lg:grid-cols-[minmax(240px,2fr)_minmax(220px,1fr)_minmax(180px,1fr)_auto] lg:items-end">
+                            <div class="field mb-0" data-assign-row-target="fields">
+                                <label class="label" for="product-{{ item.id }}">Towar</label>
+                                <div class="flex gap-2">
+                                    <div class="flex-1 min-w-0">
+                                        <select id="product-{{ item.id }}" name="{{ name }}[product]"
+                                                data-assign-row-target="product"
+                                                data-controller="symfony--ux-autocomplete--autocomplete"
+                                                data-symfony--ux-autocomplete--autocomplete-url-value="{{ path('ux_entity_autocomplete', {alias: 'product'}) }}"
+                                                data-symfony--ux-autocomplete--autocomplete-preload-value="focus"
+                                                data-action="change->assign-row#productChanged">
+                                            <option value="">Wybierz towar…</option>
+                                            {% if row.product %}<option value="{{ row.product.id }}" selected>{{ row.product.name }}{{ row.product.unitSymbol ? ' [' ~ row.product.unitSymbol ~ ']' }}</option>{% endif %}
+                                        </select>
+                                    </div>
+                                    {% if is_granted('PRODUCT_EDIT') %}
+                                        <a href="{{ path('app_product_quick', {nazwa: item.name, wiersz: item.id}) }}" data-turbo-frame="modal" class="btn btn-secondary btn-icon" title="Nowy towar" aria-label="Dodaj nowy towar dla pozycji {{ item.position }}">{{ ux_icon('lucide:plus') }}</a>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="field mb-0" data-assign-row-target="fields">
+                                <label class="label" for="factor-{{ item.id }}">Przelicznik</label>
+                                <div class="flex items-center gap-2 text-sm">
+                                    <span class="whitespace-nowrap text-antracyt-500">1 {{ item.unit ?: 'jedn.' }} =</span>
+                                    <input id="factor-{{ item.id }}" name="{{ name }}[factor]" class="input w-24" inputmode="decimal" value="{{ row.factor is not null ? row.factor|number_format(6, ',', '')|trim('0', 'right')|trim(',', 'right') }}" data-assign-row-target="factor" data-action="input->assign-row#recompute">
+                                    <span data-assign-row-target="unit">{{ row.product ? row.product.unitSymbol }}</span>
+                                </div>
+                                <p class="help tabular-nums" data-assign-row-target="result">{% if row.quantityInProductUnit is not null %}= {{ row.quantityInProductUnit|qty }} {{ row.product.unitSymbol }}{% endif %}</p>
+                            </div>
+
+                            <div class="field mb-0" data-assign-row-target="fields">
+                                <label class="label" for="center-{{ item.id }}">Ośrodek kosztów</label>
+                                <select id="center-{{ item.id }}" name="{{ name }}[costCenter]" class="select">
+                                    <option value="">—</option>
+                                    {% for center in centers %}<option value="{{ center.id }}" {{ row.costCenter and row.costCenter.id == center.id ? 'selected' }}>{{ center.name }}</option>{% endfor %}
+                                </select>
+                            </div>
+
+                            <label class="inline-flex items-center gap-2 cursor-pointer whitespace-nowrap" style="min-height:40px">
+                                <input type="checkbox" class="checkbox" name="{{ name }}[skip]" value="1" {{ row.skip ? 'checked' }} data-assign-row-target="skip" data-action="assign-row#toggleSkip">
+                                Pomiń pozycję
+                            </label>
+                        </div>
+                        {% if errors[item.id] is defined %}<p class="form-error mt-2">{{ errors[item.id] }}</p>{% endif %}
+                    </section>
+                {% endfor %}
+            </div>
+
+            <div class="sticky bottom-0 mt-4 flex flex-wrap gap-2 border-t border-szary-200 bg-szary-50/95 py-3">
+                <button type="submit" class="btn btn-primary">{{ ux_icon('lucide:package-check') }} Zatwierdź przypisanie</button>
+                <a href="{{ path('app_invoice_show', {id: invoice.id}) }}" class="btn btn-ghost">Anuluj</a>
+            </div>
+        </form>
+    {% endif %}
+{% endblock %}

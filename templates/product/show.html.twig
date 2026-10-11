@@ -1,0 +1,46 @@
+{% extends 'layout.html.twig' %}
+{% import '_partials/macros.html.twig' as m %}
+
+{% block title %}{{ product.name }}{% endblock %}
+{% block active_menu %}products{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="{{ product.name }}" subtitle="{{ [product.category ? product.category.path, product.unitSymbol ? 'jm. ' ~ product.unitSymbol, product.internalCode, product.catalogNumber ? 'nr kat. ' ~ product.catalogNumber]|filter(v => v)|join(' · ') }}" back="{{ path('app_product_index') }}">
+        {% import '_partials/macros.html.twig' as m %}
+        {% if is_granted('PRODUCT_EDIT') %}
+            <a href="{{ path('app_product_edit', {id: product.id}) }}" class="btn btn-secondary">{{ ux_icon('lucide:pencil') }} Edytuj</a>
+        {% endif %}
+        {% if cycle and cycle.predictedDate and not cycle.status.manual and is_granted('ORDER_MARK') %}
+            {{ m.post_button(path('app_order_mark', {id: cycle.id}), 'Oznacz jako zamówione', 'order', 'btn btn-primary', null, 'shopping-cart') }}
+        {% endif %}
+    </twig:PageHeader>
+
+    {% if not product.active %}
+        <div class="alert alert-warning mb-4">Towar nieaktywny – nie podpowiadamy go przy fakturach i nie przewidujemy zamówień.</div>
+    {% endif %}
+
+    <section class="card card-body mb-6">
+        {% if cycle %}
+            <dl class="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-5">
+                <div><dt class="text-antracyt-500">Ostatnie zamówienie</dt><dd class="font-semibold tabular-nums">{{ cycle.lastOrderDate ? cycle.lastOrderDate|pl_date : '—' }}{% if cycle.lastOrderQuantity %}<span class="block font-normal text-antracyt-500">{{ cycle.lastOrderQuantity|qty }} {{ product.unitSymbol }}</span>{% endif %}</dd></div>
+                <div><dt class="text-antracyt-500">Typowy odstęp</dt><dd class="font-semibold">{{ cycle.intervalDays ? (cycle.mode and cycle.mode.value == 'seasonal' ? 'raz w roku' : 'co ' ~ cycle.intervalDays ~ ' ' ~ cycle.intervalDays|plural('dzień', 'dni', 'dni')) : '—' }}{% if cycle.regularity %}<span class="block"><twig:Badge tone="{{ cycle.regularity.tone }}">{{ cycle.regularity.label }}</twig:Badge></span>{% endif %}</dd></div>
+                <div><dt class="text-antracyt-500">Następne zamówienie</dt><dd class="font-semibold">{% if cycle.predictedDate %}{{ m.deadline(cycle.predictedDate, 14, cycle.status.manual) }}{% if cycle.spreadDays %}<span class="font-normal text-antracyt-500"> ± {{ cycle.spreadDays }} dni</span>{% endif %}{% else %}za mało danych{% endif %}<span class="block"><twig:Badge tone="{{ cycle.status.tone }}">{{ cycle.status.label }}</twig:Badge></span></dd></div>
+                <div><dt class="text-antracyt-500">Typowa ilość</dt><dd class="font-semibold tabular-nums">{{ cycle.typicalQuantity ? cycle.typicalQuantity|qty ~ ' ' ~ product.unitSymbol : '—' }}</dd></div>
+                <div><dt class="text-antracyt-500">Szacowane zużycie</dt><dd class="font-semibold tabular-nums">{{ cycle.dailyUsage and cycle.dailyUsage > 0 ? '≈ ' ~ cycle.dailyUsage|qty(cycle.dailyUsage < 10 ? 2 : 0) ~ ' ' ~ product.unitSymbol ~ '/dzień' : '—' }}</dd></div>
+            </dl>
+        {% else %}
+            <p class="text-sm text-antracyt-500">Ten towar nie był jeszcze kupowany – historia i przewidywanie zamówień pojawią się po przypisaniu go do pozycji faktur.</p>
+        {% endif %}
+    </section>
+
+    <turbo-frame id="product-tab" data-turbo-action="advance">
+        <nav class="tabs" aria-label="Sekcje towaru">
+            <a href="{{ path('app_product_show', {id: product.id}) }}" class="tab {{ tab == 'purchases' ? 'tab-active' }}">Zakupy</a>
+            <a href="{{ path('app_product_suppliers', {id: product.id}) }}" class="tab {{ tab == 'suppliers' ? 'tab-active' }}">Dostawcy</a>
+            <a href="{{ path('app_product_links', {id: product.id}) }}" class="tab {{ tab == 'links' ? 'tab-active' }}">Linki</a>
+            {% if is_granted('ORDER_VIEW') %}<a href="{{ path('app_product_order', {id: product.id}) }}" class="tab {{ tab == 'order' ? 'tab-active' }}">Zamówienie</a>{% endif %}
+        </nav>
+
+        {{ include('product/tab/' ~ tab ~ '.html.twig') }}
+    </turbo-frame>
+{% endblock %}

@@ -1,0 +1,15 @@
+{# Oś czasu zakupów: punkt = zamówienie, wielkość = ilość. #}
+{% if timeline.points is not empty %}
+    <div class="relative h-20 mx-4" role="img" aria-label="Oś czasu zakupów od {{ timeline.from|pl_date }} do {{ timeline.to|pl_date }}">
+        <div class="absolute left-0 right-0 top-1/2 border-t border-szary-200"></div>
+        {% for point in timeline.points %}
+            <span class="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-zielen-600/70 ring-2 ring-white"
+                  style="left: {{ point.x }}%; width: {{ point.r * 2 }}px; height: {{ point.r * 2 }}px"
+                  title="{{ point.date|pl_date }}{{ point.quantity is not null ? ' · ' ~ point.quantity|qty ~ ' ' ~ unit|default('') }} · {{ point.label }}"></span>
+        {% endfor %}
+    </div>
+    <div class="flex justify-between text-xs text-antracyt-500 mx-1">
+        <span>{{ timeline.from|pl_date }}</span>
+        <span>{{ timeline.to|pl_date }}</span>
+    </div>
+{% endif %}

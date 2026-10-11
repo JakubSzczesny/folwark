@@ -1,0 +1,45 @@
+{% set amounts = is_granted('AMOUNTS_VIEW') %}
+
+{% if rows is empty %}
+    <div class="card"><twig:EmptyState text="Brak zakupów tego towaru. Przypisz go do pozycji faktury („Przypisz towary” na fakturze)." /></div>
+{% else %}
+    <section class="card card-body mb-6">
+        <h2 class="card-title mb-3">Oś czasu zakupów</h2>
+        {{ include('product/_timeline.html.twig', {unit: product.unitSymbol}) }}
+    </section>
+
+    {% if price_chart %}
+        <section class="card card-body mb-6">
+            <h2 class="card-title mb-3">Cena jednostkowa netto ({{ product.unitSymbol ? 'zł/' ~ product.unitSymbol : 'zł' }})</h2>
+            <div style="height: 220px">{{ render_chart(price_chart) }}</div>
+        </section>
+    {% endif %}
+
+    <div class="card">
+        <div class="table-wrap">
+            <table class="table table-cards">
+                <thead>
+                    <tr>
+                        <th>Data</th><th>Dostawca</th><th class="text-right">Ilość</th>
+                        {% if amounts %}<th class="text-right">Cena jedn.</th><th class="text-right">Netto</th>{% endif %}
+                        <th>Faktura</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                        <tr>
+                            <td class="card-title-cell tabular-nums">{{ row.date|pl_date }}</td>
+                            <td data-label="Dostawca">{{ row.contractor }}</td>
+                            <td data-label="Ilość" class="num">{{ row.quantity is not null ? row.quantity|qty ~ ' ' ~ product.unitSymbol : '—' }}</td>
+                            {% if amounts %}
+                                <td data-label="Cena jedn." class="num">{{ row.unitPrice is not null ? row.unitPrice|amount(row.unitPrice < 10 ? 4 : 2) ~ ' zł' : '—' }}</td>
+                                <td data-label="Netto" class="num">{{ row.net|money }}</td>
+                            {% endif %}
+                            <td data-label="Faktura">{% if is_granted('INVOICE_VIEW') %}<a href="{{ path('app_invoice_show', {id: row.invoiceId}) }}" data-turbo-frame="_top">{{ row.invoiceNumber }}</a>{% else %}{{ row.invoiceNumber }}{% endif %}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+{% endif %}

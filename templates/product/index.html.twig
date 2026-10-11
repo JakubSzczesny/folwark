@@ -1,0 +1,79 @@
+{% extends 'layout.html.twig' %}
+{% import '_partials/macros.html.twig' as m %}
+
+{% block title %}Towary{% endblock %}
+{% block active_menu %}products{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="Towary">
+        {% if is_granted('PRODUCT_EDIT') %}
+            <a href="{{ path('app_product_new') }}" class="btn btn-primary">{{ ux_icon('lucide:plus') }} Dodaj towar</a>
+        {% endif %}
+    </twig:PageHeader>
+
+    <div data-controller="filters">
+    {{ include('_partials/filters_toggle.html.twig', {active: (filters.q ? 1 : 0) + (filters.category ? 1 : 0) + (filters.inactive ? 1 : 0)}) }}
+    <form method="get" class="filter-bar is-collapsible" data-filters-target="panel" data-controller="autosubmit" data-turbo-action="replace">
+        <div class="field min-w-[240px]">
+            <label class="label" for="f-q">Szukaj</label>
+            <input id="f-q" type="search" name="szukaj" value="{{ filters.q }}" class="input" placeholder="Nazwa, kod, nr katalogowy" data-action="input->autosubmit#debounced">
+        </div>
+        <div class="field">
+            <label class="label" for="f-category">Kategoria</label>
+            <select id="f-category" name="kategoria" class="select" data-action="autosubmit#submit">
+                <option value="">Wszystkie</option>
+                {% for category in categories %}<option value="{{ category.id }}" {{ filters.category == category.id ? 'selected' }}>{{ category.parent ? '— ' }}{{ category.name }}</option>{% endfor %}
+            </select>
+        </div>
+        <label class="inline-flex items-center gap-2 cursor-pointer" style="min-height:40px">
+            <input type="checkbox" class="checkbox" name="nieaktywne" value="1" {{ filters.inactive ? 'checked' }} data-action="autosubmit#submit">
+            Pokaż nieaktywne
+        </label>
+        <a href="{{ path('app_product_index', {wyczysc: 1}) }}" class="btn btn-ghost">Wyczyść</a>
+    </form>
+    </div>
+
+    <div class="card">
+        {% if pager.items is empty %}
+            <twig:EmptyState text="{{ filters.q or filters.category ? 'Brak towarów spełniających filtry.' : 'Kartoteka jest pusta. Towary dodasz tu albo prosto z faktury, przy przypisywaniu pozycji.' }}"
+                actionLabel="{{ is_granted('PRODUCT_EDIT') ? 'Dodaj towar' : null }}"
+                actionUrl="{{ is_granted('PRODUCT_EDIT') ? path('app_product_new') : null }}" />
+        {% else %}
+            <div class="table-wrap">
+                <table class="table table-cards" data-controller="table-nav" data-action="keydown@window->table-nav#keydown">
+                    <thead>
+                        <tr>
+                            {{ m.sort_th('Nazwa', 'nazwa', sort) }}
+                            {{ m.sort_th('Kategoria', 'kategoria', sort) }}
+                            <th>Jm.</th>
+                            <th>Ostatni zakup</th>
+                            <th>Następne zamówienie</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in pager.items %}
+                            {% set url = path('app_product_show', {id: product.id}) %}
+                            {% set cycle = cycles[product.id] ?? null %}
+                            <tr data-table-nav-target="row" data-href="{{ url }}" data-action="click->table-nav#click" class="{{ product.active ? '' : 'opacity-60' }}">
+                                <td class="card-title-cell">
+                                    <a href="{{ url }}" class="text-tekst hover:text-zielen-600">{{ product.name }}</a>
+                                    {% if product.catalogNumber or product.internalCode %}<span class="block text-xs text-antracyt-500">{{ [product.internalCode, product.catalogNumber]|filter(v => v)|join(' · ') }}</span>{% endif %}
+                                </td>
+                                <td data-label="Kategoria">{{ product.category ? product.category.name : '—' }}</td>
+                                <td data-label="Jm.">{{ product.unitSymbol ?: '—' }}</td>
+                                <td data-label="Ostatni zakup" class="tabular-nums">{{ cycle and cycle.lastOrderDate ? cycle.lastOrderDate|pl_date : '—' }}</td>
+                                <td data-label="Następne zamówienie">
+                                    {% if cycle and cycle.predictedDate %}
+                                        {{ m.deadline(cycle.predictedDate, 14, cycle.status.manual) }}
+                                        {% if cycle.status.manual %}<twig:Badge tone="{{ cycle.status.tone }}">{{ cycle.status.label }}</twig:Badge>{% endif %}
+                                    {% else %}<span class="text-antracyt-500">—</span>{% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {{ include('_partials/pagination.html.twig') }}
+        {% endif %}
+    </div>
+{% endblock %}

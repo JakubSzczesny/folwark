@@ -13,6 +13,8 @@ use App\Repository\MachineInfoCategoryRepository;
 use App\Repository\MachineInfoEntryRepository;
 use App\Storage\FileStorage;
 use App\Storage\Thumbnails;
+use App\Tree\CategoryTree;
+use App\Tree\TreeNode;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 
@@ -31,54 +33,23 @@ final class MachineInfo
     }
 
     /**
-     * Drzewo kategorii z liczbą wpisów maszyny. Puste kategorie są ukryte, chyba że $showAll
-     * albo są wybrane (lub są przodkiem wybranej). Bez wyboru wybieramy pierwszą niepustą.
+     * Drzewo kategorii z liczbą wpisów maszyny (puste ukryte, chyba że $showAll).
      *
-     * @return array{nodes: list<InfoNode>, selected: ?InfoNode, hidden: int}
+     * @return array{nodes: list<TreeNode<MachineInfoCategory>>, selected: ?TreeNode<MachineInfoCategory>, hidden: int}
      */
     public function tree(Machine $machine, ?int $selectedId = null, bool $showAll = false): array
     {
-        $counts = $this->entries->countByCategory($machine);
-        $byParent = [];
-        foreach ($this->categories->findAllOrdered() as $category) {
-            $byParent[$category->getParent()?->getId() ?? 0][] = $category;
-        }
-
-        $nodes = $this->buildLevel($byParent, 0, 0, $counts);
-        $flat = self::flatten($nodes);
-
-        $selected = null;
-        foreach ($flat as $node) {
-            if ($node->id() === $selectedId) {
-                $selected = $node;
-            }
-        }
-        if (null === $selected) {
-            foreach ($flat as $node) {
-                if ($node->total > 0) {
-                    $selected = $node;
-                    break;
-                }
-            }
-        }
-        $selected ??= $flat[0] ?? null;
-
-        $keep = null !== $selected ? $this->pathIds($selected->category) : [];
-        $hidden = 0;
-        foreach ($flat as $node) {
-            $node->visible = $showAll || $node->total > 0 || \in_array($node->id(), $keep, true);
-            $hidden += $node->visible ? 0 : 1;
-        }
-
-        return ['nodes' => $nodes, 'selected' => $selected, 'hidden' => $hidden];
+        return CategoryTree::build($this->categories->findAllOrdered(), $this->entries->countByCategory($machine), $selectedId, $showAll);
     }
 
     /**
      * Wpisy wybranej kategorii i jej podkategorii, pogrupowane w kolejności drzewa.
      *
+     * @param TreeNode<MachineInfoCategory> $selected
+     *
      * @return list<array{category: MachineInfoCategory, entries: list<MachineInfoEntry>}>
      */
-    public function sections(Machine $machine, InfoNode $selected): array
+    public function sections(Machine $machine, TreeNode $selected): array
     {
         $entries = [];
         foreach ($this->entries->findForMachine($machine, $selected->ids()) as $entry) {
@@ -86,7 +57,7 @@ final class MachineInfo
         }
 
         $sections = [];
-        foreach (self::flatten([$selected]) as $node) {
+        foreach ($selected->flatten() as $node) {
             if (isset($entries[$node->id()]) || $node === $selected) {
                 $sections[] = ['category' => $node->category, 'entries' => $entries[$node->id()] ?? []];
             }
@@ -126,22 +97,7 @@ final class MachineInfo
      */
     public function reorder(?MachineInfoCategory $parent, array $ids): void
     {
-        $siblings = [];
-        foreach ($this->categories->findBy(['parent' => $parent]) as $category) {
-            $siblings[$category->getId()] = $category;
-        }
-
-        $position = 0;
-        foreach ($ids as $id) {
-            if (isset($siblings[$id])) {
-                $siblings[$id]->setPosition($position++);
-                unset($siblings[$id]);
-            }
-        }
-        foreach ($siblings as $category) {
-            $category->setPosition($position++);
-        }
-
+        CategoryTree::reorder($this->categories->findBy(['parent' => $parent]), $ids);
         $this->em->flush();
     }
 
@@ -247,54 +203,6 @@ final class MachineInfo
         }
 
         return $links;
-    }
-
-    /**
-     * @param array<int, list<MachineInfoCategory>> $byParent
-     * @param array<int, int>                       $counts
-     *
-     * @return list<InfoNode>
-     */
-    private function buildLevel(array $byParent, int $parentId, int $depth, array $counts): array
-    {
-        $nodes = [];
-        foreach ($byParent[$parentId] ?? [] as $category) {
-            $node = new InfoNode($category, $depth, $counts[$category->getId()] ?? 0);
-            $node->children = $this->buildLevel($byParent, (int) $category->getId(), $depth + 1, $counts);
-            $node->total = $node->count + array_sum(array_map(static fn (InfoNode $child): int => $child->total, $node->children));
-            $nodes[] = $node;
-        }
-
-        return $nodes;
-    }
-
-    /**
-     * @param list<InfoNode> $nodes
-     *
-     * @return list<InfoNode>
-     */
-    private static function flatten(array $nodes): array
-    {
-        $flat = [];
-        foreach ($nodes as $node) {
-            $flat[] = $node;
-            array_push($flat, ...self::flatten($node->children));
-        }
-
-        return $flat;
-    }
-
-    /**
-     * @return list<int>
-     */
-    private function pathIds(MachineInfoCategory $category): array
-    {
-        $ids = [];
-        for ($current = $category; null !== $current; $current = $current->getParent()) {
-            $ids[] = (int) $current->getId();
-        }
-
-        return $ids;
     }
 
     /**

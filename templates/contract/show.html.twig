@@ -57,6 +57,7 @@
                     <dt>Status</dt><dd><twig:Badge tone="{{ contract.status.tone }}">{{ contract.status.label }}</twig:Badge></dd>
                     <dt>Kontrahent</dt><dd>{% if is_granted('CONTRACTOR_VIEW') %}<a href="{{ path('app_contractor_show', {id: contract.contractor.id}) }}">{{ contract.contractor.name }}</a>{% else %}{{ contract.contractor.name }}{% endif %}</dd>
                     <dt>Rodzaj</dt><dd>{{ contract.kind.label }}</dd>
+                    {% if contract.product %}<dt>Towar</dt><dd><a href="{{ path('app_product_show', {id: contract.product.id}) }}">{{ contract.product.name }}</a></dd>{% endif %}
                     <dt>Zawarta</dt><dd>{{ contract.concludedAt ? contract.concludedAt|pl_date : '—' }}</dd>
                     <dt>Obowiązuje</dt><dd>{{ contract.validFrom ? 'od ' ~ contract.validFrom|pl_date : '' }} {% if contract.validTo %}do {{ m.deadline(contract.validTo, 30, not contract.active) }}{% else %}bezterminowo{% endif %}</dd>
                     <dt>Ilość</dt><dd class="tabular-nums">{{ contract.contractedQuantity ? contract.contractedQuantity|qty ~ ' ' ~ (contract.quantityUnit ? contract.quantityUnit.symbol) : '—' }}</dd>

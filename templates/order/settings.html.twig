@@ -1,0 +1,9 @@
+<twig:Modal title="Ustaw ręcznie – {{ cycle.label }}">
+    {{ form_start(form, {attr: {'data-turbo-frame': 'modal'}}) }}
+        {{ form_widget(form) }}
+        <div class="flex gap-2">
+            <button type="submit" class="btn btn-primary">Zapisz</button>
+            <button type="button" class="btn btn-ghost" data-action="modal#close">Anuluj</button>
+        </div>
+    {{ form_end(form) }}
+</twig:Modal>

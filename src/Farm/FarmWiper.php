@@ -13,6 +13,7 @@ use App\Entity\CostCenter;
 use App\Entity\Farm;
 use App\Entity\Invoice;
 use App\Entity\InvoiceRule;
+use App\Entity\ItemMapping;
 use App\Entity\KsefSync;
 use App\Entity\Machine;
 use App\Entity\MachineCategory;
@@ -22,6 +23,12 @@ use App\Entity\MachineInfoEntry;
 use App\Entity\MachineService;
 use App\Entity\MachineServiceAttachment;
 use App\Entity\Notification;
+use App\Entity\OrderCycle;
+use App\Entity\OrderSettings;
+use App\Entity\Product;
+use App\Entity\ProductCategory;
+use App\Entity\ProductLink;
+use App\Entity\ProductLinkCategory;
 use App\Entity\RecentChoice;
 use App\Entity\SavedFilter;
 use App\Entity\ServiceType;
@@ -50,6 +57,11 @@ final class FarmWiper
         RecentChoice::class,
         InvoiceRule::class,
         KsefSync::class,
+        OrderCycle::class,
+        OrderSettings::class,
+        ItemMapping::class,
+        ProductLink::class,
+        ProductLinkCategory::class,
         MachineServiceAttachment::class,
         MachineService::class,
         MachineInfoAttachment::class,
@@ -61,6 +73,8 @@ final class FarmWiper
         Invoice::class,
         ContractAttachment::class,
         Contract::class,
+        Product::class,
+        ProductCategory::class,
         Contractor::class,
         CostCenter::class,
         CostCategory::class,

@@ -1,3 +1,32 @@
+{% import '_partials/macros.html.twig' as m %}
 <div class="card">
-    <twig:EmptyState text="Historia zakupów pojawi się po przypisaniu towarów do pozycji faktur." />
+    {% if purchases is empty %}
+        <twig:EmptyState text="Historia zakupów pojawi się po przypisaniu towarów do pozycji faktur od tego dostawcy." />
+    {% else %}
+        <div class="table-wrap">
+            <table class="table table-cards">
+                <thead>
+                    <tr>
+                        <th>Towar</th><th>Ostatni zakup</th><th class="text-right">Ilość</th>
+                        {% if is_granted('AMOUNTS_VIEW') %}<th class="text-right">Cena jedn.</th>{% endif %}
+                        <th>Typowy odstęp</th><th>Następne zamówienie</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in purchases %}
+                        {% set product = row.product %}
+                        {% set cycle = cycles[product.id] ?? null %}
+                        <tr>
+                            <td class="card-title-cell"><a href="{{ path('app_product_show', {id: product.id}) }}">{{ product.name }}</a></td>
+                            <td data-label="Ostatni zakup" class="tabular-nums">{{ row.lastDate|pl_date }}</td>
+                            <td data-label="Ilość" class="num">{{ row.lastQuantity is not null ? row.lastQuantity|qty ~ ' ' ~ product.unitSymbol : '—' }}</td>
+                            {% if is_granted('AMOUNTS_VIEW') %}<td data-label="Cena jedn." class="num">{{ row.lastPrice is not null ? row.lastPrice|amount(row.lastPrice < 10 ? 4 : 2) ~ ' zł' : '—' }}</td>{% endif %}
+                            <td data-label="Typowy odstęp">{{ cycle and cycle.intervalDays ? 'co ' ~ cycle.intervalDays ~ ' dni' : '—' }}</td>
+                            <td data-label="Następne zamówienie">{{ cycle and cycle.predictedDate ? m.deadline(cycle.predictedDate, 14, cycle.status.manual) : '—' }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
 </div>

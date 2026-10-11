@@ -2,20 +2,21 @@
 
 declare(strict_types=1);
 
-namespace App\Machine;
-
-use App\Entity\MachineInfoCategory;
+namespace App\Tree;
 
 /**
- * Węzeł drzewa kategorii informacji z liczbą wpisów konkretnej maszyny.
+ * Węzeł drzewa kategorii z liczbą wpisów jednego obiektu (maszyny, towaru).
+ *
+ * @template T of TreeCategory
  */
-final class InfoNode
+final class TreeNode
 {
     /**
-     * @param list<InfoNode> $children
+     * @param T                 $category
+     * @param list<TreeNode<T>> $children
      */
     public function __construct(
-        public readonly MachineInfoCategory $category,
+        public readonly TreeCategory $category,
         public readonly int $depth,
         public readonly int $count,
         public int $total = 0,
@@ -40,5 +41,18 @@ final class InfoNode
         }
 
         return $ids;
+    }
+
+    /**
+     * @return list<TreeNode<T>> ten węzeł i wszystkie potomne, w kolejności drzewa
+     */
+    public function flatten(): array
+    {
+        $flat = [$this];
+        foreach ($this->children as $child) {
+            array_push($flat, ...$child->flatten());
+        }
+
+        return $flat;
     }
 }

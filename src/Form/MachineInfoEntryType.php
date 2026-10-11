@@ -6,7 +6,9 @@ namespace App\Form;
 
 use App\Entity\MachineInfoCategory;
 use App\Entity\MachineInfoEntry;
+use App\Form\Field\ProductAutocompleteField;
 use App\Repository\MachineInfoCategoryRepository;
+use App\Tree\CategoryTree;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
@@ -32,7 +34,7 @@ final class MachineInfoEntryType extends AbstractType
             ->add('category', EntityType::class, [
                 'label' => 'Kategoria',
                 'class' => MachineInfoCategory::class,
-                'choices' => $this->treeOrder(),
+                'choices' => CategoryTree::ordered($this->categories->findAllOrdered()),
                 'choice_label' => static fn (MachineInfoCategory $c): string => $c->getPath(),
             ])
             ->add('name', TextType::class, ['label' => 'Nazwa', 'attr' => ['autofocus' => true, 'placeholder' => 'np. Filtr oleju silnika']])
@@ -40,6 +42,7 @@ final class MachineInfoEntryType extends AbstractType
             ->add('manufacturer', TextType::class, ['label' => 'Producent', 'required' => false])
             ->add('sizeQuantity', TextType::class, ['label' => 'Rozmiar / ilość', 'required' => false, 'attr' => ['placeholder' => 'np. 710/75 R42, 2 szt., 18 l']])
             ->add('notes', TextareaType::class, ['label' => 'Uwagi', 'required' => false, 'attr' => ['rows' => 2]])
+            ->add('product', ProductAutocompleteField::class, ['label' => 'Towar z kartoteki', 'required' => false, 'help' => 'Wtedy przy wpisie widać ostatni zakup, termin zamówienia i linki do sklepów.'])
             ->add('files', FileType::class, [
                 'label' => 'Zdjęcia i pliki',
                 'mapped' => false,
@@ -60,27 +63,5 @@ final class MachineInfoEntryType extends AbstractType
     public function configureOptions(OptionsResolver $resolver): void
     {
         $resolver->setDefaults(['data_class' => MachineInfoEntry::class]);
-    }
-
-    /**
-     * @return list<MachineInfoCategory>
-     */
-    private function treeOrder(): array
-    {
-        $byParent = [];
-        foreach ($this->categories->findAllOrdered() as $category) {
-            $byParent[$category->getParent()?->getId() ?? 0][] = $category;
-        }
-
-        $ordered = [];
-        $walk = static function (int $parent) use (&$walk, &$ordered, $byParent): void {
-            foreach ($byParent[$parent] ?? [] as $category) {
-                $ordered[] = $category;
-                $walk((int) $category->getId());
-            }
-        };
-        $walk(0);
-
-        return $ordered;
     }
 }

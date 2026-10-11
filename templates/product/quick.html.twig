@@ -1,0 +1,10 @@
+<twig:Modal title="Nowy towar">
+    <p class="text-sm text-antracyt-500 mb-4">Pozostałe dane (przeliczniki, czas dostawy) uzupełnisz później na karcie towaru.</p>
+    {{ form_start(form, {attr: {'data-turbo-frame': 'modal'}}) }}
+        {{ form_widget(form) }}
+        <div class="flex gap-2">
+            <button type="submit" class="btn btn-primary">Dodaj towar</button>
+            <button type="button" class="btn btn-ghost" data-action="modal#close">Anuluj</button>
+        </div>
+    {{ form_end(form) }}
+</twig:Modal>

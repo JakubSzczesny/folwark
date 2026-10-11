@@ -9,6 +9,8 @@ use App\Entity\Farm;
 use App\Farm\FarmContext;
 use App\Form\FarmType;
 use App\Form\Settings\NotificationSettingsType;
+use App\Form\Settings\OrderSettingsType;
+use App\Message\RecalculateOrders;
 use App\Repository\AuditLogRepository;
 use App\Security\Permission;
 use App\Settings\SettingsForm;
@@ -17,6 +19,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
@@ -81,6 +84,12 @@ final class SettingsController extends AbstractController
     public function notifications(Request $request): Response
     {
         return $this->handleSettings($request, NotificationSettingsType::class, NotificationSettingsType::KEYS, 'Powiadomienia', 'app_settings_notifications');
+    }
+
+    #[Route('/zamowienia', name: 'app_settings_orders', methods: ['GET', 'POST'])]
+    public function orders(Request $request, MessageBusInterface $bus, FarmContext $context): Response
+    {
+        return $this->handleSettings($request, OrderSettingsType::class, OrderSettingsType::KEYS, 'Zamówienia', 'app_settings_orders', static fn () => $bus->dispatch(new RecalculateOrders($context->farmId())));
     }
 
     #[Route('/dziennik', name: 'app_settings_audit', methods: ['GET'])]

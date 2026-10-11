@@ -1,0 +1,35 @@
+{% set amounts = is_granted('AMOUNTS_VIEW') %}
+<div class="card">
+    {% if suppliers is empty %}
+        <twig:EmptyState text="Ten towar nie był jeszcze kupowany." />
+    {% else %}
+        {% set best = suppliers|filter(s => s.medianPrice is not null)|sort((a, b) => a.medianPrice <=> b.medianPrice)|first %}
+        <div class="table-wrap">
+            <table class="table table-cards">
+                <thead>
+                    <tr>
+                        <th>Dostawca</th><th>Ostatni zakup</th><th class="text-right">Zakupów</th><th class="text-right">Ilość łącznie</th>
+                        {% if amounts %}<th class="text-right">Ostatnia cena</th><th class="text-right">Mediana 12 mies.</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for supplier in suppliers %}
+                        <tr>
+                            <td class="card-title-cell">
+                                {% if supplier.contractorId and is_granted('CONTRACTOR_VIEW') %}<a href="{{ path('app_contractor_show', {id: supplier.contractorId}) }}" data-turbo-frame="_top">{{ supplier.contractor }}</a>{% else %}{{ supplier.contractor }}{% endif %}
+                                {% if amounts and best and best.contractor == supplier.contractor and suppliers|length > 1 %}<twig:Badge tone="positive">najtaniej</twig:Badge>{% endif %}
+                            </td>
+                            <td data-label="Ostatni zakup" class="tabular-nums">{{ supplier.lastDate|pl_date }}</td>
+                            <td data-label="Zakupów" class="num">{{ supplier.purchases }}</td>
+                            <td data-label="Ilość łącznie" class="num">{{ supplier.quantity|qty }} {{ product.unitSymbol }}</td>
+                            {% if amounts %}
+                                <td data-label="Ostatnia cena" class="num">{{ supplier.lastPrice is not null ? supplier.lastPrice|amount(supplier.lastPrice < 10 ? 4 : 2) ~ ' zł' : '—' }}</td>
+                                <td data-label="Mediana 12 mies." class="num">{{ supplier.medianPrice is not null ? supplier.medianPrice|amount(supplier.medianPrice < 10 ? 4 : 2) ~ ' zł' : '—' }}</td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>

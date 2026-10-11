@@ -1,0 +1,47 @@
+{% extends 'layout.html.twig' %}
+
+{% set title = product.id ? 'Edycja: ' ~ product.name : 'Nowy towar' %}
+{% set back = product.id ? path('app_product_show', {id: product.id}) : path('app_product_index') %}
+{% block title %}{{ title }}{% endblock %}
+{% block active_menu %}products{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="{{ title }}" back="{{ back }}" />
+
+    <div class="card card-body max-w-3xl">
+        {{ form_start(form) }}
+            {{ form_row(form.name) }}
+            <div class="form-grid">
+                {{ form_row(form.category) }}
+                {{ form_row(form.baseUnit) }}
+            </div>
+            <div class="grid gap-x-4 sm:grid-cols-3">
+                {{ form_row(form.internalCode) }}
+                {{ form_row(form.catalogNumber) }}
+                {{ form_row(form.leadTimeDays) }}
+            </div>
+            {% if form.bookPrice is defined %}{{ form_row(form.bookPrice) }}{% endif %}
+
+            <fieldset class="rounded-ui border border-szary-200 p-4 mb-4" data-controller="collection" data-collection-index-value="{{ form.conversions|length > 0 ? form.conversions|keys|last + 1 : 0 }}">
+                <legend class="px-1 text-sm font-semibold">Przeliczniki jednostek</legend>
+                <p class="help mb-2">Np. 1 bela = 450 kg, 1 worek = 25 kg, 1 kanister = 5 l. Faktura w tych jednostkach przeliczy się sama.</p>
+                <div data-collection-target="list" class="space-y-2">
+                    {% for conversion in form.conversions %}
+                        {{ include('product/_conversion.html.twig', {conversion: conversion}) }}
+                    {% endfor %}
+                </div>
+                <template data-collection-target="template">{{ include('product/_conversion.html.twig', {conversion: form.conversions.vars.prototype}) }}</template>
+                <button type="button" class="btn btn-ghost btn-sm mt-2" data-action="collection#add">{{ ux_icon('lucide:plus') }} Dodaj przelicznik</button>
+                {% do form.conversions.setRendered %}
+            </fieldset>
+
+            {{ form_row(form.notes) }}
+            {{ form_row(form.active) }}
+            {{ form_rest(form) }}
+            <div class="flex gap-2">
+                <button type="submit" class="btn btn-primary">Zapisz</button>
+                <a href="{{ back }}" class="btn btn-ghost">Anuluj</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}

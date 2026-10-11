@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller\Machine;
 
+use App\Controller\ModalResponses;
 use App\Entity\Machine;
 use App\Entity\MachineInfoAttachment;
 use App\Entity\MachineInfoCategory;

@@ -1,0 +1,144 @@
+{% extends 'layout.html.twig' %}
+{% import '_partials/macros.html.twig' as m %}
+
+{% block title %}Zamówienia{% endblock %}
+{% block active_menu %}orders{% endblock %}
+
+{% block content %}
+    {% set amounts = is_granted('AMOUNTS_VIEW') %}
+    <twig:PageHeader title="Zamówienia" subtitle="Przewidywane z powtarzalności zakupów na fakturach">
+        {% import '_partials/macros.html.twig' as m %}
+        {% if is_granted('ORDER_MANAGE') %}
+            {{ m.post_button(path('app_order_recalculate'), 'Przelicz', 'order', 'btn btn-secondary', null, 'refresh-cw') }}
+        {% endif %}
+    </twig:PageHeader>
+
+    <div data-controller="filters">
+    {{ include('_partials/filters_toggle.html.twig', {active: (filters.category ? 1 : 0) + (filters.contractor ? 1 : 0) + (filters.regularity ? 1 : 0) + (filters.mode ? 1 : 0) + (filters.hidden ? 1 : 0)}) }}
+    <form method="get" class="filter-bar is-collapsible" data-filters-target="panel" data-controller="autosubmit" data-turbo-action="replace">
+        <div class="field">
+            <label class="label" for="f-category">Kategoria towaru</label>
+            <select id="f-category" name="kategoria" class="select" data-action="autosubmit#submit">
+                <option value="">Wszystkie</option>
+                {% for category in categories %}<option value="{{ category.id }}" {{ filters.category == category.id ? 'selected' }}>{{ category.parent ? '— ' }}{{ category.name }}</option>{% endfor %}
+            </select>
+        </div>
+        {% if is_granted('CONTRACTOR_VIEW') %}
+            <div class="field min-w-[220px]">
+                <label class="label" for="f-contractor">Dostawca</label>
+                <select id="f-contractor" name="dostawca"
+                        data-controller="symfony--ux-autocomplete--autocomplete"
+                        data-symfony--ux-autocomplete--autocomplete-url-value="{{ path('ux_entity_autocomplete', {alias: 'contractor'}) }}"
+                        data-symfony--ux-autocomplete--autocomplete-preload-value="focus"
+                        data-action="change->autosubmit#submit">
+                    <option value="">Wszyscy</option>
+                    {% if selected_contractor %}<option value="{{ selected_contractor.id }}" selected>{{ selected_contractor.name }}</option>{% endif %}
+                </select>
+            </div>
+        {% endif %}
+        <div class="field">
+            <label class="label" for="f-regularity">Regularność</label>
+            <select id="f-regularity" name="regularnosc" class="select" data-action="autosubmit#submit">
+                <option value="">Każda</option>
+                {% for r in enum_cases('App\\Enum\\OrderRegularity') %}<option value="{{ r.value }}" {{ filters.regularity == r.value ? 'selected' }}>{{ r.label }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="field">
+            <label class="label" for="f-mode">Tryb</label>
+            <select id="f-mode" name="tryb" class="select" data-action="autosubmit#submit">
+                <option value="">Każdy</option>
+                {% for mode in enum_cases('App\\Enum\\OrderMode') %}<option value="{{ mode.value }}" {{ filters.mode == mode.value ? 'selected' }}>{{ mode.label }}</option>{% endfor %}
+            </select>
+        </div>
+        <label class="inline-flex items-center gap-2 cursor-pointer" style="min-height:40px">
+            <input type="checkbox" class="checkbox" name="ukryte" value="1" {{ filters.hidden ? 'checked' }} data-action="autosubmit#submit">
+            Pokaż ukryte
+        </label>
+        <a href="{{ path('app_order_index', {wyczysc: 1}) }}" class="btn btn-ghost">Wyczyść</a>
+    </form>
+    </div>
+
+    <div data-controller="panel" data-action="keydown@window->panel#keydown">
+        {% set total = groups|reduce((sum, g) => sum + g|length, 0) %}
+        {% if total == 0 %}
+            <div class="card"><twig:EmptyState text="Nie ma jeszcze czego przewidywać. Przewidywania pojawią się, gdy przypiszesz towary do pozycji faktur (albo od dostawców kupujących regularnie)." /></div>
+        {% endif %}
+
+        {% for key, cycles in groups %}
+            {% if cycles is not empty %}
+                <section class="mb-6">
+                    <h2 class="flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-antracyt-500 mb-2">
+                        {{ labels[key] }} <span class="count {{ key == 'overdue' ? '!bg-blad' }}">{{ cycles|length }}</span>
+                    </h2>
+                    <div class="card">
+                        <div class="table-wrap">
+                            <table class="table table-cards" data-controller="table-nav" data-action="keydown@window->table-nav#keydown">
+                                <thead>
+                                    <tr>
+                                        <th>Towar / dostawca</th>
+                                        <th>Ostatnie zamówienie</th>
+                                        <th>Typowy odstęp</th>
+                                        <th>Przewidywana data</th>
+                                        <th class="text-right">Typowa ilość</th>
+                                        <th>Regularność</th>
+                                        {% if amounts %}<th class="text-right">Zmiana ceny</th>{% endif %}
+                                        <th><span class="sr-only">Akcje</span></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for cycle in cycles %}
+                                        {% set unit = cycle.product ? cycle.product.unitSymbol : '' %}
+                                        <tr data-table-nav-target="row"
+                                            data-preview-url="{{ path('app_order_preview', {id: cycle.id}) }}"
+                                            data-href="{{ cycle.product ? path('app_product_show', {id: cycle.product.id}) : (is_granted('CONTRACTOR_VIEW') ? path('app_contractor_show', {id: cycle.contractor.id}) : '') }}"
+                                            data-action="click->table-nav#click"
+                                            class="cursor-pointer {{ open_cycle == cycle.id ? 'is-selected' }}">
+                                            <td class="card-title-cell">
+                                                {{ cycle.label }}
+                                                <span class="block text-xs text-antracyt-500">{{ cycle.product ? (cycle.product.category ? cycle.product.category.name : 'towar') : 'dostawca (bez przypisanych towarów)' }}</span>
+                                            </td>
+                                            <td data-label="Ostatnie zamówienie" class="tabular-nums">
+                                                {{ cycle.lastOrderDate ? cycle.lastOrderDate|pl_date : '—' }}
+                                                {% if cycle.lastOrderQuantity %}<span class="block text-xs text-antracyt-500">{{ cycle.lastOrderQuantity|qty }} {{ unit }}{% if amounts and cycle.lastUnitPrice %} · {{ cycle.lastUnitPrice|amount(cycle.lastUnitPrice < 10 ? 4 : 2) }} zł/{{ unit }}{% endif %}</span>{% endif %}
+                                            </td>
+                                            <td data-label="Typowy odstęp">{{ cycle.intervalDays ? (cycle.mode.value == 'seasonal' ? 'co rok' : 'co ' ~ cycle.intervalDays ~ ' dni') : '—' }}</td>
+                                            <td data-label="Przewidywana data">
+                                                {% if cycle.predictedDate %}
+                                                    {{ m.deadline(cycle.predictedDate, 7, cycle.status.manual) }}{% if cycle.spreadDays %}<span class="text-xs text-antracyt-500"> ± {{ cycle.spreadDays }} d</span>{% endif %}
+                                                {% else %}<span class="text-antracyt-500">{{ cycle.orderCount }} {{ cycle.orderCount|plural('zamówienie', 'zamówienia', 'zamówień') }}</span>{% endif %}
+                                                {% if cycle.status.value in ['ordered', 'skipped', 'approaching', 'overdue'] %}<span class="block"><twig:Badge tone="{{ cycle.status.tone }}">{{ cycle.status.label }}</twig:Badge></span>{% endif %}
+                                            </td>
+                                            <td data-label="Typowa ilość" class="num">{{ cycle.typicalQuantity ? cycle.typicalQuantity|qty ~ ' ' ~ unit : (amounts and cycle.typicalAmount and not cycle.product ? cycle.typicalAmount|money : '—') }}</td>
+                                            <td data-label="Regularność">{% if cycle.regularity %}<twig:Badge tone="{{ cycle.regularity.tone }}">{{ cycle.regularity.label }}</twig:Badge>{% elseif cycle.mode and cycle.mode.value == 'manual' %}<twig:Badge tone="info">ręcznie</twig:Badge>{% else %}—{% endif %}</td>
+                                            {% if amounts %}
+                                                {% set change = cycle.priceChange %}
+                                                <td data-label="Zmiana ceny" class="num {{ change is not null and change > 0.1 ? 'text-danger' }}">{{ change is not null ? (change > 0 ? '+') ~ (change * 100)|amount(0) ~ ' %' : '—' }}</td>
+                                            {% endif %}
+                                            <td class="text-right whitespace-nowrap">
+                                                {% if cycle.predictedDate and is_granted('ORDER_MARK') %}
+                                                    {% if cycle.status.manual %}
+                                                        {{ m.post_button(path('app_order_unmark', {id: cycle.id}), 'Cofnij', 'order', 'btn btn-ghost btn-sm') }}
+                                                    {% else %}
+                                                        {{ m.post_button(path('app_order_mark', {id: cycle.id}), 'Zamówione', 'order', 'btn btn-secondary btn-sm', null, 'check') }}
+                                                    {% endif %}
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            {% endif %}
+        {% endfor %}
+
+        <aside data-panel-target="panel" class="slide-panel translate-x-full" hidden aria-label="Szczegóły zamówienia">
+            <div class="flex items-center justify-between border-b border-szary-200 px-4" style="min-height:56px">
+                <span class="font-semibold">Szczegóły</span>
+                <button type="button" class="btn btn-ghost btn-icon" data-action="panel#close" aria-label="Zamknij">{{ ux_icon('lucide:x') }}</button>
+            </div>
+            <turbo-frame id="preview" data-panel-target="frame" class="block flex-1 overflow-y-auto" {% if open_cycle %}src="{{ path('app_order_preview', {id: open_cycle}) }}"{% endif %}></turbo-frame>
+        </aside>
+    </div>
+{% endblock %}

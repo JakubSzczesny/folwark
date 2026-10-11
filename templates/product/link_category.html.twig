@@ -1,0 +1,28 @@
+{% set title = category ? 'Zmień nazwę kategorii' : (parent ? 'Nowa podkategoria w „' ~ parent.name ~ '”' : 'Nowa kategoria linków') %}
+<twig:Modal title="{{ title }}">
+    <form method="post" action="{{ app.request.requestUri }}" data-turbo-frame="modal">
+        <input type="hidden" name="_token" value="{{ csrf_token('product-link') }}">
+        <div class="field">
+            <label class="label" for="link-category-name">Nazwa</label>
+            <input id="link-category-name" name="name" class="input" maxlength="80" required autofocus value="{{ app.request.payload.get('name') ?? (category ? category.name) }}" placeholder="np. Sklepy internetowe">
+            {% if error %}<p class="form-error">{{ error }}</p>{% endif %}
+            {% if not category %}<p class="help">Kategorie są wspólne dla wszystkich towarów.</p>{% endif %}
+        </div>
+        <div class="flex gap-2">
+            <button type="submit" class="btn btn-primary">{{ category ? 'Zapisz' : 'Dodaj' }}</button>
+            <button type="button" class="btn btn-ghost" data-action="modal#close">Anuluj</button>
+        </div>
+    </form>
+    {% if category %}
+        <div class="mt-6 border-t border-szary-200 pt-4">
+            {% if can_delete %}
+                <form method="post" action="{{ path('app_product_link_category_delete', {id: product.id, category: category.id}) }}" data-turbo-frame="modal" data-turbo-confirm="Usunąć kategorię „{{ category.name }}”?">
+                    <input type="hidden" name="_token" value="{{ csrf_token('product-link') }}">
+                    <button type="submit" class="btn btn-ghost text-danger">{{ ux_icon('lucide:trash-2') }} Usuń kategorię</button>
+                </form>
+            {% else %}
+                <p class="text-sm text-antracyt-500">Kategorię można usunąć, gdy nie ma w niej linków (przy żadnym towarze) ani podkategorii.</p>
+            {% endif %}
+        </div>
+    {% endif %}
+</twig:Modal>

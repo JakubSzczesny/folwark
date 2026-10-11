@@ -8,6 +8,8 @@ use App\Entity\CostCategory;
 use App\Entity\CostCenter;
 use App\Entity\MachineCategory;
 use App\Entity\MachineInfoCategory;
+use App\Entity\ProductCategory;
+use App\Entity\ProductLinkCategory;
 use App\Entity\ServiceType;
 use App\Entity\Unit;
 use App\Enum\CostCenterType;
@@ -46,6 +48,15 @@ final class StartupData
         'Pasy i łańcuchy' => [],
         'Akumulatory' => [],
         'Dokumenty' => [],
+    ];
+
+    private const array PRODUCT_CATEGORIES = [
+        'Zboża', 'Pasze objętościowe', 'Pasze treściwe i mieszanki', 'Dodatki mineralne', 'ŚOR', 'Nasiona',
+        'Nawozy', 'Paliwa', 'Oleje i smary', 'Filtry i części', 'Leki weterynaryjne', 'Inne',
+    ];
+
+    private const array PRODUCT_LINK_CATEGORIES = [
+        'Sklepy', 'Producent', 'Karty charakterystyki i etykiety', 'Instrukcje', 'Zamienniki', 'Inne',
     ];
 
     private const array SERVICE_TYPES = [
@@ -101,6 +112,18 @@ final class StartupData
                 $this->em->persist(new ServiceType($name, $position));
             }
             $seeded[] = 'rodzaje serwisu';
+        }
+        if ($this->isEmpty(ProductCategory::class)) {
+            foreach (self::PRODUCT_CATEGORIES as $position => $name) {
+                $this->em->persist(new ProductCategory($name, null, $position));
+            }
+            $seeded[] = 'kategorie towarów';
+        }
+        if ($this->isEmpty(ProductLinkCategory::class)) {
+            foreach (self::PRODUCT_LINK_CATEGORIES as $position => $name) {
+                $this->em->persist(new ProductLinkCategory($name, null, $position));
+            }
+            $seeded[] = 'kategorie linków towarów';
         }
 
         $this->em->flush();

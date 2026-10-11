@@ -7,6 +7,7 @@ namespace App\Controller\Admin;
 use App\Entity\CostCategory;
 use App\Entity\CostCenter;
 use App\Entity\MachineCategory;
+use App\Entity\ProductCategory;
 use App\Entity\ServiceType;
 use App\Entity\Unit;
 use App\Security\Permission;
@@ -59,6 +60,7 @@ final class DictionaryDashboardController extends AbstractDashboardController
         yield MenuItem::linkToCrud('Kategorie maszyn', 'fa fa-tractor', MachineCategory::class);
         yield MenuItem::linkToCrud('Rodzaje serwisu', 'fa fa-wrench', ServiceType::class);
         yield MenuItem::section('Magazyn');
+        yield MenuItem::linkToCrud('Kategorie towarów', 'fa fa-boxes-stacked', ProductCategory::class);
         yield MenuItem::linkToCrud('Jednostki', 'fa fa-ruler', Unit::class);
     }
 }

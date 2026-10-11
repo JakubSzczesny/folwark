@@ -7,6 +7,7 @@ namespace App\Entity;
 use App\Farm\BelongsToFarm;
 use App\Farm\FarmScoped;
 use App\Repository\MachineInfoCategoryRepository;
+use App\Tree\TreeCategory;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
@@ -16,7 +17,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  * Kategoria informacji o maszynach (filtry, oleje, opony…). Drzewo jest wspólne dla wszystkich maszyn gospodarstwa.
  */
 #[ORM\Entity(repositoryClass: MachineInfoCategoryRepository::class)]
-class MachineInfoCategory implements \Stringable, FarmScoped
+class MachineInfoCategory implements \Stringable, FarmScoped, TreeCategory
 {
     use BelongsToFarm;
 

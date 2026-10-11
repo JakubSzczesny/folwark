@@ -1,0 +1,53 @@
+{% import '_partials/macros.html.twig' as m %}
+{% set amounts = is_granted('AMOUNTS_VIEW') %}
+
+<div class="grid gap-6 lg:grid-cols-[1fr_360px]">
+    <section class="card card-body">
+        <h2 class="card-title mb-3">Jak liczymy</h2>
+        {% if prediction.orders is empty %}
+            <p class="text-sm text-antracyt-500">Brak zakupów tego towaru.</p>
+        {% else %}
+            <dl class="dl mb-4">
+                <dt>Zamówień</dt><dd>{{ prediction.orders|length }} (zakupy w odstępie do kilku dni liczą się jako jedno)</dd>
+                <dt>Tryb</dt><dd>{{ prediction.mode ? prediction.mode.label : 'za mało danych' }}</dd>
+                {% if prediction.intervalDays %}<dt>Typowy odstęp</dt><dd>{{ prediction.intervalDays }} dni{% if prediction.spreadDays is not null %}, rozrzut ± {{ prediction.spreadDays }} dni{% endif %}</dd>{% endif %}
+                {% if prediction.regularity %}<dt>Regularność</dt><dd><twig:Badge tone="{{ prediction.regularity.tone }}">{{ prediction.regularity.label }}</twig:Badge></dd>{% endif %}
+                {% if prediction.predictedDate %}
+                    <dt>Przewidywana data</dt><dd>{{ m.deadline(prediction.predictedDate, 14) }} (okno {{ prediction.windowFrom|pl_date }} – {{ prediction.windowTo|pl_date }})</dd>
+                    <dt>Przypomnienie</dt><dd>{{ prediction.reminderDate|pl_date }}</dd>
+                {% endif %}
+                {% if prediction.typicalQuantity %}<dt>Typowa ilość</dt><dd class="tabular-nums">{{ prediction.typicalQuantity|qty }} {{ product.unitSymbol }}</dd>{% endif %}
+                {% if amounts and prediction.priceChange is not null %}
+                    <dt>Zmiana ceny</dt><dd class="{{ prediction.priceChange > 0.1 ? 'text-danger' }}">{{ prediction.priceChange > 0 ? '+' }}{{ (prediction.priceChange * 100)|amount(1) }} % względem mediany 12 mies.</dd>
+                {% endif %}
+            </dl>
+            <h3 class="text-sm font-semibold mb-2">Ostatnie zamówienia</h3>
+            <ul class="text-sm space-y-1 tabular-nums">
+                {% for order in prediction.orders|reverse|slice(0, 8) %}
+                    <li>{{ order.date|pl_date }}{% if order.quantity is not null %} · {{ order.quantity|qty }} {{ product.unitSymbol }}{% endif %}{% if amounts %} · {{ order.amount|money }}{% endif %}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
+        {% if history is not empty %}
+            <h3 class="text-sm font-semibold mt-4 mb-2">Poprzednie cykle</h3>
+            <ul class="text-sm space-y-1">
+                {% for old in history %}
+                    <li>przewidywane {{ old.predictedDate ? old.predictedDate|pl_date : '—' }} · zamknięty fakturą {{ old.closedAt|pl_date }}{% if old.status.manual %} · <twig:Badge tone="{{ old.status.tone }}">{{ old.status.label }}</twig:Badge>{% endif %}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </section>
+
+    <aside class="card card-body self-start">
+        <h2 class="card-title mb-3">Ustawienia ręczne</h2>
+        {% if is_granted('ORDER_MANAGE') %}
+            {{ form_start(form, {action: path('app_product_order', {id: product.id}), attr: {'data-turbo-frame': '_top'}}) }}
+                {{ form_widget(form) }}
+                <button type="submit" class="btn btn-primary">Zapisz</button>
+            {{ form_end(form) }}
+        {% else %}
+            <p class="text-sm text-antracyt-500">Ustawienia zmienia właściciel.</p>
+        {% endif %}
+    </aside>
+</div>

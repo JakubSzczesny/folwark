@@ -10,6 +10,7 @@ use App\Enum\ContractKind;
 use App\Enum\ContractStatus;
 use App\Enum\PaymentFrequency;
 use App\Form\Field\ContractorAutocompleteField;
+use App\Form\Field\ProductAutocompleteField;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\DateType;
@@ -49,6 +50,7 @@ final class ContractType extends AbstractType
             ->add('quantityUnit', EntityType::class, ['label' => 'Jednostka ilości'] + $unit)
             ->add('price', NumberType::class, ['label' => 'Cena netto', 'required' => false, 'scale' => 4, 'input' => 'string', 'html5' => true, 'attr' => ['step' => 'any']])
             ->add('priceUnit', EntityType::class, ['label' => 'Cena za jednostkę'] + $unit)
+            ->add('product', ProductAutocompleteField::class, ['label' => 'Towar', 'required' => false, 'help' => 'Realizacja liczy się wtedy tylko z pozycji przypisanych do tego towaru.'])
             ->add('rentAmount', NumberType::class, ['label' => 'Kwota płatności (zł)', 'required' => false, 'scale' => 2, 'input' => 'string', 'html5' => true, 'attr' => ['step' => '0.01'], 'help' => 'Jedna rata czynszu.'])
             ->add('paymentFrequency', EnumType::class, [
                 'label' => 'Płatna',

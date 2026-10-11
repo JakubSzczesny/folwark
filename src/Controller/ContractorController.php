@@ -13,10 +13,12 @@ use App\Enum\ContractorKind;
 use App\Enum\DataSource;
 use App\Enum\InvoiceKind;
 use App\Form\ContractorType;
+use App\Product\ProductPurchases;
 use App\Repository\ContractorHistoryRepository;
 use App\Repository\ContractorRepository;
 use App\Repository\ContractRepository;
 use App\Repository\InvoiceRepository;
+use App\Repository\OrderCycleRepository;
 use App\Security\Permission;
 use App\Ui\ListFilters;
 use App\Ui\Pager;
@@ -96,6 +98,8 @@ final class ContractorController extends AbstractController
         InvoiceRepository $invoices,
         ContractRepository $contracts,
         ContractorHistoryRepository $history,
+        ProductPurchases $purchases,
+        OrderCycleRepository $cycles,
     ): Response {
         $tab = \in_array($tab = $request->query->getString('zakladka', 'faktury'), self::TABS, true) ? $tab : 'faktury';
         $years = $invoices->yearsForContractor($contractor);
@@ -106,6 +110,13 @@ final class ContractorController extends AbstractController
         if ('faktury' === $tab && $this->isGranted(Permission::INVOICE_VIEW)) {
             $context['cost_invoices'] = $invoices->findForContractor($contractor, InvoiceKind::Cost, $year);
             $context['income_invoices'] = $invoices->findForContractor($contractor, InvoiceKind::Income, $year);
+        }
+        if ('zakupy' === $tab) {
+            $context['purchases'] = $purchases->forContractor($contractor);
+            $context['cycles'] = [];
+            foreach ($context['purchases'] as $row) {
+                $context['cycles'][$row['product']->getId()] = $cycles->findOpenFor($row['product']);
+            }
         }
         if ('umowy' === $tab) {
             $context['contracts'] = $contracts->createListQuery(['contractor' => $contractor->getId()])->getQuery()->getResult();

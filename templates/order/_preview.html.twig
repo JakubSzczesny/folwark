@@ -1,0 +1,89 @@
+{% import '_partials/macros.html.twig' as m %}
+{% set amounts = is_granted('AMOUNTS_VIEW') %}
+{% set unit = cycle.product ? cycle.product.unitSymbol : '' %}
+<turbo-frame id="preview">
+    <div class="p-4 space-y-5">
+        <div>
+            <h2 class="text-lg font-semibold">{{ cycle.label }}</h2>
+            <p class="text-sm text-antracyt-500">{{ cycle.product ? 'Towar' : 'Dostawca bez przypisanych towarów – przewidywanie z dat i kwot faktur' }}</p>
+        </div>
+
+        <dl class="dl">
+            <dt>Status</dt><dd><twig:Badge tone="{{ cycle.status.tone }}">{{ cycle.status.label }}</twig:Badge>{% if cycle.markedBy %} <span class="text-antracyt-500">({{ cycle.markedBy.fullName }}, {{ cycle.markedAt|pl_date }})</span>{% endif %}</dd>
+            <dt>Przewidywana data</dt><dd>{% if cycle.predictedDate %}{{ m.deadline(cycle.predictedDate, 7, cycle.status.manual) }} (okno {{ cycle.windowFrom|pl_date }} – {{ cycle.windowTo|pl_date }}){% else %}za mało danych{% endif %}</dd>
+            {% if cycle.reminderDate %}<dt>Przypomnienie</dt><dd>{{ cycle.reminderDate|pl_date }}</dd>{% endif %}
+            <dt>Tryb</dt><dd>{{ cycle.mode ? cycle.mode.label : '—' }}{% if cycle.regularity %}, {{ cycle.regularity.label }}{% endif %}</dd>
+            {% if cycle.typicalQuantity %}<dt>Typowa ilość</dt><dd class="tabular-nums">{{ cycle.typicalQuantity|qty }} {{ unit }}</dd>{% endif %}
+            {% if amounts and cycle.typicalAmount %}<dt>Typowa kwota</dt><dd class="tabular-nums">{{ cycle.typicalAmount|money }} netto</dd>{% endif %}
+            {% if cycle.dailyUsage and cycle.dailyUsage > 0 %}<dt>Zużycie</dt><dd class="tabular-nums">≈ {{ cycle.dailyUsage|qty(cycle.dailyUsage < 10 ? 2 : 0) }} {{ unit }}/dzień</dd>{% endif %}
+        </dl>
+
+        <div class="flex flex-wrap gap-2">
+            {% if cycle.predictedDate and is_granted('ORDER_MARK') %}
+                {% if cycle.status.manual %}
+                    <form method="post" action="{{ path('app_order_unmark', {id: cycle.id}) }}" data-turbo-frame="_top"><input type="hidden" name="_token" value="{{ csrf_token('order') }}"><button class="btn btn-secondary">Cofnij oznaczenie</button></form>
+                {% else %}
+                    <form method="post" action="{{ path('app_order_mark', {id: cycle.id}) }}" data-turbo-frame="_top"><input type="hidden" name="_token" value="{{ csrf_token('order') }}"><button class="btn btn-primary">{{ ux_icon('lucide:check') }} Oznacz jako zamówione</button></form>
+                {% endif %}
+            {% endif %}
+            {% if is_granted('ORDER_MANAGE') %}
+                {% if cycle.predictedDate and not cycle.status.manual %}
+                    <form method="post" action="{{ path('app_order_skip', {id: cycle.id}) }}" data-turbo-frame="_top"><input type="hidden" name="_token" value="{{ csrf_token('order') }}"><button class="btn btn-ghost">Pomiń ten cykl</button></form>
+                {% endif %}
+                <a href="{{ path('app_order_settings', {id: cycle.id}) }}" data-turbo-frame="modal" class="btn btn-ghost">{{ ux_icon('lucide:settings') }} Ustaw ręcznie / ukryj</a>
+            {% endif %}
+        </div>
+
+        {% if rows is not empty %}
+            <section>
+                <h3 class="font-semibold mb-2">Ostatnie zamówienia</h3>
+                <ul class="space-y-1 text-sm tabular-nums">
+                    {% for order in prediction.orders|reverse|slice(0, 10) %}
+                        <li class="flex items-center gap-2">
+                            <span class="inline-block rounded-full bg-zielen-600/70" style="width:{{ 6 + (order.quantity and prediction.typicalQuantity ? min(14, 8 * order.quantity / prediction.typicalQuantity) : 4) }}px;height:{{ 6 + (order.quantity and prediction.typicalQuantity ? min(14, 8 * order.quantity / prediction.typicalQuantity) : 4) }}px"></span>
+                            {{ order.date|pl_date }}{% if order.quantity is not null %} · {{ order.quantity|qty }} {{ unit }}{% endif %}{% if amounts %} · {{ order.amount|money }}{% endif %}
+                        </li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% elseif prediction.orders is not empty %}
+            <section>
+                <h3 class="font-semibold mb-2">Zamówienia</h3>
+                <ul class="space-y-1 text-sm tabular-nums">
+                    {% for order in prediction.orders|reverse|slice(0, 10) %}
+                        <li>{{ order.date|pl_date }}{% if amounts %} · {{ order.amount|money }}{% endif %}</li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endif %}
+
+        {% if suppliers is not empty %}
+            <section>
+                <h3 class="font-semibold mb-2">Dostawcy</h3>
+                <ul class="space-y-1 text-sm">
+                    {% for supplier in suppliers %}
+                        <li class="flex justify-between gap-2"><span>{{ supplier.contractor }}</span><span class="tabular-nums text-antracyt-500">{{ supplier.lastDate|pl_date }}{% if amounts and supplier.lastPrice is not null %} · {{ supplier.lastPrice|amount(supplier.lastPrice < 10 ? 4 : 2) }} zł/{{ unit }}{% endif %}</span></li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endif %}
+
+        {% if is_granted('INVOICE_VIEW') and (rows is not empty or invoices is not empty) %}
+            <section>
+                <h3 class="font-semibold mb-2">Faktury</h3>
+                <ul class="space-y-1 text-sm">
+                    {% for row in rows %}
+                        <li><a href="{{ path('app_invoice_show', {id: row.invoiceId}) }}" data-turbo-frame="_top">{{ row.invoiceNumber }}</a> <span class="text-antracyt-500">{{ row.date|pl_date }}</span></li>
+                    {% endfor %}
+                    {% for invoice in invoices %}
+                        <li><a href="{{ path('app_invoice_show', {id: invoice.id}) }}" data-turbo-frame="_top">{{ invoice.number }}</a> <span class="text-antracyt-500">{{ invoice.issueDate|pl_date }}</span></li>
+                    {% endfor %}
+                </ul>
+            </section>
+        {% endif %}
+
+        {% if cycle.product %}
+            <a href="{{ path('app_product_show', {id: cycle.product.id}) }}" class="btn btn-ghost w-full" data-turbo-frame="_top">Karta towaru {{ ux_icon('lucide:arrow-right') }}</a>
+        {% endif %}
+    </div>
+</turbo-frame>

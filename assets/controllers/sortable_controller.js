@@ -11,7 +11,7 @@ export default class extends Controller {
     connect() {
         this.sortables = [...this.element.querySelectorAll('ul[data-parent]')].map((list) => Sortable.create(list, {
             handle: '.drag-handle',
-            draggable: ':scope > li',
+            draggable: '>li',
             animation: 120,
             onEnd: () => this.save(list),
         }));

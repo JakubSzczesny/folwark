@@ -18,9 +18,15 @@ export default class extends Controller {
             data: this.hasDateTarget ? this.dateTarget.value : '',
             wybrana: this.selectTarget.value,
         });
-        const response = await fetch(`${this.urlValue}?${params}`, { headers: { Accept: 'text/html' } });
-        if (response.ok) {
-            this.selectTarget.innerHTML = await response.text();
+        const field = this.selectTarget.closest('.field');
+        field?.classList.add('is-loading');
+        try {
+            const response = await fetch(`${this.urlValue}?${params}`, { headers: { Accept: 'text/html' } });
+            if (response.ok) {
+                this.selectTarget.innerHTML = await response.text();
+            }
+        } finally {
+            field?.classList.remove('is-loading');
         }
     }
 }

@@ -58,14 +58,20 @@ export default class extends Controller {
         const url = new URL(this.urlValue, window.location.origin);
         url.searchParams.set('q', q);
 
+        const abort = this.abort;
+        this.dialogTarget.classList.add('is-loading');
         try {
-            const response = await fetch(url, { signal: this.abort.signal, headers: { 'X-Requested-With': 'fetch' } });
+            const response = await fetch(url, { signal: abort.signal, headers: { 'X-Requested-With': 'fetch' } });
             this.resultsTarget.innerHTML = await response.text();
             this.index = -1;
             this.highlight(0);
         } catch (e) {
             if (e.name !== 'AbortError') {
                 throw e;
+            }
+        } finally {
+            if (this.abort === abort) {
+                this.dialogTarget.classList.remove('is-loading');
             }
         }
     }

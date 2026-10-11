@@ -539,50 +539,246 @@
     }
 }
 
-/* Tom Select (comboboxy) w stylu aplikacji */
-.ts-wrapper.single .ts-control, .ts-wrapper.multi .ts-control {
-    border-color: var(--color-szary-200);
+/* Tom Select (comboboxy) w stylu aplikacji. Arkusz Tom Select ładuje się po naszym,
+   dlatego selektory zaczynają się od "body" – inaczej jego domyślne style wygrywają. */
+body .ts-wrapper.single .ts-control,
+body .ts-wrapper.multi .ts-control {
+    border: 1px solid var(--color-szary-200);
     border-radius: var(--radius-ui);
     min-height: 48px;
-    padding: 10px 12px;
+    padding: 10px 40px 10px 12px;
     font-size: 15px;
+    line-height: 1.4;
+    color: var(--color-tekst);
+    background: var(--color-bialy);
     box-shadow: none;
-    background-image: none;
 }
 
 @media (min-width: 1024px) {
-    .ts-wrapper.single .ts-control, .ts-wrapper.multi .ts-control {
+    body .ts-wrapper.single .ts-control,
+    body .ts-wrapper.multi .ts-control {
         min-height: 40px;
-        padding: 8px 12px;
+        padding-top: 8px;
+        padding-bottom: 8px;
     }
 }
 
-.ts-wrapper.focus .ts-control {
+body .ts-wrapper.single .ts-control::after {
+    border-color: var(--color-antracyt-500) transparent transparent transparent;
+    right: 14px;
+}
+
+body .ts-wrapper.single.dropdown-active .ts-control::after {
+    border-color: transparent transparent var(--color-antracyt-500) transparent;
+}
+
+body .ts-wrapper.focus .ts-control {
     border-color: var(--color-zielen-600);
     box-shadow: 0 0 0 1px var(--color-zielen-600);
 }
 
-.ts-dropdown {
-    border-color: var(--color-szary-200);
-    border-radius: var(--radius-ui);
-    box-shadow: 0 8px 24px rgb(36 40 44 / 0.12);
+body .ts-wrapper .ts-control > input {
     font-size: 15px;
+    color: var(--color-tekst);
 }
 
-.ts-dropdown .active {
+body .ts-wrapper .ts-control > input::placeholder {
+    color: var(--color-antracyt-500);
+}
+
+body .ts-wrapper.plugin-clear_button .clear {
+    right: 30px;
+    color: var(--color-antracyt-500);
+    font-size: 18px;
+}
+
+body .ts-wrapper.multi .ts-control > .item {
+    background: var(--color-zielen-100);
+    color: var(--color-zielen-700);
+    border: 0;
+    border-radius: 4px;
+    padding: 2px 8px;
+}
+
+body .ts-dropdown {
+    margin-top: 4px;
+    border: 1px solid var(--color-szary-200);
+    border-radius: var(--radius-ui);
+    background: var(--color-bialy);
+    box-shadow: 0 8px 24px rgb(36 40 44 / 0.12);
+    font-size: 15px;
+    color: var(--color-tekst);
+    overflow: hidden;
+    z-index: 60;
+}
+
+body .ts-dropdown .ts-dropdown-content {
+    max-height: 300px;
+    padding: 4px 0;
+}
+
+body .ts-dropdown .option,
+body .ts-dropdown .no-results,
+body .ts-dropdown .create {
+    display: flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 8px 12px;
+    font-size: 15px;
+    line-height: 1.35;
+    color: var(--color-tekst);
+}
+
+body .ts-dropdown .no-results {
+    color: var(--color-antracyt-500);
+}
+
+body .ts-dropdown .active {
     background-color: var(--color-szary-100);
     color: var(--color-tekst);
 }
 
-.ts-dropdown .optgroup-header {
-    color: var(--color-antracyt-500);
+body .ts-dropdown .option.selected {
+    background-color: var(--color-zielen-100);
+    color: var(--color-zielen-700);
     font-weight: 600;
+}
+
+body .ts-dropdown .optgroup + .optgroup {
+    border-top: 1px solid var(--color-szary-200);
+}
+
+body .ts-dropdown .optgroup-header {
+    padding: 10px 12px 4px;
+    background: var(--color-bialy);
+    color: var(--color-antracyt-500);
     font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    cursor: default;
+}
+
+body .ts-dropdown .optgroup .option {
+    padding-left: 20px;
+}
+
+body .ts-dropdown .spinner {
+    width: 20px;
+    height: 20px;
+    margin: 8px 12px;
+    border: 2px solid var(--color-zielen-600);
+    border-right-color: transparent;
+}
+
+body .ts-dropdown .spinner::after {
+    display: none;
+}
+
+/* Wskaźniki ładowania: kręcące się kółko na przyciskach, w ramkach i polach */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.spinner {
+    display: inline-block;
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 9999px;
+    animation: spin 0.7s linear infinite;
+}
+
+.spinner-lg {
+    width: 28px;
+    height: 28px;
+    border-width: 3px;
+    color: var(--color-zielen-600);
+}
+
+.btn.is-loading {
+    pointer-events: none;
+    opacity: 0.85;
+}
+
+.btn.is-loading::before {
+    content: '';
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+    border: 2px solid currentColor;
+    border-right-color: transparent;
+    border-radius: 9999px;
+    animation: spin 0.7s linear infinite;
+}
+
+.btn.is-loading > svg {
+    display: none;
+}
+
+.btn-icon.is-loading > :not(svg) {
+    display: none;
+}
+
+#machine-tab, #preview, #modal {
+    display: block;
 }
 
 turbo-frame[busy] {
-    opacity: 0.6;
+    position: relative;
+}
+
+turbo-frame[busy] > * {
+    opacity: 0.5;
     transition: opacity 150ms;
+}
+
+turbo-frame[busy]:not(#notification-bell):not(:has([role=status]))::after {
+    content: '';
+    position: absolute;
+    top: 48px;
+    left: 50%;
+    width: 28px;
+    height: 28px;
+    margin-left: -14px;
+    border: 3px solid var(--color-zielen-600);
+    border-right-color: transparent;
+    border-radius: 9999px;
+    animation: spin 0.7s linear infinite;
+    z-index: 5;
+}
+
+.field.is-loading > .label::after {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    margin-left: 8px;
+    vertical-align: -1px;
+    border: 2px solid var(--color-zielen-600);
+    border-right-color: transparent;
+    border-radius: 9999px;
+    animation: spin 0.7s linear infinite;
+}
+
+.search-spinner {
+    display: none;
+}
+
+.is-loading .search-spinner {
+    display: inline-block;
+}
+
+.is-loading .search-icon {
+    display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .spinner, .btn.is-loading::before, turbo-frame[busy]::after, .field.is-loading > .label::after {
+        animation-duration: 2s;
+    }
 }
 
 .turbo-progress-bar {

@@ -4,6 +4,7 @@ import * as Turbo from '@hotwired/turbo';
 /*
  * Obsługa klawiatury w tabelach: ↑/↓ wybór wiersza, Spacja podgląd, Enter pełny widok.
  * Kliknięcie wiersza otwiera podgląd (jeśli jest), w przeciwnym razie kartę obiektu.
+ * Ctrl/Cmd + klik, środkowy przycisk albo Ctrl + Enter otwierają kartę obiektu w nowej karcie przeglądarki.
  */
 export default class extends Controller {
     static targets = ['row'];
@@ -11,10 +12,31 @@ export default class extends Controller {
 
     connect() {
         this.selected = this.rowTargets.findIndex((row) => row.classList.contains('is-selected'));
+        this.onAuxClick = (event) => {
+            const row = event.target.closest('[data-table-nav-target="row"]');
+            if (event.button === 1 && row?.dataset.href && !event.target.closest('a, button')) {
+                event.preventDefault();
+                this.openInNewTab(row.dataset.href);
+            }
+        };
+        this.element.addEventListener('auxclick', this.onAuxClick);
+    }
+
+    disconnect() {
+        this.element.removeEventListener('auxclick', this.onAuxClick);
     }
 
     keydown(event) {
-        if (this.isTyping() || document.querySelector('dialog[open]') || event.ctrlKey || event.metaKey || event.altKey) {
+        if (this.isTyping() || document.querySelector('dialog[open]') || event.altKey) {
+            return;
+        }
+
+        if (event.key === 'Enter' && (event.ctrlKey || event.metaKey) && this.rowTargets[this.selected]?.dataset.href) {
+            event.preventDefault();
+            this.openInNewTab(this.rowTargets[this.selected].dataset.href);
+            return;
+        }
+        if (event.ctrlKey || event.metaKey) {
             return;
         }
 
@@ -40,6 +62,10 @@ export default class extends Controller {
             return;
         }
         const row = event.currentTarget;
+        if ((event.ctrlKey || event.metaKey) && row.dataset.href) {
+            this.openInNewTab(row.dataset.href);
+            return;
+        }
         this.select(this.rowTargets.indexOf(row));
         if (row.dataset.previewUrl) {
             this.preview(row);
@@ -68,6 +94,10 @@ export default class extends Controller {
         } else {
             frame.src = row.dataset.previewUrl;
         }
+    }
+
+    openInNewTab(href) {
+        window.open(href, '_blank', 'noopener');
     }
 
     isTyping() {

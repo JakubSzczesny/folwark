@@ -22,11 +22,21 @@ export default class extends Controller {
                 this.close();
             }
         };
+        // Okno otwiera się od razu z kółkiem ładowania, zanim przyjdzie treść.
+        this.onFetch = (event) => {
+            if (event.target !== this.frameTarget || this.dialogTarget.open) {
+                return;
+            }
+            this.frameTarget.innerHTML = '<div class="flex items-center justify-center p-12" role="status" aria-label="Wczytywanie"><span class="spinner spinner-lg"></span></div>';
+            this.dialogTarget.showModal();
+        };
         document.addEventListener('turbo:frame-load', this.onLoad);
         document.addEventListener('turbo:submit-end', this.onSubmitEnd);
+        this.frameTarget.addEventListener('turbo:before-fetch-request', this.onFetch);
     }
 
     disconnect() {
+        this.frameTarget.removeEventListener('turbo:before-fetch-request', this.onFetch);
         document.removeEventListener('turbo:frame-load', this.onLoad);
         document.removeEventListener('turbo:submit-end', this.onSubmitEnd);
     }

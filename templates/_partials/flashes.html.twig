@@ -3,3 +3,14 @@
         <div class="alert alert-{{ type == 'error' ? 'danger' : type }} mb-4" role="status">{{ message }}</div>
     {% endfor %}
 {% endfor %}
+{% if is_granted('SETTINGS') %}
+    {% set stalled = stalled_jobs() %}
+    {% if stalled > 0 %}
+        <div class="alert alert-warning mb-4" role="status">
+            <div>
+                <strong>Zadania w tle nie są wykonywane</strong> ({{ stalled }} w kolejce) – synchronizacja KSeF, pobieranie pozycji faktur i przypomnienia czekają.
+                Lokalnie uruchom aplikację przez <code>symfony serve</code> (worker startuje sam) albo w osobnym oknie <code>php bin/console messenger:consume async scheduler_default</code>; na serwerze sprawdź usługę workera.
+            </div>
+        </div>
+    {% endif %}
+{% endif %}

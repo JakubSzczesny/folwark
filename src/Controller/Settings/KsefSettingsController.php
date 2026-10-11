@@ -98,7 +98,7 @@ final class KsefSettingsController extends AbstractController
     {
         $this->assertToken($request);
         $bus->dispatch(new SyncKsefMetadata(true, $user->getId(), $context->farmId()));
-        $this->addFlash('success', 'Synchronizacja została zlecona.');
+        $this->addFlash('success', 'Synchronizacja została zlecona – wykona się w tle za kilka sekund. Odśwież stronę, żeby zobaczyć wynik.');
 
         return $this->redirectToRoute('app_settings_ksef', [], Response::HTTP_SEE_OTHER);
     }

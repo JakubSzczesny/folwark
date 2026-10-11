@@ -1,0 +1,10 @@
+# Procesy uruchamiane razem z `symfony serve` (lokalnie; na serwerze to samo robią usługi systemd).
+workers:
+    # Zadania w tle: synchronizacja KSeF, pobieranie XML faktur, przeliczanie zamówień, powiadomienia o 6:00.
+    messenger_consume_async:
+        cmd: ['symfony', 'console', 'messenger:consume', 'async', 'scheduler_default', '--time-limit=3600']
+        watch: ['config', 'src', 'templates', 'vendor/composer']
+
+    # Kompilacja stylów Tailwind po każdej zmianie szablonu.
+    tailwind:
+        cmd: ['symfony', 'console', 'tailwind:build', '--watch']

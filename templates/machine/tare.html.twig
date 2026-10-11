@@ -1,0 +1,19 @@
+<twig:Modal title="Historia tary – {{ machine.name }}">
+    {% if machine.tareHistory is empty %}
+        <p class="text-sm text-antracyt-500">Tara nie była jeszcze wpisywana.</p>
+    {% else %}
+        <table class="table">
+            <thead><tr><th>Data</th><th class="text-right">Tara</th><th>Źródło</th><th>Kto</th></tr></thead>
+            <tbody>
+                {% for entry in machine.tareHistory %}
+                    <tr>
+                        <td class="tabular-nums">{{ entry.measuredAt|pl_datetime }}</td>
+                        <td class="num">{{ entry.tareKg|qty(0) }} kg</td>
+                        <td>{{ entry.source.label }}</td>
+                        <td>{{ entry.user ? entry.user.fullName : '—' }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+</twig:Modal>

@@ -1,0 +1,93 @@
+{% extends 'layout.html.twig' %}
+
+{% set title = service.id ? 'Wpis serwisowy z ' ~ service.date|pl_date : 'Nowy wpis serwisowy' %}
+{% set back = path('app_machine_service', {id: machine.id}) %}
+{% block title %}{{ title }} · {{ machine.name }}{% endblock %}
+{% block active_menu %}machines{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="{{ title }}" subtitle="{{ machine.label }}" back="{{ back }}" />
+
+    <div class="card card-body max-w-3xl">
+        {{ form_start(form, {attr: {'data-controller': 'service-invoice', 'data-service-invoice-url-value': path('app_machine_service_invoices')}}) }}
+            <div class="grid gap-x-4 sm:grid-cols-3">
+                {{ form_row(form.date) }}
+                {{ form_row(form.meterValue, {help: machine.meterValue is not null ? 'Obecnie ' ~ machine.meterValue|qty(1) ~ ' ' ~ (machine.meterUnit ? machine.meterUnit.label) ~ '. Wyższy stan zaktualizuje licznik maszyny.' : null}) }}
+                {{ form_row(form.type) }}
+            </div>
+            {{ form_row(form.description) }}
+            <div class="form-grid">
+                {{ form_row(form.contractor) }}
+                {{ form_row(form.performerName) }}
+            </div>
+
+            {% if form.netCost is defined or form.invoice is defined %}
+                <div class="form-grid">
+                    {% if form.netCost is defined %}{{ form_row(form.netCost) }}{% endif %}
+                    {% if form.invoice is defined %}
+                        <div class="field">
+                            <label class="label" for="service-invoice">Faktura</label>
+                            <select id="service-invoice" name="{{ field_name(form.invoice) }}" class="select" data-service-invoice-target="select">
+                                {{ include('machine/service/_invoice_options.html.twig', {contractor: service.contractor, date: service.date, selected: service.invoice ? service.invoice.id, current: service.invoice}) }}
+                            </select>
+                            <p class="help">Podpowiadamy faktury wykonawcy z ±14 dni od daty serwisu.</p>
+                            {% do form.invoice.setRendered %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% endif %}
+
+            <div class="form-grid">
+                {{ form_row(form.nextServiceDate) }}
+                {{ form_row(form.nextServiceMeter) }}
+            </div>
+
+            <fieldset class="rounded-ui border border-szary-200 p-4 mb-4" data-controller="collection" data-collection-index-value="{{ form.parts|length > 0 ? form.parts|keys|last + 1 : 0 }}">
+                <legend class="px-1 text-sm font-semibold">Użyte części</legend>
+                <div data-collection-target="list" class="space-y-2">
+                    {% for part in form.parts %}
+                        {{ include('machine/service/_part.html.twig', {part: part}) }}
+                    {% endfor %}
+                </div>
+                <template data-collection-target="template">{{ include('machine/service/_part.html.twig', {part: form.parts.vars.prototype}) }}</template>
+                <button type="button" class="btn btn-ghost btn-sm mt-2" data-action="collection#add">{{ ux_icon('lucide:plus') }} Dodaj część</button>
+                {% do form.parts.setRendered %}
+            </fieldset>
+
+            {% if service.attachments is not empty %}
+                <div class="field">
+                    <span class="label">Załączniki</span>
+                    <ul class="space-y-1">
+                        {% for attachment in service.attachments %}
+                            <li class="flex items-center justify-between gap-2 text-sm">
+                                <a href="{{ path('app_machine_service_attachment', {id: attachment.id}) }}" target="_blank" rel="noopener" class="inline-flex items-center gap-2 min-w-0">{{ ux_icon(attachment.photo ? 'lucide:image' : 'lucide:paperclip') }}<span class="truncate">{{ attachment.name }}</span></a>
+                                <button type="submit" form="delete-attachment-{{ attachment.id }}" class="btn btn-ghost btn-icon btn-sm" aria-label="Usuń {{ attachment.name }}">{{ ux_icon('lucide:trash-2') }}</button>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            {% endif %}
+            {{ form_row(form.newAttachments, {attr: {accept: 'image/*,application/pdf'}}) }}
+            {{ form_rest(form) }}
+
+            <div class="flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary">Zapisz wpis</button>
+                <a href="{{ back }}" class="btn btn-ghost">Anuluj</a>
+                {% if service.id %}
+                    <button type="submit" form="delete-service" class="btn btn-ghost text-danger ml-auto">{{ ux_icon('lucide:trash-2') }} Usuń wpis</button>
+                {% endif %}
+            </div>
+        {{ form_end(form) }}
+
+        {% for attachment in service.attachments %}
+            <form id="delete-attachment-{{ attachment.id }}" method="post" action="{{ path('app_machine_service_attachment_delete', {id: attachment.id}) }}" data-turbo-confirm="Usunąć „{{ attachment.name }}”?">
+                <input type="hidden" name="_token" value="{{ csrf_token('machine-service') }}">
+            </form>
+        {% endfor %}
+        {% if service.id %}
+            <form id="delete-service" method="post" action="{{ path('app_machine_service_delete', {id: service.id}) }}" data-turbo-confirm="Usunąć wpis serwisowy z {{ service.date|pl_date }}?">
+                <input type="hidden" name="_token" value="{{ csrf_token('machine-service') }}">
+            </form>
+        {% endif %}
+    </div>
+{% endblock %}

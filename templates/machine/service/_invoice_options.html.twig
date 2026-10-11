@@ -1,0 +1,8 @@
+<option value="">{{ contractor ? (invoices is empty ? 'Brak faktur od tego wykonawcy w ±14 dni' : 'Bez faktury') : 'Najpierw wybierz wykonawcę' }}</option>
+{% for invoice in invoices %}
+    <option value="{{ invoice.id }}" {{ invoice.id == selected ? 'selected' }}>{{ invoice.number }} · {{ invoice.issueDate|pl_date }} · {{ invoice.net|money(invoice.currency) }} netto</option>
+{% endfor %}
+{% set current = current|default(null) %}
+{% if current and invoices|filter(i => i.id == current.id) is empty %}
+    <option value="{{ current.id }}" selected>{{ current.number }} · {{ current.issueDate|pl_date }} · {{ current.net|money(current.currency) }} netto</option>
+{% endif %}

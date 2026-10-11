@@ -6,6 +6,8 @@ namespace App\Controller\Admin;
 
 use App\Entity\CostCategory;
 use App\Entity\CostCenter;
+use App\Entity\MachineCategory;
+use App\Entity\ServiceType;
 use App\Entity\Unit;
 use App\Security\Permission;
 use EasyCorp\Bundle\EasyAdminBundle\Attribute\AdminDashboard;
@@ -53,6 +55,9 @@ final class DictionaryDashboardController extends AbstractDashboardController
         yield MenuItem::section('Faktury i koszty');
         yield MenuItem::linkToCrud('Kategorie kosztów', 'fa fa-tags', CostCategory::class);
         yield MenuItem::linkToCrud('Ośrodki kosztów', 'fa fa-sitemap', CostCenter::class);
+        yield MenuItem::section('Maszyny');
+        yield MenuItem::linkToCrud('Kategorie maszyn', 'fa fa-tractor', MachineCategory::class);
+        yield MenuItem::linkToCrud('Rodzaje serwisu', 'fa fa-wrench', ServiceType::class);
         yield MenuItem::section('Magazyn');
         yield MenuItem::linkToCrud('Jednostki', 'fa fa-ruler', Unit::class);
     }

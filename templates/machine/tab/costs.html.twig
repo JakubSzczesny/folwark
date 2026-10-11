@@ -1,0 +1,36 @@
+<p class="text-sm text-antracyt-500 mb-3">Faktury i pozycje przypisane do ośrodka kosztów „{{ machine.costCenter ? machine.costCenter.name : machine.name }}” oraz koszty z wpisów serwisowych. Kwoty netto.</p>
+
+{% if totals is empty %}
+    <div class="card"><twig:EmptyState text="Do tej maszyny nie przypisano jeszcze żadnych kosztów." /></div>
+{% else %}
+    <div class="flex flex-wrap gap-2 mb-4">
+        {% for y, total in totals %}
+            <a href="{{ path('app_machine_costs', {id: machine.id, rok: y}) }}" class="card card-body !py-2 !px-3 hover:border-zielen-600 {{ y == year ? 'border-zielen-600 bg-zielen-100' }}">
+                <span class="block text-xs text-antracyt-500">{{ y }}</span>
+                <span class="font-semibold tabular-nums text-tekst">{{ total|money }}</span>
+            </a>
+        {% endfor %}
+    </div>
+
+    <div class="card">
+        <div class="table-wrap">
+            <table class="table table-cards">
+                <thead><tr><th>Data</th><th>Źródło</th><th>Opis</th><th>Faktura</th><th class="text-right">Netto</th></tr></thead>
+                <tbody>
+                    {% for row in rows %}
+                        <tr>
+                            <td class="card-title-cell tabular-nums">{{ row.date|pl_date }}</td>
+                            <td data-label="Źródło">{{ row.source }}</td>
+                            <td data-label="Opis">{{ row.description }}</td>
+                            <td data-label="Faktura">{% if row.invoice %}<a href="{{ path('app_invoice_show', {id: row.invoice.id}) }}" data-turbo-frame="_top">{{ row.invoice.number }}</a>{% else %}—{% endif %}</td>
+                            <td data-label="Netto" class="num">{{ row.net|money }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="font-semibold"><td colspan="4">Razem {{ year }}</td><td class="num">{{ (totals[year] ?? 0)|money }}</td></tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+{% endif %}

@@ -1,0 +1,14 @@
+<section class="card card-body max-w-3xl">
+    {% if is_granted('MACHINE_EDIT') %}
+        <form method="post" action="{{ path('app_machine_notes', {id: machine.id}) }}" data-turbo-frame="_top">
+            <input type="hidden" name="_token" value="{{ csrf_token('machine') }}">
+            <label class="label" for="machine-notes">Notatki o maszynie</label>
+            <textarea id="machine-notes" name="notes" rows="10" class="textarea" placeholder="Np. co trzeba sprawdzić przy następnym przeglądzie, ustawienia, kontakt do serwisanta…">{{ machine.notes }}</textarea>
+            <div class="mt-3"><button type="submit" class="btn btn-primary">Zapisz notatki</button></div>
+        </form>
+    {% elseif machine.notes %}
+        <p class="whitespace-pre-line">{{ machine.notes }}</p>
+    {% else %}
+        <p class="text-sm text-antracyt-500">Brak notatek.</p>
+    {% endif %}
+</section>

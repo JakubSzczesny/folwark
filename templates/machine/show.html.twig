@@ -1,0 +1,84 @@
+{% extends 'layout.html.twig' %}
+{% import '_partials/macros.html.twig' as m %}
+
+{% block title %}{{ machine.name }}{% endblock %}
+{% block active_menu %}machines{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="{{ machine.name }}" subtitle="{{ [machine.registrationNumber, machine.category ? machine.category.name, machine.brandAndModel]|filter(v => v)|join(' · ') }}" back="{{ path('app_machine_index') }}">
+        {% if is_granted('MACHINE_MANAGE') %}
+            <a href="{{ path('app_machine_edit', {id: machine.id}) }}" class="btn btn-secondary">{{ ux_icon('lucide:pencil') }} Edytuj</a>
+        {% endif %}
+        {% if is_granted('MACHINE_EDIT') %}
+            <a href="{{ path('app_machine_service_new', {id: machine.id}) }}" class="btn btn-primary">{{ ux_icon('lucide:wrench') }} Dodaj wpis serwisowy</a>
+        {% endif %}
+    </twig:PageHeader>
+
+    {% if not machine.active %}
+        <div class="alert alert-warning mb-4">Maszyna wycofana z użytku – nie ma jej na liście i nie przychodzą przypomnienia o jej terminach.</div>
+    {% endif %}
+
+    <section class="card card-body mb-6">
+        <div class="flex flex-col gap-4 sm:flex-row">
+            {% if machine.photoPath %}
+                <a href="{{ path('app_machine_photo', {id: machine.id, filter: 'photo'}) }}" target="_blank" rel="noopener" class="shrink-0">
+                    <img src="{{ path('app_machine_photo', {id: machine.id, filter: 'card'}) }}" alt="Zdjęcie: {{ machine.name }}" width="240" height="160" class="rounded-ui object-cover bg-szary-100 w-full sm:w-60" style="aspect-ratio:3/2">
+                </a>
+            {% endif %}
+            <dl class="grid flex-1 gap-x-6 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                <div><dt class="text-antracyt-500">Ubezpieczenie do</dt><dd class="font-semibold">{{ m.deadline(machine.insuranceUntil, 30, not machine.active) }}</dd></div>
+                <div><dt class="text-antracyt-500">Przegląd techniczny do</dt><dd class="font-semibold">{{ m.deadline(machine.inspectionUntil, 30, not machine.active) }}</dd></div>
+                <div>
+                    <dt class="text-antracyt-500">Licznik</dt>
+                    <dd class="font-semibold tabular-nums">
+                        {% if machine.meterValue is not null %}{{ machine.meterValue|qty(1) }} {{ machine.meterUnit ? machine.meterUnit.label }}{% else %}—{% endif %}
+                        {% if machine.meterUpdatedAt %}<span class="block text-xs font-normal text-antracyt-500">stan z {{ machine.meterUpdatedAt|pl_date }}</span>{% endif %}
+                    </dd>
+                </div>
+                <div>
+                    <dt class="text-antracyt-500">Tara</dt>
+                    <dd class="font-semibold tabular-nums">
+                        {% if machine.tareKg is not null %}{{ machine.tareKg|qty(0) }} kg{% elseif machine.componentsTareKg is not null %}{{ machine.componentsTareKg|qty(0) }} kg <span class="font-normal text-antracyt-500">(suma składników)</span>{% else %}—{% endif %}
+                        {% if machine.tareHistory is not empty %}<a href="{{ path('app_machine_tare', {id: machine.id}) }}" data-turbo-frame="modal" class="block text-xs font-normal">historia ({{ machine.tareHistory|length }})</a>{% endif %}
+                    </dd>
+                </div>
+                <div><dt class="text-antracyt-500">Ostatni serwis</dt><dd>{{ last_service ? last_service.date|pl_date ~ ' · ' ~ (last_service.type ? last_service.type.name : 'serwis') : '—' }}</dd></div>
+                <div class="sm:col-span-2 lg:col-span-3">
+                    <dt class="text-antracyt-500">Następny serwis</dt>
+                    <dd>
+                        {% for plan in plans %}
+                            <span class="block">
+                                {{ plan.type ? plan.type.name : 'Serwis' }}:
+                                {% if plan.nextServiceDate %}{{ m.deadline(plan.nextServiceDate, 14) }}{% endif %}
+                                {% if plan.nextServiceMeter %}{{ plan.nextServiceDate ? 'albo' }} przy {{ plan.nextServiceMeter|qty(1) }} {{ machine.meterUnit ? machine.meterUnit.label }}{% endif %}
+                            </span>
+                        {% else %}—{% endfor %}
+                    </dd>
+                </div>
+                {% if machine.payloadKg %}<div><dt class="text-antracyt-500">Ładowność</dt><dd class="tabular-nums">{{ machine.payloadKg|qty(0) }} kg</dd></div>{% endif %}
+                {% if machine.productionYear %}<div><dt class="text-antracyt-500">Rok produkcji</dt><dd>{{ machine.productionYear }}</dd></div>{% endif %}
+                {% if machine.serialNumber %}<div><dt class="text-antracyt-500">Nr seryjny / VIN</dt><dd class="break-all">{{ machine.serialNumber }}</dd></div>{% endif %}
+                {% if not machine.owned %}<div><dt class="text-antracyt-500">Właściciel</dt><dd>{{ machine.contractor ? machine.contractor.displayName : 'pojazd obcy' }}</dd></div>{% endif %}
+                {% if machine.components is not empty %}
+                    <div class="sm:col-span-2">
+                        <dt class="text-antracyt-500">Składniki zestawu</dt>
+                        <dd>{% for component in machine.components %}<a href="{{ path('app_machine_show', {id: component.id}) }}">{{ component.label }}</a>{{ not loop.last ? ', ' }}{% endfor %}</dd>
+                    </div>
+                {% endif %}
+            </dl>
+        </div>
+    </section>
+
+    <turbo-frame id="machine-tab" data-turbo-action="advance">
+        <nav class="tabs" aria-label="Sekcje maszyny">
+            <a href="{{ path('app_machine_show', {id: machine.id}) }}" class="tab {{ tab == 'info' ? 'tab-active' }}">Informacje</a>
+            <a href="{{ path('app_machine_service', {id: machine.id}) }}" class="tab {{ tab == 'service' ? 'tab-active' }}">Serwis</a>
+            <a href="{{ path('app_machine_notes', {id: machine.id}) }}" class="tab {{ tab == 'notes' ? 'tab-active' }}">Notatki{% if machine.notes %} <span class="dot-new" aria-hidden="true"></span>{% endif %}</a>
+            {% if is_granted('AMOUNTS_VIEW') %}
+                <a href="{{ path('app_machine_costs', {id: machine.id}) }}" class="tab {{ tab == 'costs' ? 'tab-active' }}">Koszty</a>
+            {% endif %}
+        </nav>
+
+        {{ include('machine/tab/' ~ tab ~ '.html.twig') }}
+    </turbo-frame>
+{% endblock %}

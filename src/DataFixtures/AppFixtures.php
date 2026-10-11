@@ -11,9 +11,16 @@ use App\Entity\Farm;
 use App\Entity\FarmMembership;
 use App\Entity\Invoice;
 use App\Entity\InvoiceRule;
+use App\Entity\Machine;
+use App\Entity\MachineCategory;
+use App\Entity\MachineInfoCategory;
+use App\Entity\MachineInfoEntry;
+use App\Entity\ServiceType;
 use App\Entity\Unit;
 use App\Entity\User;
 use App\Enum\ContractKind;
+use App\Enum\InvoiceKind;
+use App\Enum\MeterUnit;
 use App\Enum\PaymentFrequency;
 use App\Enum\UserRole;
 use App\Farm\FarmCreator;
@@ -21,6 +28,9 @@ use App\Farm\FarmRunner;
 use App\Invoice\InvoiceXmlService;
 use App\Ksef\Fake\FakeKsefClient;
 use App\Ksef\KsefSynchronizer;
+use App\Machine\MachineInfo;
+use App\Machine\MachineManager;
+use App\Machine\ServiceRecorder;
 use App\Repository\ContractorRepository;
 use App\Settings\SettingKey;
 use App\Settings\Settings;
@@ -47,6 +57,9 @@ final class AppFixtures extends Fixture
         private readonly KsefSynchronizer $synchronizer,
         private readonly InvoiceXmlService $xml,
         private readonly ContractorRepository $contractors,
+        private readonly MachineManager $machines,
+        private readonly MachineInfo $machineInfo,
+        private readonly ServiceRecorder $serviceRecorder,
         #[Autowire('%env(resolve:KSEF_FAKE_DIR)%')]
         private readonly string $fakeDirectory,
     ) {
@@ -145,5 +158,74 @@ final class AppFixtures extends Fixture
         }
 
         $manager->flush();
+        $this->loadMachines($manager, $owner);
+    }
+
+    private function loadMachines(ObjectManager $manager, User $owner): void
+    {
+        $categories = $manager->getRepository(MachineCategory::class);
+        $machine = function (string $name, string $category, array $data) use ($owner, $categories): Machine {
+            $machine = (new Machine())
+                ->setName($name)
+                ->setCategory($categories->findOneBy(['name' => $category]))
+                ->setRegistrationNumber($data['reg'] ?? null)
+                ->setBrand($data['brand'] ?? null)
+                ->setModel($data['model'] ?? null)
+                ->setProductionYear($data['year'] ?? null)
+                ->setInsuranceUntil(isset($data['insurance']) ? new \DateTimeImmutable($data['insurance']) : null)
+                ->setInspectionUntil(isset($data['inspection']) ? new \DateTimeImmutable($data['inspection']) : null)
+                ->setMeterUnit($data['unit'] ?? null)
+                ->setMeterValue($data['meter'] ?? null)
+                ->setPayloadKg($data['payload'] ?? null);
+            $this->machines->save($machine, $data['tare'] ?? null, null, false, $owner);
+
+            return $machine;
+        };
+
+        $deere = $machine('John Deere 6155M', 'Ciągniki', ['reg' => 'CCH 45KL', 'brand' => 'John Deere', 'model' => '6155M', 'year' => 2019, 'insurance' => 'today +14 days', 'inspection' => 'today +120 days', 'unit' => MeterUnit::Hours, 'meter' => '6420.5', 'tare' => 6850]);
+        $machine('Ursus C-360', 'Ciągniki', ['reg' => 'CCH 1234', 'brand' => 'Ursus', 'model' => 'C-360', 'year' => 1984, 'insurance' => 'today +200 days', 'inspection' => 'today -5 days', 'unit' => MeterUnit::Hours, 'meter' => '11230', 'tare' => 2050]);
+        $trailer = $machine('Pronar T680', 'Przyczepy i naczepy', ['reg' => 'CCH 7U21', 'brand' => 'Pronar', 'model' => 'T680', 'year' => 2017, 'insurance' => 'today +150 days', 'inspection' => 'today +60 days', 'tare' => 3900, 'payload' => 14000]);
+        $machine('John Deere + Pronar', 'Zestawy', [])->addComponent($deere)->addComponent($trailer);
+        $machine('Claas Lexion 760', 'Kombajny', ['brand' => 'Claas', 'model' => 'Lexion 760', 'year' => 2015, 'insurance' => 'today +300 days', 'unit' => MeterUnit::Hours, 'meter' => '2310']);
+        $machine('Ford Ranger', 'Samochody', ['reg' => 'CCH 9P88A', 'brand' => 'Ford', 'model' => 'Ranger', 'year' => 2021, 'insurance' => 'today +25 days', 'inspection' => 'today +40 days', 'unit' => MeterUnit::Kilometers, 'meter' => '184500']);
+        $manager->flush();
+
+        $infoCategories = $manager->getRepository(MachineInfoCategory::class);
+        $filters = $infoCategories->findOneBy(['name' => 'Filtry', 'parent' => null]);
+        foreach ([
+            [['Oleju silnika', $filters], 'Filtr oleju silnika', 'RE504836', 'John Deere', '1 szt.', 'John Deere – części https://www.deere.pl'],
+            [['Paliwa', $filters], 'Filtr paliwa', 'RE522878', 'John Deere', '1 szt.', ''],
+            [['Oleje i płyny', null], 'Olej silnikowy 15W40', 'Plus-50 II', 'John Deere', '19 l', ''],
+            [['Opony i koła', null], 'Opony tylne', null, 'Michelin', '710/70 R42', ''],
+        ] as [[$categoryName, $parent], $name, $catalog, $maker, $size, $links]) {
+            $infoCategory = $infoCategories->findOneBy(['name' => $categoryName, 'parent' => $parent]);
+            if (null === $infoCategory) {
+                continue;
+            }
+            $entry = (new MachineInfoEntry($deere, $infoCategory))->setName($name)->setCatalogNumber($catalog)->setManufacturer($maker)->setSizeQuantity($size);
+            $this->machineInfo->saveEntry($entry, [], $links);
+        }
+
+        $workshop = $this->contractors->findOneBy(['nip' => DemoInvoiceGenerator::PARTNERS['serwis']['nip']]);
+        if (null === $workshop) {
+            return;
+        }
+        $oilChange = $manager->getRepository(ServiceType::class)->findOneBy(['name' => 'Wymiana oleju']);
+        $invoices = array_reverse($manager->getRepository(Invoice::class)->findBy(['contractor' => $workshop, 'kind' => InvoiceKind::Cost], ['issueDate' => 'DESC'], 3));
+        $meter = 6420.5 - 250 * \count($invoices);
+        foreach ($invoices as $i => $invoice) {
+            $meter += 250;
+            $service = $this->serviceRecorder->prepare($deere, $owner)
+                ->setDate($invoice->getIssueDate())
+                ->setMeterValue(number_format($meter - 30, 1, '.', ''))
+                ->setType($oilChange)
+                ->setContractor($workshop)
+                ->setDescription('Wymiana oleju silnikowego i filtrów')
+                ->setInvoice($invoice);
+            if ($i === \count($invoices) - 1) {
+                $service->setNextServiceDate(new \DateTimeImmutable('today +10 days'))->setNextServiceMeter(number_format($meter + 220, 1, '.', ''));
+            }
+            $this->serviceRecorder->save($service);
+        }
     }
 }

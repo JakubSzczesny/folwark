@@ -1,0 +1,86 @@
+{% extends 'layout.html.twig' %}
+{% import '_partials/macros.html.twig' as m %}
+
+{% block title %}Maszyny{% endblock %}
+{% block active_menu %}machines{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="Maszyny">
+        {% if is_granted('MACHINE_MANAGE') %}
+            <a href="{{ path('app_machine_new', {kategoria: filters.category}) }}" class="btn btn-primary">{{ ux_icon('lucide:plus') }} Dodaj maszynę</a>
+        {% endif %}
+    </twig:PageHeader>
+
+    {% set query = app.request.query.all|filter((v, k) => k not in ['kategoria', 'strona']) %}
+    <nav class="tabs" aria-label="Kategorie maszyn">
+        <a href="{{ path('app_machine_index', query|merge({kategoria: ''})) }}" class="tab {{ filters.category is null ? 'tab-active' }}">Wszystkie</a>
+        {% for category in categories %}
+            <a href="{{ path('app_machine_index', query|merge({kategoria: category.id})) }}" class="tab {{ filters.category == category.id ? 'tab-active' }}">
+                {{ category.name }}{% if counts[category.id] ?? 0 %} <span class="text-antracyt-500 font-normal">{{ counts[category.id] }}</span>{% endif %}
+            </a>
+        {% endfor %}
+    </nav>
+
+    <div data-controller="filters">
+    {{ include('_partials/filters_toggle.html.twig', {active: (filters.q ? 1 : 0) + (filters.deadlines ? 1 : 0) + (filters.inactive ? 1 : 0)}) }}
+    <form method="get" class="filter-bar is-collapsible" data-filters-target="panel" data-controller="autosubmit" data-turbo-action="replace">
+        {% if filters.category %}<input type="hidden" name="kategoria" value="{{ filters.category }}">{% endif %}
+        <div class="field min-w-[240px]">
+            <label class="label" for="f-q">Szukaj</label>
+            <input id="f-q" type="search" name="szukaj" value="{{ filters.q }}" class="input" placeholder="Nazwa, nr rej., marka" data-action="input->autosubmit#debounced">
+        </div>
+        <label class="inline-flex items-center gap-2 cursor-pointer" style="min-height:40px">
+            <input type="checkbox" class="checkbox" name="terminy" value="1" {{ filters.deadlines ? 'checked' }} data-action="autosubmit#submit">
+            Terminy w ciągu {{ days }} dni
+        </label>
+        <label class="inline-flex items-center gap-2 cursor-pointer" style="min-height:40px">
+            <input type="checkbox" class="checkbox" name="wycofane" value="1" {{ filters.inactive ? 'checked' }} data-action="autosubmit#submit">
+            Pokaż wycofane
+        </label>
+        <a href="{{ path('app_machine_index', {wyczysc: 1}) }}" class="btn btn-ghost">Wyczyść</a>
+    </form>
+    </div>
+
+    <div class="card">
+        {% if pager.items is empty %}
+            <twig:EmptyState text="{{ filters.q or filters.deadlines or filters.category ? 'Brak maszyn spełniających filtry.' : 'Nie ma jeszcze żadnej maszyny.' }}"
+                actionLabel="{{ is_granted('MACHINE_MANAGE') ? 'Dodaj maszynę' : null }}"
+                actionUrl="{{ is_granted('MACHINE_MANAGE') ? path('app_machine_new') : null }}" />
+        {% else %}
+            <div class="table-wrap">
+                <table class="table table-cards" data-controller="table-nav" data-action="keydown@window->table-nav#keydown">
+                    <thead>
+                        <tr>
+                            <th class="w-14"><span class="sr-only">Zdjęcie</span></th>
+                            {{ m.sort_th('Nazwa', 'nazwa', sort) }}
+                            {{ m.sort_th('Nr rej.', 'nr', sort) }}
+                            {{ m.sort_th('Kategoria', 'kategoria', sort) }}
+                            {{ m.sort_th('Ubezpieczenie do', 'ubezpieczenie', sort) }}
+                            <th>Przegląd do</th>
+                            <th>Ostatni serwis</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for machine in pager.items %}
+                            {% set url = path('app_machine_show', {id: machine.id}) %}
+                            <tr data-table-nav-target="row" data-href="{{ url }}" data-action="click->table-nav#click" class="{{ machine.active ? '' : 'opacity-60' }}">
+                                <td class="hidden md:table-cell">{{ include('machine/_thumb.html.twig', {size: 40}) }}</td>
+                                <td class="card-title-cell">
+                                    <a href="{{ url }}" class="text-tekst hover:text-zielen-600">{{ machine.name }}</a>
+                                    {% if machine.brandAndModel and machine.brandAndModel != machine.name %}<span class="block text-xs text-antracyt-500">{{ machine.brandAndModel }}</span>{% endif %}
+                                    {% if not machine.active %}<twig:Badge>wycofana</twig:Badge>{% endif %}
+                                </td>
+                                <td data-label="Nr rej." class="tabular-nums">{{ machine.registrationNumber ?: '—' }}</td>
+                                <td data-label="Kategoria">{{ machine.category ? machine.category.name : '—' }}</td>
+                                <td data-label="Ubezpieczenie do">{{ m.deadline(machine.insuranceUntil, 30, not machine.active) }}</td>
+                                <td data-label="Przegląd do">{{ m.deadline(machine.inspectionUntil, 30, not machine.active) }}</td>
+                                <td data-label="Ostatni serwis">{{ last_services[machine.id] is defined ? last_services[machine.id]|pl_date : '—' }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {{ include('_partials/pagination.html.twig') }}
+        {% endif %}
+    </div>
+{% endblock %}

@@ -1,0 +1,9 @@
+<div class="grid grid-cols-[1fr_90px_90px_auto] items-start gap-2" data-collection-item>
+    <div>
+        {{ form_widget(part.name, {attr: {class: 'input', 'aria-label': 'Część'}}) }}
+        {{ form_errors(part.name) }}
+    </div>
+    <div>{{ form_widget(part.quantity, {attr: {class: 'input', 'aria-label': 'Ilość', placeholder: 'Ilość'}}) }}{{ form_errors(part.quantity) }}</div>
+    {{ form_widget(part.unit, {attr: {class: 'select', 'aria-label': 'Jednostka'}}) }}
+    <button type="button" class="btn btn-ghost btn-icon" data-action="collection#remove" aria-label="Usuń część">{{ ux_icon('lucide:x') }}</button>
+</div>

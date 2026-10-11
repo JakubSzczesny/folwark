@@ -58,6 +58,18 @@ class FileStorage
         }
     }
 
+    /**
+     * Kopia pliku w innym katalogu; zwraca ścieżkę kopii.
+     */
+    public function copy(string $path, string $directory): string
+    {
+        $name = basename($path);
+        $target = trim($directory, '/').'/'.Uuid::v7()->toBase58().'-'.(preg_replace('/^[1-9A-HJ-NP-Za-km-z]{20,24}-/', '', $name) ?? $name);
+        $this->storage->copy($path, $target);
+
+        return $target;
+    }
+
     public function storeUpload(UploadedFile $file, string $directory): string
     {
         $name = pathinfo($file->getClientOriginalName(), \PATHINFO_FILENAME);

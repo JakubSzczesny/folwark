@@ -14,9 +14,17 @@ use App\Entity\Farm;
 use App\Entity\Invoice;
 use App\Entity\InvoiceRule;
 use App\Entity\KsefSync;
+use App\Entity\Machine;
+use App\Entity\MachineCategory;
+use App\Entity\MachineInfoAttachment;
+use App\Entity\MachineInfoCategory;
+use App\Entity\MachineInfoEntry;
+use App\Entity\MachineService;
+use App\Entity\MachineServiceAttachment;
 use App\Entity\Notification;
 use App\Entity\RecentChoice;
 use App\Entity\SavedFilter;
+use App\Entity\ServiceType;
 use App\Entity\Setting;
 use App\Entity\Unit;
 use App\Entity\User;
@@ -31,7 +39,8 @@ final class FarmWiper
 {
     /**
      * Kolejność ma znaczenie: najpierw dane odwołujące się do słowników, na końcu słowniki.
-     * Pozycje faktur, rachunki i historia kontrahentów usuwają się kaskadowo z rodzicami.
+     * Pozycje faktur, rachunki i historia kontrahentów, historia tary i części z serwisu
+     * usuwają się kaskadowo z rodzicami.
      *
      * @var list<class-string<FarmScoped>>
      */
@@ -41,6 +50,14 @@ final class FarmWiper
         RecentChoice::class,
         InvoiceRule::class,
         KsefSync::class,
+        MachineServiceAttachment::class,
+        MachineService::class,
+        MachineInfoAttachment::class,
+        MachineInfoEntry::class,
+        MachineInfoCategory::class,
+        Machine::class,
+        MachineCategory::class,
+        ServiceType::class,
         Invoice::class,
         ContractAttachment::class,
         Contract::class,
@@ -61,7 +78,7 @@ final class FarmWiper
     }
 
     /**
-     * Usuwa wszystkie dane gospodarstwa (faktury, kontrahentów, umowy, słowniki, ustawienia, pliki)
+     * Usuwa wszystkie dane gospodarstwa (faktury, kontrahentów, umowy, maszyny, słowniki, ustawienia, pliki)
      * i wstawia od nowa dane startowe. Gospodarstwo i jego członkowie zostają.
      */
     public function wipe(Farm $farm): void

@@ -1,0 +1,61 @@
+{% set amounts = is_granted('AMOUNTS_VIEW') %}
+{% set invoices = is_granted('INVOICE_VIEW') %}
+
+<div class="card">
+    {% if services is empty %}
+        <twig:EmptyState text="Brak wpisów serwisowych."
+            actionLabel="{{ is_granted('MACHINE_EDIT') ? 'Dodaj wpis serwisowy' : null }}"
+            actionUrl="{{ is_granted('MACHINE_EDIT') ? path('app_machine_service_new', {id: machine.id}) : null }}"
+            data-turbo-frame="_top" />
+    {% else %}
+        <div class="table-wrap">
+            <table class="table table-cards">
+                <thead>
+                    <tr>
+                        <th>Data</th><th class="text-right">Licznik</th><th>Rodzaj</th><th>Opis</th>
+                        {% if amounts %}<th class="text-right">Koszt netto</th>{% endif %}
+                        {% if invoices %}<th>Faktura</th>{% endif %}
+                        <th><span class="sr-only">Akcje</span></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for service in services %}
+                        <tr>
+                            <td class="card-title-cell tabular-nums">{{ service.date|pl_date }}{% if service.type %}<span class="md:hidden"> · {{ service.type.name }}</span>{% endif %}</td>
+                            <td data-label="Licznik" class="num">{{ service.meterValue is not null ? service.meterValue|qty(1) ~ ' ' ~ (machine.meterUnit ? machine.meterUnit.label) : '—' }}</td>
+                            <td data-label="Rodzaj" class="hidden md:table-cell">{{ service.type ? service.type.name : '—' }}</td>
+                            <td data-label="Opis">
+                                {% if service.description %}<span class="whitespace-pre-line">{{ service.description }}</span>{% endif %}
+                                {% if service.parts is not empty %}
+                                    <span class="block text-xs text-antracyt-500">Części: {% for part in service.parts %}{{ part.name }}{% if part.quantity %} {{ part.quantity|qty }} {{ part.unit ? part.unit.symbol }}{% endif %}{{ not loop.last ? ', ' }}{% endfor %}</span>
+                                {% endif %}
+                                {% if service.performerLabel %}<span class="block text-xs text-antracyt-500">Wykonał: {{ service.performerLabel }}</span>{% endif %}
+                                {% if service.nextServiceDate or service.nextServiceMeter %}
+                                    <span class="block text-xs text-antracyt-500">Następny: {{ service.nextServiceDate ? service.nextServiceDate|pl_date }}{{ service.nextServiceDate and service.nextServiceMeter ? ' albo ' }}{{ service.nextServiceMeter ? 'przy ' ~ service.nextServiceMeter|qty(1) ~ ' ' ~ (machine.meterUnit ? machine.meterUnit.label) }}</span>
+                                {% endif %}
+                                {% if service.attachments is not empty %}
+                                    <span class="flex flex-wrap gap-2 mt-1">
+                                        {% for attachment in service.attachments %}
+                                            {% if attachment.photo %}
+                                                <a href="{{ path('app_machine_service_thumbnail', {id: attachment.id, filter: 'photo'}) }}" target="_blank" rel="noopener" title="{{ attachment.name }}" data-turbo-frame="_top"><img src="{{ path('app_machine_service_thumbnail', {id: attachment.id, filter: 'thumb'}) }}" alt="{{ attachment.name }}" width="48" height="48" loading="lazy" class="rounded-ui object-cover bg-szary-100" style="width:48px;height:48px"></a>
+                                            {% else %}
+                                                <a href="{{ path('app_machine_service_attachment', {id: attachment.id}) }}" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-xs" data-turbo-frame="_top">{{ ux_icon('lucide:paperclip', {width: 14, height: 14}) }}{{ attachment.name }}</a>
+                                            {% endif %}
+                                        {% endfor %}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            {% if amounts %}<td data-label="Koszt netto" class="num">{{ service.netCost is not null ? service.netCost|money : (service.invoice ? service.invoice.net|money(service.invoice.currency) : '—') }}</td>{% endif %}
+                            {% if invoices %}<td data-label="Faktura">{% if service.invoice %}<a href="{{ path('app_invoice_show', {id: service.invoice.id}) }}" data-turbo-frame="_top">{{ service.invoice.number }}</a>{% else %}—{% endif %}</td>{% endif %}
+                            <td class="text-right">
+                                {% if is_granted('MACHINE_EDIT') %}
+                                    <a href="{{ path('app_machine_service_edit', {id: service.id}) }}" class="btn btn-ghost btn-icon btn-sm" aria-label="Edytuj wpis z {{ service.date|pl_date }}" data-turbo-frame="_top">{{ ux_icon('lucide:pencil') }}</a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>

@@ -1,0 +1,6 @@
+{% set size = size|default(40) %}
+{% if machine.photoPath %}
+    <img src="{{ path('app_machine_photo', {id: machine.id, filter: size > 96 ? 'card' : 'thumb'}) }}" width="{{ size }}" height="{{ size }}" alt="" loading="lazy" class="rounded-ui object-cover bg-szary-100 shrink-0" style="width:{{ size }}px;height:{{ size }}px">
+{% else %}
+    <span class="inline-flex items-center justify-center rounded-ui bg-szary-100 text-antracyt-500 shrink-0" style="width:{{ size }}px;height:{{ size }}px">{{ ux_icon('lucide:tractor', {width: size > 60 ? 32 : 18, height: size > 60 ? 32 : 18}) }}</span>
+{% endif %}

@@ -1,0 +1,37 @@
+<twig:Modal title="Kopiuj informacje z innej maszyny">
+    {% if sources is empty %}
+        <p class="text-sm text-antracyt-500">Żadna inna maszyna nie ma jeszcze wpisów w informacjach.</p>
+        <div class="mt-4"><button type="button" class="btn btn-ghost" data-action="modal#close">Zamknij</button></div>
+    {% else %}
+        <p class="text-sm text-antracyt-500 mb-4">Przydatne np. przy drugim ciągniku tego samego modelu. Wpisy, które już są na „{{ machine.name }}”, zostaną pominięte.</p>
+        <form method="post" action="{{ path('app_machine_info_copy', {id: machine.id}) }}" data-turbo-frame="modal">
+            <input type="hidden" name="_token" value="{{ csrf_token('machine-info') }}">
+            {% set chosen = app.request.payload.all('categories') %}
+            <div class="field">
+                <label class="label" for="copy-source">Skopiuj z maszyny</label>
+                <select id="copy-source" name="source" class="select" required>
+                    <option value="">Wybierz…</option>
+                    {% for source in sources %}
+                        <option value="{{ source.id }}" {{ app.request.payload.get('source') == source.id ? 'selected' }}>{{ source.label }} ({{ counts[source.id] }} {{ counts[source.id]|plural('wpis', 'wpisy', 'wpisów') }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <fieldset class="field">
+                <legend class="label">Kategorie (z podkategoriami)</legend>
+                <div class="grid gap-1 sm:grid-cols-2">
+                    {% for category in roots %}
+                        <label class="inline-flex items-center gap-2 cursor-pointer" style="min-height:36px">
+                            <input type="checkbox" class="checkbox" name="categories[]" value="{{ category.id }}" {{ chosen is empty or (category.id ~ '') in chosen ? 'checked' }}>
+                            {{ category.name }}
+                        </label>
+                    {% endfor %}
+                </div>
+            </fieldset>
+            {% if error %}<p class="form-error mb-3">{{ error }}</p>{% endif %}
+            <div class="flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary">{{ ux_icon('lucide:copy') }} Kopiuj</button>
+                <button type="button" class="btn btn-ghost" data-action="modal#close">Anuluj</button>
+            </div>
+        </form>
+    {% endif %}
+</twig:Modal>

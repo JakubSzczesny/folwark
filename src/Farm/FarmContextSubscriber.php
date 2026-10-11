@@ -46,7 +46,7 @@ final class FarmContextSubscriber
 
         $request = $event->getRequest();
         $route = (string) $request->attributes->get('_route');
-        if (str_starts_with($route, '_wdt') || str_starts_with($route, '_profiler') || str_starts_with($route, 'liip_imagine')) {
+        if (str_starts_with($route, '_wdt') || str_starts_with($route, '_profiler')) {
             return;
         }
 

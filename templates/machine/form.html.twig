@@ -1,0 +1,68 @@
+{% extends 'layout.html.twig' %}
+
+{% set title = machine.id ? 'Edycja: ' ~ machine.name : 'Nowa maszyna' %}
+{% set back = machine.id ? path('app_machine_show', {id: machine.id}) : path('app_machine_index') %}
+{% block title %}{{ title }}{% endblock %}
+{% block active_menu %}machines{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="{{ title }}" back="{{ back }}" />
+
+    <div class="card card-body max-w-3xl">
+        {{ form_start(form, {attr: {'data-controller': 'toggle'}}) }}
+            <div class="form-grid">
+                {{ form_row(form.name) }}
+                {{ form_row(form.category) }}
+            </div>
+            <div class="grid gap-x-4 sm:grid-cols-3">
+                {{ form_row(form.registrationNumber) }}
+                {{ form_row(form.brand) }}
+                {{ form_row(form.model) }}
+            </div>
+            <div class="form-grid">
+                {{ form_row(form.productionYear) }}
+                {{ form_row(form.serialNumber) }}
+            </div>
+            <div class="form-grid">
+                {{ form_row(form.insuranceUntil) }}
+                {{ form_row(form.inspectionUntil) }}
+            </div>
+            <div class="form-grid">
+                {{ form_row(form.meterValue) }}
+                {{ form_row(form.meterUnit) }}
+            </div>
+            <div class="form-grid">
+                {{ form_row(form.tareKg) }}
+                {{ form_row(form.payloadKg) }}
+            </div>
+            {{ form_row(form.components) }}
+            {{ form_row(form.owned) }}
+            <div data-toggle-target="content" {{ machine.owned ? 'hidden' }}>{{ form_row(form.contractor) }}</div>
+            {% if machine.photoPath %}
+                <div class="flex items-center gap-3 mb-2">
+                    {{ include('machine/_thumb.html.twig', {size: 64}) }}
+                    {{ form_row(form.removePhoto) }}
+                </div>
+            {% endif %}
+            {{ form_row(form.photo) }}
+            {{ form_row(form.notes) }}
+            {{ form_row(form.active) }}
+            {{ form_rest(form) }}
+            <div class="flex gap-2">
+                <button type="submit" class="btn btn-primary">Zapisz</button>
+                <a href="{{ back }}" class="btn btn-ghost">Anuluj</a>
+            </div>
+        {{ form_end(form) }}
+    </div>
+
+    {% if machine.id %}
+        <section class="card card-body max-w-3xl mt-6 border-blad/40">
+            <h2 class="card-title mb-1">Usuń maszynę</h2>
+            <p class="text-sm text-antracyt-500 mb-3">Znikną informacje, historia serwisowa i pliki tej maszyny. Faktury zostają. Jeśli maszyna tylko przestała pracować, odznacz „Maszyna w użyciu”.</p>
+            <form method="post" action="{{ path('app_machine_delete', {id: machine.id}) }}" data-turbo-confirm="Usunąć maszynę „{{ machine.name }}” razem z jej historią?">
+                <input type="hidden" name="_token" value="{{ csrf_token('machine-delete') }}">
+                <button type="submit" class="btn btn-danger">{{ ux_icon('lucide:trash-2') }} Usuń maszynę</button>
+            </form>
+        </section>
+    {% endif %}
+{% endblock %}

@@ -17,3 +17,9 @@ framework:
         # Namespaced pools use the above "app" backend by default
         #pools:
             #my.dedicated.cache: null
+
+when@test:
+    framework:
+        cache:
+            # Licznik prób logowania nie może przeżywać między przebiegami testów.
+            app: cache.adapter.array

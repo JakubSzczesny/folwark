@@ -1,0 +1,55 @@
+<twig:Modal title="{{ entry.id ? 'Edycja wpisu' : 'Nowy wpis – ' ~ entry.machine.name }}">
+    {{ form_start(form, {attr: {'data-turbo-frame': 'modal'}}) }}
+        {{ form_row(form.category) }}
+        {{ form_row(form.name) }}
+        <div class="grid gap-x-4 sm:grid-cols-3">
+            {{ form_row(form.catalogNumber) }}
+            {{ form_row(form.manufacturer) }}
+            {{ form_row(form.sizeQuantity) }}
+        </div>
+        {{ form_row(form.notes) }}
+
+        {% if entry.attachments is not empty %}
+            <div class="field">
+                <span class="label">Obecne załączniki</span>
+                <ul class="space-y-1">
+                    {% for attachment in entry.attachments %}
+                        <li class="flex items-center justify-between gap-2 text-sm">
+                            <span class="inline-flex items-center gap-2 min-w-0">
+                                {% if attachment.photo %}
+                                    <img src="{{ path('app_machine_info_thumbnail', {id: attachment.id, filter: 'thumb'}) }}" alt="" width="32" height="32" class="rounded-ui object-cover" style="width:32px;height:32px">
+                                {% else %}
+                                    {{ ux_icon(attachment.link ? 'lucide:external-link' : 'lucide:file-text') }}
+                                {% endif %}
+                                <span class="truncate">{{ attachment.label }}</span>
+                            </span>
+                            <button type="submit" form="delete-attachment-{{ attachment.id }}" class="btn btn-ghost btn-icon btn-sm" aria-label="Usuń {{ attachment.label }}">{{ ux_icon('lucide:trash-2') }}</button>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        {% endif %}
+
+        {{ form_row(form.files, {attr: {accept: 'image/*,application/pdf,.doc,.docx,.xls,.xlsx'}}) }}
+        {{ form_row(form.links) }}
+        {{ form_rest(form) }}
+        <div class="flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-primary">Zapisz</button>
+            <button type="button" class="btn btn-ghost" data-action="modal#close">Anuluj</button>
+            {% if entry.id %}
+                <button type="submit" form="delete-entry" class="btn btn-ghost text-danger ml-auto">{{ ux_icon('lucide:trash-2') }} Usuń wpis</button>
+            {% endif %}
+        </div>
+    {{ form_end(form) }}
+
+    {% for attachment in entry.attachments %}
+        <form id="delete-attachment-{{ attachment.id }}" method="post" action="{{ path('app_machine_info_attachment_delete', {id: attachment.id}) }}" data-turbo-frame="modal" data-turbo-confirm="Usunąć „{{ attachment.label }}”?">
+            <input type="hidden" name="_token" value="{{ csrf_token('machine-info') }}">
+        </form>
+    {% endfor %}
+    {% if entry.id %}
+        <form id="delete-entry" method="post" action="{{ path('app_machine_info_entry_delete', {id: entry.id}) }}" data-turbo-frame="modal" data-turbo-confirm="Usunąć wpis „{{ entry.name }}” razem z załącznikami?">
+            <input type="hidden" name="_token" value="{{ csrf_token('machine-info') }}">
+        </form>
+    {% endif %}
+</twig:Modal>

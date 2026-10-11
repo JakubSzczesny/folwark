@@ -60,6 +60,12 @@ final class KsefSyncTest extends FunctionalTestCase
         self::assertSelectorTextContains('tbody', 'PETROMEX Sp. z o.o.');
         self::assertSelectorExists('tbody tr.is-unread');
         self::assertSelectorTextContains('.tabs .tab-active', '1');
+
+        self::assertSame('/faktury/'.$invoice->getId(), $notifications[0]->getLink(), 'Jedna nowa faktura – powiadomienie prowadzi wprost do niej');
+        $this->client->request('GET', '/faktury/'.$invoice->getId());
+        self::assertResponseIsSuccessful();
+        $this->client->request('GET', '/powiadomienia/dzwonek');
+        self::assertSelectorNotExists('.dot-new', 'Odczytanie faktury gasi jej powiadomienie');
     }
 
     public function testRepeatedSyncDoesNotDuplicateInvoices(): void

@@ -13,8 +13,12 @@ use App\Entity\Invoice;
 use App\Entity\User;
 use App\Enum\InvoiceKind;
 use App\Enum\InvoiceStatus;
+use App\Enum\NotificationType;
 use App\Enum\PaymentStatus;
+use App\Repository\InvoiceRepository;
+use App\Repository\NotificationRepository;
 use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * Zmiany statusów i powiązań faktury. Każda zmiana trafia do dziennika zdarzeń.
@@ -25,14 +29,30 @@ class InvoiceActions
         private readonly EntityManagerInterface $em,
         private readonly AuditLogger $audit,
         private readonly ContractorResolver $contractors,
+        private readonly NotificationRepository $notifications,
+        private readonly InvoiceRepository $invoices,
+        private readonly UrlGeneratorInterface $urls,
     ) {
     }
 
+    /**
+     * Odczytanie faktury gasi powiadomienie, które do niej prowadzi, a gdy nowych faktur już nie ma –
+     * także zbiorcze „N nowych faktur”.
+     */
     public function markRead(Invoice $invoice, ?User $user): void
     {
-        if ($invoice->markRead($user)) {
-            $this->audit->log('Invoice', $invoice->getId(), 'read', [], $user);
-            $this->em->flush();
+        if (!$invoice->markRead($user)) {
+            return;
+        }
+
+        $this->audit->log('Invoice', $invoice->getId(), 'read', [], $user);
+        $this->em->flush();
+
+        if (null !== $user) {
+            $this->notifications->markReadByType($user, NotificationType::NewInvoices, $this->urls->generate('app_invoice_show', ['id' => $invoice->getId()]));
+            if (0 === $this->invoices->countNew()) {
+                $this->notifications->markReadByType($user, NotificationType::NewInvoices);
+            }
         }
     }
 

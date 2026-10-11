@@ -62,6 +62,11 @@ class InvoiceXmlService
             return null;
         }
 
+        // Plik mógł zniknąć (np. baza odtworzona z kopii bez plików) – pobieramy go z KSeF jeszcze raz.
+        if (!isset($this->parsed[$invoice->getKsefNumber()]) && !$this->storage->exists($path)) {
+            return $this->fetch($invoice);
+        }
+
         return $this->parsed[$invoice->getKsefNumber()] ??= $this->parser->parse($this->storage->read($path));
     }
 

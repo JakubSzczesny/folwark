@@ -496,6 +496,26 @@
         @apply lg:hidden;
     }
 
+    /* Przycisk zwijania: po zwinięciu zostaje sam, ze strzałką w drugą stronę. */
+    .sidebar-toggle .icon-expand,
+    .is-collapsed .sidebar-toggle .icon-collapse {
+        display: none;
+    }
+
+    .is-collapsed .sidebar-toggle .icon-expand {
+        display: inline;
+    }
+
+    @media (min-width: 1024px) {
+        .is-collapsed .sidebar-logo {
+            display: none !important;
+        }
+
+        .is-collapsed .sidebar-toggle {
+            margin-inline: auto;
+        }
+    }
+
     .is-collapsed .sidebar-link {
         @apply lg:justify-center lg:px-0;
     }

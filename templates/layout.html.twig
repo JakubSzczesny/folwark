@@ -12,12 +12,13 @@
 
     <aside data-sidebar-target="drawer" class="app-sidebar" aria-label="Menu główne">
         <div class="flex items-center justify-between gap-2 px-3" style="height: 56px">
-            <a href="{{ path('app_dashboard') }}" class="flex items-center gap-2 text-white hover:text-white font-semibold min-w-0">
+            <a href="{{ path('app_dashboard') }}" class="sidebar-logo flex items-center gap-2 text-white hover:text-white font-semibold min-w-0">
                 <twig:Logo size="32" />
                 <span class="sidebar-label truncate">Folwark</span>
             </a>
-            <button type="button" class="sidebar-label rounded-ui p-2 text-antracyt-300 hover:text-white hover:bg-antracyt-700 hidden lg:inline-flex" data-action="sidebar#toggleCollapsed" title="Zwiń menu" aria-label="Zwiń menu">
-                {{ ux_icon('lucide:panel-left-close') }}
+            <button type="button" class="sidebar-toggle rounded-ui p-2 text-antracyt-300 hover:text-white hover:bg-antracyt-700 hidden lg:inline-flex" data-action="sidebar#toggleCollapsed" title="Zwiń / rozwiń menu" aria-label="Zwiń lub rozwiń menu">
+                <span class="icon-collapse">{{ ux_icon('lucide:panel-left-close') }}</span>
+                <span class="icon-expand">{{ ux_icon('lucide:panel-left-open') }}</span>
             </button>
             <button type="button" class="rounded-ui p-2 text-antracyt-300 hover:text-white hover:bg-antracyt-700 lg:hidden" data-action="sidebar#close" aria-label="Zamknij menu">
                 {{ ux_icon('lucide:x') }}
@@ -43,12 +44,7 @@
             {% endfor %}
         </nav>
 
-        <div class="flex items-center justify-between gap-2 border-t border-antracyt-700 px-3" style="min-height:44px">
-            <span class="sidebar-label text-[11px] tracking-wide text-antracyt-300">© {{ 'now'|date('Y') }} JS</span>
-            <button type="button" class="hidden lg:inline-flex rounded-ui p-2 text-antracyt-300 hover:text-white hover:bg-antracyt-700 mx-auto lg:mx-0" data-action="sidebar#toggleCollapsed" title="Rozwiń / zwiń menu" aria-label="Rozwiń lub zwiń menu">
-                {{ ux_icon('lucide:panel-left') }}
-            </button>
-        </div>
+        <div class="sidebar-label border-t border-antracyt-700 px-4 py-3 text-[11px] tracking-wide text-antracyt-300">© {{ 'now'|date('Y') }} JS</div>
     </aside>
 
     <div class="app-main">

@@ -5,5 +5,5 @@
 
 {% block content %}
     <twig:PageHeader title="Pulpit" subtitle="{{ farm_name() }}" />
-    <twig:Dashboard />
+    <div data-controller="live-refresh"><twig:Dashboard /></div>
 {% endblock %}

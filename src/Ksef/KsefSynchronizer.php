@@ -268,7 +268,9 @@ class KsefSynchronizer
             NotificationPriority::Info,
             ucfirst(implode(', ', $parts)),
             null,
-            $this->urls->generate('app_invoice_index', ['rodzaj' => $cost > 0 ? 'kosztowe' : 'przychodowe', 'status' => 'new']),
+            1 === \count($invoices)
+                ? $this->urls->generate('app_invoice_show', ['id' => $invoices[0]->getId()])
+                : $this->urls->generate('app_invoice_index', ['rodzaj' => $cost > 0 ? 'kosztowe' : 'przychodowe', 'status' => 'new']),
             'ksef-sync:'.$sync->getId(),
         );
     }

@@ -60,6 +60,27 @@ class NotificationRepository extends ServiceEntityRepository
             ->getResult();
     }
 
+    /**
+     * Gasi powiadomienia danego rodzaju – wszystkie albo tylko te, które prowadzą pod wskazany adres.
+     */
+    public function markReadByType(User $user, NotificationType $type, ?string $link = null): int
+    {
+        $qb = $this->createQueryBuilder('n')
+            ->update()
+            ->set('n.readAt', ':now')
+            ->where('n.user = :user')
+            ->andWhere('n.type = :type')
+            ->andWhere('n.readAt IS NULL')
+            ->setParameter('now', new \DateTimeImmutable())
+            ->setParameter('user', $user)
+            ->setParameter('type', $type);
+        if (null !== $link) {
+            $qb->andWhere('n.link = :link')->setParameter('link', $link);
+        }
+
+        return $qb->getQuery()->execute();
+    }
+
     public function markAllRead(User $user): int
     {
         return $this->createQueryBuilder('n')

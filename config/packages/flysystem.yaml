@@ -4,3 +4,12 @@ flysystem:
             adapter: 'local'
             options:
                 directory: '%kernel.project_dir%/var/storage'
+
+when@test:
+    flysystem:
+        storages:
+            # Testy mają własny katalog – czyszczenie gospodarstwa w teście nie może dotknąć plików aplikacji.
+            default.storage:
+                adapter: 'local'
+                options:
+                    directory: '%kernel.project_dir%/var/storage-test'

@@ -16,6 +16,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
+use Symfony\UX\Turbo\TurboBundle;
 
 #[Route('/powiadomienia')]
 final class NotificationController extends AbstractController
@@ -83,6 +84,13 @@ final class NotificationController extends AbstractController
         $count = $this->notifications->markAllRead($user);
         if ($count > 0) {
             $this->addFlash('success', 'Oznaczono powiadomienia jako przeczytane.');
+        }
+
+        // Z rozwiniętego dzwonka: odświeżamy całą stronę, żeby zgasły też liczniki w menu i na dzwonku.
+        if ('notification-bell' === $request->headers->get('Turbo-Frame') && TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
+            $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+            return $this->render('_partials/refresh.stream.html.twig');
         }
 
         $referer = $request->headers->get('referer');

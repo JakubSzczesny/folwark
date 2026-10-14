@@ -29,7 +29,7 @@
                     {% for row in rows %}
                         <tr>
                             <td class="card-title-cell tabular-nums">{{ row.date|pl_date }}</td>
-                            <td data-label="Dostawca">{{ row.contractor }}</td>
+                            <td data-label="Dostawca">{% if row.contractorId and is_granted('CONTRACTOR_VIEW') %}<a href="{{ path('app_contractor_show', {id: row.contractorId}) }}" data-turbo-frame="_top">{{ row.contractor }}</a>{% else %}{{ row.contractor }}{% endif %}</td>
                             <td data-label="Ilość" class="num">{{ row.quantity is not null ? row.quantity|qty ~ ' ' ~ product.unitSymbol : '—' }}</td>
                             {% if amounts %}
                                 <td data-label="Cena jedn." class="num">{{ row.unitPrice is not null ? row.unitPrice|amount(row.unitPrice < 10 ? 4 : 2) ~ ' zł' : '—' }}</td>

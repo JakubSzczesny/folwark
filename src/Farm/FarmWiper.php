@@ -10,7 +10,9 @@ use App\Entity\ContractAttachment;
 use App\Entity\Contractor;
 use App\Entity\CostCategory;
 use App\Entity\CostCenter;
+use App\Entity\CropSeason;
 use App\Entity\Farm;
+use App\Entity\Field;
 use App\Entity\Invoice;
 use App\Entity\InvoiceRule;
 use App\Entity\ItemMapping;
@@ -22,6 +24,7 @@ use App\Entity\MachineInfoCategory;
 use App\Entity\MachineInfoEntry;
 use App\Entity\MachineService;
 use App\Entity\MachineServiceAttachment;
+use App\Entity\MilkProduction;
 use App\Entity\Notification;
 use App\Entity\OrderCycle;
 use App\Entity\OrderSettings;
@@ -35,6 +38,7 @@ use App\Entity\ServiceType;
 use App\Entity\Setting;
 use App\Entity\Unit;
 use App\Entity\User;
+use App\Entity\Warehouse;
 use App\Setup\StartupData;
 use App\Storage\FileStorage;
 use Doctrine\ORM\EntityManagerInterface;
@@ -70,6 +74,10 @@ final class FarmWiper
         Machine::class,
         MachineCategory::class,
         ServiceType::class,
+        MilkProduction::class,
+        CropSeason::class,
+        Field::class,
+        Warehouse::class,
         Invoice::class,
         ContractAttachment::class,
         Contract::class,

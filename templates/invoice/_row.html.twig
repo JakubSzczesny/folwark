@@ -40,7 +40,7 @@
         {% if invoice.correction %}<twig:Badge tone="info">Korekta</twig:Badge>{% endif %}
         <span class="kind-label"><twig:Badge tone="neutral">{{ invoice.kind.label }}</twig:Badge></span>
     </td>
-    <td data-label="Kontrahent" class="max-w-[280px] truncate" title="{{ invoice.contractorName }}">{{ invoice.contractorLabel }}</td>
+    <td data-label="Kontrahent" class="max-w-[280px] truncate" title="{{ invoice.contractorName }}">{% if invoice.contractor and is_granted('CONTRACTOR_VIEW') %}<a href="{{ path('app_contractor_show', {id: invoice.contractor.id}) }}" class="text-tekst hover:text-zielen-600 hover:underline">{{ invoice.contractorLabel }}</a>{% else %}{{ invoice.contractorLabel }}{% endif %}</td>
     <td data-label="Netto" class="num">{{ invoice.net|money(invoice.currency) }}</td>
     <td data-label="Brutto" class="num">{{ invoice.gross|money(invoice.currency) }}</td>
     <td data-label="Termin płatności" class="whitespace-nowrap">{{ m.deadline(invoice.paymentDue, 3, invoice.paid or not invoice.cost) }}</td>

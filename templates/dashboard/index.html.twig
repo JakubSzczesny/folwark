@@ -6,4 +6,11 @@
 {% block content %}
     <twig:PageHeader title="Pulpit" subtitle="{{ farm_name() }}" />
     <div data-controller="live-refresh"><twig:Dashboard /></div>
+
+    {% if chart %}
+        <section class="card card-body mt-6">
+            <h2 class="card-title mb-3">Koszty i przychody – 12 miesięcy (netto)</h2>
+            <div style="height: 260px">{{ render_chart(chart) }}</div>
+        </section>
+    {% endif %}
 {% endblock %}

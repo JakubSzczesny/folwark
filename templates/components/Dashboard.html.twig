@@ -1,5 +1,25 @@
+{% import '_partials/macros.html.twig' as m %}
 <div {{ attributes }} data-poll="delay(20000)|$render">
-    {% block tiles %}{% endblock %}
+    {% set tiles = this.tiles %}
+    {% if tiles is not empty %}
+        <div class="grid gap-4 mb-6 sm:grid-cols-2 xl:grid-cols-4">
+            {% for tile in tiles %}
+                <a href="{{ path(tile.route, tile.params) }}" class="card card-body block text-tekst hover:text-tekst hover:border-zielen-600">
+                    <span class="block text-sm text-antracyt-500">{{ tile.label }}</span>
+                    <span class="flex items-end justify-between gap-3">
+                        <span>
+                            <span class="block text-2xl font-semibold tabular-nums">{{ tile.value }}</span>
+                            {% if tile.trend is not null %}
+                                <span class="text-xs font-semibold {{ tile.key == 'cost' ? (tile.trend > 0 ? 'text-danger' : 'text-zielen-700') : (tile.trend >= 0 ? 'text-zielen-700' : 'text-danger') }}">{{ tile.trend >= 0 ? '▲ +' : '▼ ' }}{{ (tile.trend * 100)|amount(0) }} %</span>
+                            {% endif %}
+                        </span>
+                        {% if tile.series|length > 1 %}{{ m.sparkline(tile.series) }}{% endif %}
+                    </span>
+                    {% if tile.detail %}<span class="block mt-1 text-xs text-antracyt-500">{{ tile.detail }}</span>{% endif %}
+                </a>
+            {% endfor %}
+        </div>
+    {% endif %}
 
     {% set attention = this.attention %}
     <section class="card mb-6" aria-labelledby="attention-title">
@@ -29,7 +49,69 @@
         {% endif %}
     </section>
 
-    {% block below %}{% endblock %}
+    {% set invoices = this.latestInvoices %}
+    {% set orders = this.upcomingOrders %}
+    {% if is_granted('INVOICE_VIEW') or is_granted('ORDER_VIEW') %}
+        <div class="grid gap-6 mb-6 lg:grid-cols-2">
+            {% if is_granted('INVOICE_VIEW') %}
+                <section class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Ostatnie faktury</h2>
+                        <a href="{{ path('app_invoice_index', {rodzaj: 'wszystkie'}) }}" class="text-sm">Wszystkie</a>
+                    </div>
+                    {% if invoices is empty %}
+                        <p class="px-4 py-6 text-sm text-antracyt-500">Brak faktur.</p>
+                    {% else %}
+                        <ul class="divide-y divide-szary-200">
+                            {% for invoice in invoices %}
+                                <li>
+                                    <a href="{{ path('app_invoice_show', {id: invoice.id}) }}" class="flex items-center gap-3 px-4 py-3 text-tekst hover:bg-szary-100 hover:text-tekst">
+                                        {% if invoice.unread %}<span class="dot-new shrink-0" aria-label="nowa"></span>{% else %}<span class="shrink-0" style="width:8px"></span>{% endif %}
+                                        <span class="flex-1 min-w-0">
+                                            <span class="block truncate text-sm {{ invoice.unread ? 'font-semibold' }}">{{ invoice.contractorLabel }}</span>
+                                            <span class="block truncate text-xs text-antracyt-500">{{ invoice.number }} · {{ invoice.issueDate|pl_date }} · {{ invoice.kind.label|lower }}</span>
+                                        </span>
+                                        {% if is_granted('AMOUNTS_VIEW') %}<span class="text-sm tabular-nums whitespace-nowrap">{{ invoice.gross|money(invoice.currency) }}</span>{% endif %}
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </section>
+            {% endif %}
+
+            {% if is_granted('ORDER_VIEW') %}
+                <section class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">Najbliższe zamówienia</h2>
+                        <a href="{{ path('app_order_index') }}" class="text-sm">Wszystkie</a>
+                    </div>
+                    {% if orders is empty %}
+                        <p class="px-4 py-6 text-sm text-antracyt-500">W najbliższych tygodniach nic nie trzeba zamawiać – albo przypisz towary do faktur, żeby przewidywanie miało dane.</p>
+                    {% else %}
+                        <ul class="divide-y divide-szary-200">
+                            {% for cycle in orders %}
+                                <li>
+                                    <a href="{{ path('app_order_index', {cykl: cycle.id}) }}" class="flex items-center gap-3 px-4 py-3 text-tekst hover:bg-szary-100 hover:text-tekst">
+                                        <span class="flex-1 min-w-0">
+                                            <span class="block truncate text-sm font-semibold">{{ cycle.label }}</span>
+                                            <span class="block truncate text-xs text-antracyt-500">
+                                                {{ cycle.typicalQuantity ? 'zwykle ' ~ cycle.typicalQuantity|qty ~ ' ' ~ (cycle.product ? cycle.product.unitSymbol) : (cycle.intervalDays ? 'co ' ~ cycle.intervalDays ~ ' dni' : '') }}
+                                            </span>
+                                        </span>
+                                        <span class="text-sm whitespace-nowrap text-right">
+                                            {{ m.deadline(cycle.predictedDate, 7, cycle.status.manual) }}
+                                            {% if cycle.status.value in ['approaching', 'overdue', 'ordered'] %}<span class="block"><twig:Badge tone="{{ cycle.status.tone }}">{{ cycle.status.label }}</twig:Badge></span>{% endif %}
+                                        </span>
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </section>
+            {% endif %}
+        </div>
+    {% endif %}
 
     <p class="text-xs text-antracyt-500">Odświeżono {{ this.refreshedAt|date('H:i:s') }}</p>
 </div>

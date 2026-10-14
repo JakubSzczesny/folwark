@@ -25,3 +25,18 @@
         <button type="submit" class="{{ class }}">{% if icon %}{{ ux_icon('lucide:' ~ icon) }}{% endif %}{{ label }}</button>
     </form>
 {% endmacro %}
+
+{# Mini-wykres liniowy (np. 12 miesięcy) – sam SVG, bez biblioteki. #}
+{% macro sparkline(values, width = 96, height = 32) %}
+    {% set max = max(values) %}
+    {% set min = min(values) %}
+    {% set span = max - min ?: 1 %}
+    {% set step = values|length > 1 ? width / (values|length - 1) : width %}
+    {% set points = [] %}
+    {% for value in values %}
+        {% set points = points|merge([(loop.index0 * step)|round(1) ~ ',' ~ (height - 2 - (value - min) / span * (height - 4))|round(1)]) %}
+    {% endfor %}
+    <svg class="sparkline shrink-0 text-zielen-600" width="{{ width }}" height="{{ height }}" viewBox="0 0 {{ width }} {{ height }}" aria-hidden="true">
+        <polyline points="{{ points|join(' ') }}" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round" stroke-linecap="round"/>
+    </svg>
+{% endmacro %}

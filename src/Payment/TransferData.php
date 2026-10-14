@@ -94,11 +94,11 @@ final class TransferData
         return [
             'invoiceId' => (int) $invoice->getId(),
             'invoiceNumber' => $invoice->getNumber(),
-            'recipient' => $contractor?->getName() ?? $invoice->getContractorLabel(),
+            'recipient' => self::clean($contractor?->getName() ?? $invoice->getContractorLabel()),
             'address' => $contractor?->getAddressLine() ?? '',
-            'street' => $contractor?->getStreet(),
+            'street' => null !== $contractor?->getStreet() ? self::clean($contractor->getStreet()) : null,
             'postalCode' => $contractor?->getPostalCode(),
-            'city' => $contractor?->getCity(),
+            'city' => null !== $contractor?->getCity() ? self::clean($contractor->getCity()) : null,
             'nip' => $nip,
             'account' => null !== $account ? self::domestic($account) : null,
             'iban' => $account,
@@ -108,13 +108,21 @@ final class TransferData
             'amount' => $amount,
             'vat' => $vat,
             'currency' => $invoice->getCurrency(),
-            'title' => mb_substr($title, 0, 140),
+            'title' => mb_substr(self::clean($title), 0, 140),
             'splitPayment' => $splitPayment,
             'splitTitle' => $splitPayment ? \sprintf('/VAT/%s/IDC/%s/INV/%s/TXT/%s', str_replace('.', ',', $vat), (string) $nip, $invoice->getNumber(), $title) : null,
             'paymentDue' => $invoice->getPaymentDue()?->format('Y-m-d'),
             'paid' => $invoice->isPaid(),
             'warnings' => $warnings,
         ];
+    }
+
+    /**
+     * Bez cudzysłowów – formularz przelewu w banku odrzuca je jako niedozwolone znaki.
+     */
+    public static function clean(string $text): string
+    {
+        return trim((string) preg_replace('/\s+/u', ' ', str_replace(['"', '„', '”', '“', '«', '»'], '', $text)));
     }
 
     /**

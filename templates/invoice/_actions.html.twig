@@ -45,7 +45,7 @@
                 <button type="button" class="btn btn-primary" data-controller="bspay-send" data-action="bspay-send#send"
                         data-bspay-send-url-value="{{ path('app_invoice_transfer_json', {id: invoice.id}) }}" data-bspay-send-bank-url-value="{{ bspay_bank_url() }}">{{ ux_icon('lucide:landmark') }} Uzupełnij w BS</button>
             {% endif %}
-            <a href="{{ path('app_invoice_transfer', {id: invoice.id}) }}" class="btn btn-ghost btn-sm" data-turbo-frame="modal">{{ ux_icon('lucide:banknote') }} Dane do przelewu</a>
+            <a href="{{ path('app_invoice_transfer', {id: invoice.id}) }}" class="btn btn-secondary btn-sm" data-turbo-frame="modal">{{ ux_icon('lucide:banknote') }} Dane do przelewu</a>
         </div>
     {% endif %}
     </div>

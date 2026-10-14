@@ -21,7 +21,7 @@ final class PaymentTest extends FunctionalTestCase
     public function testTransferDataFromContractorAccount(): void
     {
         $this->useFarm();
-        $contractor = ContractorFactory::createOne(['nip' => '7311000000', 'name' => 'Petromex Sp. z o.o.']);
+        $contractor = ContractorFactory::createOne(['nip' => '7311000000', 'name' => 'Petromex „Paliwa" "Sp. z o.o."']);
         $account = new ContractorBankAccount($contractor, 'PL61 1090 1014 0000 0712 1981 2874', DataSource::Manual);
         $contractor->addBankAccount($account);
         $this->service(EntityManagerInterface::class)->flush();
@@ -30,7 +30,7 @@ final class PaymentTest extends FunctionalTestCase
 
         $transfer = $this->service(TransferData::class)->forInvoice($invoice);
 
-        self::assertSame('Petromex Sp. z o.o.', $transfer['recipient']);
+        self::assertSame('Petromex Paliwa Sp. z o.o.', $transfer['recipient'], 'Bez cudzysłowów – bank ich nie przyjmuje');
         self::assertSame('61109010140000071219812874', $transfer['account']);
         self::assertSame('PL61109010140000071219812874', $transfer['iban']);
         self::assertSame('1230.00', $transfer['amount']);

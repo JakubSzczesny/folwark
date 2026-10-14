@@ -24,6 +24,14 @@ class FarmMembership
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private \DateTimeImmutable $createdAt;
 
+    /**
+     * Widżety pulpitu w kolejności; null = układ domyślny.
+     *
+     * @var list<string>|null
+     */
+    #[ORM\Column(type: Types::JSON, nullable: true)]
+    private ?array $dashboardWidgets = null;
+
     public function __construct(
         #[ORM\ManyToOne]
         #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
@@ -72,5 +80,23 @@ class FarmMembership
     public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    public function getDashboardWidgets(): ?array
+    {
+        return null !== $this->dashboardWidgets ? array_values(array_filter($this->dashboardWidgets, 'is_string')) : null;
+    }
+
+    /**
+     * @param list<string>|null $widgets
+     */
+    public function setDashboardWidgets(?array $widgets): static
+    {
+        $this->dashboardWidgets = $widgets;
+
+        return $this;
     }
 }

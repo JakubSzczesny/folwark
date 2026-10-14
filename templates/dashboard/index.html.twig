@@ -4,13 +4,43 @@
 {% block active_menu %}dashboard{% endblock %}
 
 {% block content %}
-    <twig:PageHeader title="Pulpit" subtitle="{{ farm_name() }}" />
-    <div data-controller="live-refresh"><twig:Dashboard /></div>
+    {% set token = csrf_token('dashboard') %}
+    <div data-controller="dashboard-edit" data-dashboard-edit-editing-value="{{ editing ? 'true' : 'false' }}">
+        <twig:PageHeader title="Pulpit" subtitle="{{ farm_name() }}">
+            <button type="button" class="btn btn-secondary" data-dashboard-edit-target="button" data-action="dashboard-edit#toggle" aria-pressed="false">
+                {{ ux_icon('lucide:layout-grid') }} <span data-dashboard-edit-target="label">Dostosuj pulpit</span>
+            </button>
+        </twig:PageHeader>
 
-    {% if chart %}
-        <section class="card card-body mt-6">
-            <h2 class="card-title mb-3">Koszty i przychody – 12 miesięcy (netto)</h2>
-            <div style="height: 260px">{{ render_chart(chart) }}</div>
+        <section class="dashboard-panel card card-body mb-6" aria-labelledby="widgets-title">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                <h2 id="widgets-title" class="card-title">Widżety</h2>
+                <form method="post" action="{{ path('app_dashboard_widget_reset') }}" data-turbo-confirm="Przywrócić domyślny układ? Na pulpicie zostanie tylko „Wymaga uwagi”.">
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <button type="submit" class="btn btn-ghost btn-sm">{{ ux_icon('lucide:refresh-cw') }} Przywróć domyślny układ</button>
+                </form>
+            </div>
+            <ul class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                {% for widget in catalog %}
+                    <li class="flex items-start justify-between gap-3 rounded-ui border border-szary-200 p-3">
+                        <span class="min-w-0">
+                            <span class="block text-sm font-semibold">{{ widget.label }}</span>
+                            <span class="block text-xs text-antracyt-500">{{ widget.description }}</span>
+                        </span>
+                        <form method="post" action="{{ path(widget.active ? 'app_dashboard_widget_remove' : 'app_dashboard_widget_add', {key: widget.key}) }}">
+                            <input type="hidden" name="_token" value="{{ token }}">
+                            {% if widget.active %}
+                                <button type="submit" class="btn btn-ghost btn-sm whitespace-nowrap">{{ ux_icon('lucide:x') }} Usuń</button>
+                            {% else %}
+                                <button type="submit" class="btn btn-primary btn-sm whitespace-nowrap">{{ ux_icon('lucide:plus') }} Dodaj</button>
+                            {% endif %}
+                        </form>
+                    </li>
+                {% endfor %}
+            </ul>
+            <p class="help mt-3 mb-0">Układ jest zapisany dla Ciebie w tym gospodarstwie. Strzałkami przy widżetach zmienisz kolejność.</p>
         </section>
-    {% endif %}
+
+        <div data-controller="live-refresh"><twig:Dashboard /></div>
+    </div>
 {% endblock %}

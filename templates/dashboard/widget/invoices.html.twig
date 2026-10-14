@@ -1,0 +1,25 @@
+{% set invoices = this.latestInvoices %}
+<section class="card h-full">
+    <div class="card-header">
+        <h2 class="card-title">Ostatnie faktury</h2>
+        <a href="{{ path('app_invoice_index', {rodzaj: 'wszystkie'}) }}" class="text-sm">Wszystkie</a>
+    </div>
+    {% if invoices is empty %}
+        <p class="px-4 py-6 text-sm text-antracyt-500">Brak faktur.</p>
+    {% else %}
+        <ul class="divide-y divide-szary-200">
+            {% for invoice in invoices %}
+                <li>
+                    <a href="{{ path('app_invoice_show', {id: invoice.id}) }}" class="flex items-center gap-3 px-4 py-3 text-tekst hover:bg-szary-100 hover:text-tekst">
+                        {% if invoice.unread %}<span class="dot-new shrink-0" aria-label="nowa"></span>{% else %}<span class="shrink-0" style="width:8px"></span>{% endif %}
+                        <span class="flex-1 min-w-0">
+                            <span class="block truncate text-sm {{ invoice.unread ? 'font-semibold' }}">{{ invoice.contractorLabel }}</span>
+                            <span class="block truncate text-xs text-antracyt-500">{{ invoice.number }} · {{ invoice.issueDate|pl_date }} · {{ invoice.kind.label|lower }}</span>
+                        </span>
+                        {% if is_granted('AMOUNTS_VIEW') %}<span class="text-sm tabular-nums whitespace-nowrap">{{ invoice.gross|money(invoice.currency) }}</span>{% endif %}
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</section>

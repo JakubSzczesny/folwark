@@ -1,0 +1,27 @@
+{% set attention = this.attention %}
+<section class="card h-full" aria-labelledby="attention-title">
+    <div class="card-header">
+        <h2 id="attention-title" class="card-title">Wymaga uwagi</h2>
+        {% if attention.total > attention.items|length %}
+            <span class="text-sm text-antracyt-500">pokazano {{ attention.items|length }} z {{ attention.total }}</span>
+        {% endif %}
+    </div>
+    {% if attention.items is empty %}
+        <p class="px-4 py-6 text-sm text-antracyt-500">Nic nie wymaga teraz uwagi.</p>
+    {% else %}
+        <ul class="divide-y divide-szary-200">
+            {% for item in attention.items %}
+                <li>
+                    <a href="{{ item.url }}" class="flex items-center gap-3 px-4 py-3 text-tekst hover:bg-szary-100 hover:text-tekst">
+                        <twig:Badge tone="{{ item.tone }}" class="shrink-0">{{ item.category }}</twig:Badge>
+                        <span class="flex-1 min-w-0">
+                            <span class="block truncate font-semibold text-sm">{{ item.title }}</span>
+                            {% if item.detail %}<span class="block truncate text-sm text-antracyt-500">{{ item.detail }}</span>{% endif %}
+                        </span>
+                        <span class="text-antracyt-500">{{ ux_icon('lucide:chevron-right') }}</span>
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</section>

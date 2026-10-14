@@ -4,11 +4,10 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
-use App\Analytics\InvoiceStatistics;
-use App\Enum\InvoiceKind;
-use App\Security\Permission;
+use App\Dashboard\DashboardWidgets;
 use App\Twig\FormatExtension;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
@@ -16,17 +15,55 @@ use Symfony\UX\Chartjs\Model\Chart;
 
 final class DashboardController extends AbstractController
 {
-    #[Route('/', name: 'app_dashboard', methods: ['GET'])]
-    public function index(InvoiceStatistics $statistics, ChartBuilderInterface $charts): Response
-    {
-        $chart = null;
-        if ($this->isGranted(Permission::AMOUNTS_VIEW)) {
-            $costs = $statistics->lastTwelveMonths(InvoiceKind::Cost);
-            $income = $statistics->lastTwelveMonths(InvoiceKind::Income);
-            $chart = self::chart($charts, $costs, $income);
-        }
+    public function __construct(
+        private readonly DashboardWidgets $widgets,
+    ) {
+    }
 
-        return $this->render('dashboard/index.html.twig', ['chart' => $chart]);
+    #[Route('/', name: 'app_dashboard', methods: ['GET'])]
+    public function index(Request $request): Response
+    {
+        return $this->render('dashboard/index.html.twig', [
+            'catalog' => $this->widgets->catalog(),
+            'editing' => $request->query->getBoolean('edycja'),
+        ]);
+    }
+
+    #[Route('/pulpit/widzety/{key}/dodaj', name: 'app_dashboard_widget_add', methods: ['POST'])]
+    public function add(string $key, Request $request): Response
+    {
+        $this->assertToken($request);
+        $this->widgets->add($key);
+
+        return $this->backToEditing();
+    }
+
+    #[Route('/pulpit/widzety/{key}/usun', name: 'app_dashboard_widget_remove', methods: ['POST'])]
+    public function remove(string $key, Request $request): Response
+    {
+        $this->assertToken($request);
+        $this->widgets->remove($key);
+
+        return $this->backToEditing();
+    }
+
+    #[Route('/pulpit/widzety/{key}/przesun/{direction}', name: 'app_dashboard_widget_move', requirements: ['direction' => 'w-gore|w-dol'], methods: ['POST'])]
+    public function move(string $key, string $direction, Request $request): Response
+    {
+        $this->assertToken($request);
+        $this->widgets->move($key, 'w-gore' === $direction ? -1 : 1);
+
+        return $this->backToEditing();
+    }
+
+    #[Route('/pulpit/widzety/przywroc', name: 'app_dashboard_widget_reset', methods: ['POST'])]
+    public function reset(Request $request): Response
+    {
+        $this->assertToken($request);
+        $this->widgets->reset();
+        $this->addFlash('success', 'Przywrócono domyślny układ pulpitu.');
+
+        return $this->redirectToRoute('app_dashboard', [], Response::HTTP_SEE_OTHER);
     }
 
     /**
@@ -50,5 +87,17 @@ final class DashboardController extends AbstractController
         ]);
 
         return $chart;
+    }
+
+    private function backToEditing(): Response
+    {
+        return $this->redirectToRoute('app_dashboard', ['edycja' => 1], Response::HTTP_SEE_OTHER);
+    }
+
+    private function assertToken(Request $request): void
+    {
+        if (!$this->isCsrfTokenValid('dashboard', $request->getPayload()->getString('_token'))) {
+            throw $this->createAccessDeniedException();
+        }
     }
 }

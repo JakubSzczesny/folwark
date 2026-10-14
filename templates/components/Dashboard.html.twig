@@ -1,115 +1,36 @@
-{% import '_partials/macros.html.twig' as m %}
 <div {{ attributes }} data-poll="delay(20000)|$render">
-    {% set tiles = this.tiles %}
-    {% if tiles is not empty %}
-        <div class="grid gap-4 mb-6 sm:grid-cols-2 xl:grid-cols-4">
-            {% for tile in tiles %}
-                <a href="{{ path(tile.route, tile.params) }}" class="card card-body block text-tekst hover:text-tekst hover:border-zielen-600">
-                    <span class="block text-sm text-antracyt-500">{{ tile.label }}</span>
-                    <span class="flex items-end justify-between gap-3">
-                        <span>
-                            <span class="block text-2xl font-semibold tabular-nums">{{ tile.value }}</span>
-                            {% if tile.trend is not null %}
-                                <span class="text-xs font-semibold {{ tile.key == 'cost' ? (tile.trend > 0 ? 'text-danger' : 'text-zielen-700') : (tile.trend >= 0 ? 'text-zielen-700' : 'text-danger') }}">{{ tile.trend >= 0 ? '▲ +' : '▼ ' }}{{ (tile.trend * 100)|amount(0) }} %</span>
-                            {% endif %}
-                        </span>
-                        {% if tile.series|length > 1 %}{{ m.sparkline(tile.series) }}{% endif %}
-                    </span>
-                    {% if tile.detail %}<span class="block mt-1 text-xs text-antracyt-500">{{ tile.detail }}</span>{% endif %}
-                </a>
-            {% endfor %}
-        </div>
-    {% endif %}
-
-    {% set attention = this.attention %}
-    <section class="card mb-6" aria-labelledby="attention-title">
-        <div class="card-header">
-            <h2 id="attention-title" class="card-title">Wymaga uwagi</h2>
-            {% if attention.total > attention.items|length %}
-                <span class="text-sm text-antracyt-500">pokazano {{ attention.items|length }} z {{ attention.total }}</span>
-            {% endif %}
-        </div>
-        {% if attention.items is empty %}
-            <p class="px-4 py-6 text-sm text-antracyt-500">Nic nie wymaga teraz uwagi.</p>
-        {% else %}
-            <ul class="divide-y divide-szary-200">
-                {% for item in attention.items %}
-                    <li>
-                        <a href="{{ item.url }}" class="flex items-center gap-3 px-4 py-3 text-tekst hover:bg-szary-100 hover:text-tekst">
-                            <twig:Badge tone="{{ item.tone }}" class="shrink-0">{{ item.category }}</twig:Badge>
-                            <span class="flex-1 min-w-0">
-                                <span class="block truncate font-semibold text-sm">{{ item.title }}</span>
-                                {% if item.detail %}<span class="block truncate text-sm text-antracyt-500">{{ item.detail }}</span>{% endif %}
-                            </span>
-                            <span class="text-antracyt-500">{{ ux_icon('lucide:chevron-right') }}</span>
-                        </a>
-                    </li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-    </section>
-
-    {% set invoices = this.latestInvoices %}
-    {% set orders = this.upcomingOrders %}
-    {% if is_granted('INVOICE_VIEW') or is_granted('ORDER_VIEW') %}
+    {% set widgets = this.widgets %}
+    {% set token = csrf_token('dashboard') %}
+    {% if widgets is empty %}
+        <div class="card mb-6"><twig:EmptyState text="Pulpit jest pusty. Kliknij „Dostosuj pulpit” i dodaj widżety." /></div>
+    {% else %}
         <div class="grid gap-6 mb-6 lg:grid-cols-2">
-            {% if is_granted('INVOICE_VIEW') %}
-                <section class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">Ostatnie faktury</h2>
-                        <a href="{{ path('app_invoice_index', {rodzaj: 'wszystkie'}) }}" class="text-sm">Wszystkie</a>
+            {% for widget in widgets %}
+                <div class="dashboard-widget {{ widget.key in ['invoices', 'orders'] ? '' : 'lg:col-span-2' }}" data-widget="{{ widget.key }}">
+                    <div class="dashboard-tools">
+                        <span class="text-sm font-semibold">{{ widget.label }}</span>
+                        <span class="ml-auto flex gap-1">
+                            {% if not loop.first %}
+                                <form method="post" action="{{ path('app_dashboard_widget_move', {key: widget.key, direction: 'w-gore'}) }}">
+                                    <input type="hidden" name="_token" value="{{ token }}">
+                                    <button type="submit" class="btn btn-ghost btn-icon btn-sm" aria-label="Przesuń „{{ widget.label }}” wyżej" title="Wyżej">{{ ux_icon('lucide:arrow-up') }}</button>
+                                </form>
+                            {% endif %}
+                            {% if not loop.last %}
+                                <form method="post" action="{{ path('app_dashboard_widget_move', {key: widget.key, direction: 'w-dol'}) }}">
+                                    <input type="hidden" name="_token" value="{{ token }}">
+                                    <button type="submit" class="btn btn-ghost btn-icon btn-sm" aria-label="Przesuń „{{ widget.label }}” niżej" title="Niżej">{{ ux_icon('lucide:arrow-down') }}</button>
+                                </form>
+                            {% endif %}
+                            <form method="post" action="{{ path('app_dashboard_widget_remove', {key: widget.key}) }}">
+                                <input type="hidden" name="_token" value="{{ token }}">
+                                <button type="submit" class="btn btn-ghost btn-icon btn-sm text-danger" aria-label="Usuń „{{ widget.label }}” z pulpitu" title="Usuń z pulpitu">{{ ux_icon('lucide:x') }}</button>
+                            </form>
+                        </span>
                     </div>
-                    {% if invoices is empty %}
-                        <p class="px-4 py-6 text-sm text-antracyt-500">Brak faktur.</p>
-                    {% else %}
-                        <ul class="divide-y divide-szary-200">
-                            {% for invoice in invoices %}
-                                <li>
-                                    <a href="{{ path('app_invoice_show', {id: invoice.id}) }}" class="flex items-center gap-3 px-4 py-3 text-tekst hover:bg-szary-100 hover:text-tekst">
-                                        {% if invoice.unread %}<span class="dot-new shrink-0" aria-label="nowa"></span>{% else %}<span class="shrink-0" style="width:8px"></span>{% endif %}
-                                        <span class="flex-1 min-w-0">
-                                            <span class="block truncate text-sm {{ invoice.unread ? 'font-semibold' }}">{{ invoice.contractorLabel }}</span>
-                                            <span class="block truncate text-xs text-antracyt-500">{{ invoice.number }} · {{ invoice.issueDate|pl_date }} · {{ invoice.kind.label|lower }}</span>
-                                        </span>
-                                        {% if is_granted('AMOUNTS_VIEW') %}<span class="text-sm tabular-nums whitespace-nowrap">{{ invoice.gross|money(invoice.currency) }}</span>{% endif %}
-                                    </a>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% endif %}
-                </section>
-            {% endif %}
-
-            {% if is_granted('ORDER_VIEW') %}
-                <section class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">Najbliższe zamówienia</h2>
-                        <a href="{{ path('app_order_index') }}" class="text-sm">Wszystkie</a>
-                    </div>
-                    {% if orders is empty %}
-                        <p class="px-4 py-6 text-sm text-antracyt-500">W najbliższych tygodniach nic nie trzeba zamawiać – albo przypisz towary do faktur, żeby przewidywanie miało dane.</p>
-                    {% else %}
-                        <ul class="divide-y divide-szary-200">
-                            {% for cycle in orders %}
-                                <li>
-                                    <a href="{{ path('app_order_index', {cykl: cycle.id}) }}" class="flex items-center gap-3 px-4 py-3 text-tekst hover:bg-szary-100 hover:text-tekst">
-                                        <span class="flex-1 min-w-0">
-                                            <span class="block truncate text-sm font-semibold">{{ cycle.label }}</span>
-                                            <span class="block truncate text-xs text-antracyt-500">
-                                                {{ cycle.typicalQuantity ? 'zwykle ' ~ cycle.typicalQuantity|qty ~ ' ' ~ (cycle.product ? cycle.product.unitSymbol) : (cycle.intervalDays ? 'co ' ~ cycle.intervalDays ~ ' dni' : '') }}
-                                            </span>
-                                        </span>
-                                        <span class="text-sm whitespace-nowrap text-right">
-                                            {{ m.deadline(cycle.predictedDate, 7, cycle.status.manual) }}
-                                            {% if cycle.status.value in ['approaching', 'overdue', 'ordered'] %}<span class="block"><twig:Badge tone="{{ cycle.status.tone }}">{{ cycle.status.label }}</twig:Badge></span>{% endif %}
-                                        </span>
-                                    </a>
-                                </li>
-                            {% endfor %}
-                        </ul>
-                    {% endif %}
-                </section>
-            {% endif %}
+                    {{ include('dashboard/widget/' ~ widget.key ~ '.html.twig') }}
+                </div>
+            {% endfor %}
         </div>
     {% endif %}
 

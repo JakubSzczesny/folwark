@@ -1,0 +1,23 @@
+{% import '_partials/macros.html.twig' as m %}
+{% set tiles = this.tiles %}
+{% if tiles is empty %}
+    <div class="card card-body text-sm text-antracyt-500">Brak kafelków dostępnych dla Twojej roli.</div>
+{% else %}
+    <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {% for tile in tiles %}
+            <a href="{{ path(tile.route, tile.params) }}" class="card card-body block text-tekst hover:text-tekst hover:border-zielen-600">
+                <span class="block text-sm text-antracyt-500">{{ tile.label }}</span>
+                <span class="flex items-end justify-between gap-3">
+                    <span>
+                        <span class="block text-2xl font-semibold tabular-nums">{{ tile.value }}</span>
+                        {% if tile.trend is not null %}
+                            <span class="text-xs font-semibold {{ tile.key == 'cost' ? (tile.trend > 0 ? 'text-danger' : 'text-zielen-700') : (tile.trend >= 0 ? 'text-zielen-700' : 'text-danger') }}">{{ tile.trend >= 0 ? '▲ +' : '▼ ' }}{{ (tile.trend * 100)|amount(0) }} %</span>
+                        {% endif %}
+                    </span>
+                    {% if tile.series|length > 1 %}{{ m.sparkline(tile.series) }}{% endif %}
+                </span>
+                {% if tile.detail %}<span class="block mt-1 text-xs text-antracyt-500">{{ tile.detail }}</span>{% endif %}
+            </a>
+        {% endfor %}
+    </div>
+{% endif %}

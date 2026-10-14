@@ -601,6 +601,20 @@
     .sparkline {
         height: 36px;
     }
+
+    /* Dostosowywanie pulpitu: lista widżetów i przyciski przy widżetach tylko w trybie edycji. */
+    .dashboard-panel,
+    .dashboard-tools {
+        display: none;
+    }
+
+    .is-editing .dashboard-panel {
+        display: block;
+    }
+
+    .is-editing .dashboard-tools {
+        @apply flex items-center gap-2 mb-2 px-3 py-1 rounded-ui border border-dashed border-szary-200 bg-white;
+    }
 }
 
 /* Tom Select (comboboxy) w stylu aplikacji. Arkusz Tom Select ładuje się po naszym,

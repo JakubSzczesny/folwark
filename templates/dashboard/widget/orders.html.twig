@@ -1,0 +1,30 @@
+{% import '_partials/macros.html.twig' as m %}
+{% set orders = this.upcomingOrders %}
+<section class="card h-full">
+    <div class="card-header">
+        <h2 class="card-title">Najbliższe zamówienia</h2>
+        <a href="{{ path('app_order_index') }}" class="text-sm">Wszystkie</a>
+    </div>
+    {% if orders is empty %}
+        <p class="px-4 py-6 text-sm text-antracyt-500">W najbliższych tygodniach nic nie trzeba zamawiać – albo przypisz towary do faktur, żeby przewidywanie miało dane.</p>
+    {% else %}
+        <ul class="divide-y divide-szary-200">
+            {% for cycle in orders %}
+                <li>
+                    <a href="{{ path('app_order_index', {cykl: cycle.id}) }}" class="flex items-center gap-3 px-4 py-3 text-tekst hover:bg-szary-100 hover:text-tekst">
+                        <span class="flex-1 min-w-0">
+                            <span class="block truncate text-sm font-semibold">{{ cycle.label }}</span>
+                            <span class="block truncate text-xs text-antracyt-500">
+                                {{ cycle.typicalQuantity ? 'zwykle ' ~ cycle.typicalQuantity|qty ~ ' ' ~ (cycle.product ? cycle.product.unitSymbol) : (cycle.intervalDays ? 'co ' ~ cycle.intervalDays ~ ' dni' : '') }}
+                            </span>
+                        </span>
+                        <span class="text-sm whitespace-nowrap text-right">
+                            {{ m.deadline(cycle.predictedDate, 7, cycle.status.manual) }}
+                            {% if cycle.status.value in ['approaching', 'overdue', 'ordered'] %}<span class="block"><twig:Badge tone="{{ cycle.status.tone }}">{{ cycle.status.label }}</twig:Badge></span>{% endif %}
+                        </span>
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</section>

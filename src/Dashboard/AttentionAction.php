@@ -36,7 +36,7 @@ final readonly class AttentionAction
      */
     public static function bsPay(string $url): self
     {
-        return new self('Uzupełnij w BS', $url, null, 'landmark', null, null, true);
+        return new self('Uzupełnij w BS', $url, null, 'external-link', null, null, true);
     }
 
     public function isPost(): bool

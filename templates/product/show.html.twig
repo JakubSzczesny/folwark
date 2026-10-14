@@ -37,7 +37,10 @@
         <nav class="tabs" aria-label="Sekcje towaru">
             <a href="{{ path('app_product_show', {id: product.id}) }}" class="tab {{ tab == 'purchases' ? 'tab-active' }}">Zakupy</a>
             <a href="{{ path('app_product_suppliers', {id: product.id}) }}" class="tab {{ tab == 'suppliers' ? 'tab-active' }}">Dostawcy</a>
+            {% if is_granted('DOCUMENT_VIEW') %}<a href="{{ path('app_product_stock', {id: product.id}) }}" class="tab {{ tab == 'stock' ? 'tab-active' }}">Stan</a>{% endif %}
             <a href="{{ path('app_product_links', {id: product.id}) }}" class="tab {{ tab == 'links' ? 'tab-active' }}">Linki</a>
+            <a href="{{ path('app_product_mappings', {id: product.id}) }}" class="tab {{ tab == 'mappings' ? 'tab-active' }}">Mapowania</a>
+            {% if is_granted('MACHINE_VIEW') %}<a href="{{ path('app_product_machines', {id: product.id}) }}" class="tab {{ tab == 'machines' ? 'tab-active' }}">Maszyny</a>{% endif %}
             {% if is_granted('ORDER_VIEW') %}<a href="{{ path('app_product_order', {id: product.id}) }}" class="tab {{ tab == 'order' ? 'tab-active' }}">Zamówienie</a>{% endif %}
         </nav>
 

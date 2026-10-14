@@ -14,7 +14,11 @@ use App\Product\UnitParser;
 use App\Repository\CostCenterRepository;
 use App\Repository\InvoiceItemRepository;
 use App\Repository\ProductRepository;
+use App\Repository\WarehouseRepository;
 use App\Security\Permission;
+use App\Settings\SettingKey;
+use App\Settings\Settings;
+use App\Warehouse\InvoiceReceipt;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -36,9 +40,10 @@ final class InvoiceAssignController extends AbstractController
     }
 
     #[Route('/{id}/towary', name: 'app_invoice_assign', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
-    public function assign(Invoice $invoice, Request $request, #[CurrentUser] User $user, ProductRepository $products, CostCenterRepository $centers): Response
+    public function assign(Invoice $invoice, Request $request, #[CurrentUser] User $user, ProductRepository $products, CostCenterRepository $centers, WarehouseRepository $warehouses, InvoiceReceipt $receipt, Settings $settings): Response
     {
         $rows = $this->assigner->rows($invoice);
+        $existingPz = $receipt->existing($invoice);
         $errors = [];
 
         if ($request->isMethod('POST')) {
@@ -65,6 +70,16 @@ final class InvoiceAssignController extends AbstractController
             if ([] === $errors) {
                 $this->assigner->save($invoice, $rows, $user);
                 $this->addFlash('success', 'Przypisano towary. Zapamiętaliśmy to – kolejne faktury od tego dostawcy wypełnią się same.');
+                $warehouse = $warehouses->find((int) $request->getPayload()->getString('pz_warehouse'));
+                if (null === $existingPz && null !== $warehouse && $request->getPayload()->getBoolean('pz') && $this->isGranted(Permission::DOCUMENT_EDIT)) {
+                    [$document, $warnings] = $receipt->create($invoice, $warehouse, $user);
+                    if (null !== $document) {
+                        $this->addFlash('success', \sprintf('Utworzono przyjęcie %s.', $document->getNumber()));
+                    }
+                    foreach ($warnings as $warning) {
+                        $this->addFlash('warning', $warning);
+                    }
+                }
 
                 return $this->redirectToRoute('app_invoice_show', ['id' => $invoice->getId()], Response::HTTP_SEE_OTHER);
             }
@@ -75,6 +90,9 @@ final class InvoiceAssignController extends AbstractController
             'rows' => $rows,
             'errors' => $errors,
             'centers' => $centers->findActive(),
+            'existing_pz' => $existingPz,
+            'warehouses' => $warehouses->findBy(['active' => true], ['name' => 'ASC']),
+            'create_pz' => $settings->bool(SettingKey::WAREHOUSE_CREATE_PZ),
             'sources' => [AssignmentRow::REMEMBERED => 'zapamiętane', AssignmentRow::PROPOSAL => 'propozycja', AssignmentRow::ASSIGNED => 'przypisane'],
         ], new Response(null, [] !== $errors ? 422 : 200));
     }

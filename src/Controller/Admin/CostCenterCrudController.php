@@ -40,7 +40,7 @@ final class CostCenterCrudController extends AbstractCrudController
             $types[$type->label()] = $type;
         }
 
-        yield ChoiceField::new('type', 'Typ')->setChoices($types);
+        yield ChoiceField::new('type', 'Typ')->setChoices($types)->formatValue(static fn ($value, $entity): string => $entity->getType()->label());
         yield TextField::new('name', 'Nazwa');
         yield BooleanField::new('active', 'Aktywny');
     }

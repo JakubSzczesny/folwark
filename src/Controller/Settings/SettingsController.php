@@ -10,6 +10,7 @@ use App\Farm\FarmContext;
 use App\Form\FarmType;
 use App\Form\Settings\NotificationSettingsType;
 use App\Form\Settings\OrderSettingsType;
+use App\Form\Settings\WarehouseSettingsType;
 use App\Message\RecalculateOrders;
 use App\Repository\AuditLogRepository;
 use App\Security\Permission;
@@ -90,6 +91,12 @@ final class SettingsController extends AbstractController
     public function orders(Request $request, MessageBusInterface $bus, FarmContext $context): Response
     {
         return $this->handleSettings($request, OrderSettingsType::class, OrderSettingsType::KEYS, 'Zamówienia', 'app_settings_orders', static fn () => $bus->dispatch(new RecalculateOrders($context->farmId())));
+    }
+
+    #[Route('/magazyn', name: 'app_settings_warehouse', methods: ['GET', 'POST'])]
+    public function warehouse(Request $request): Response
+    {
+        return $this->handleSettings($request, WarehouseSettingsType::class, WarehouseSettingsType::KEYS, 'Magazyn', 'app_settings_warehouse');
     }
 
     #[Route('/dziennik', name: 'app_settings_audit', methods: ['GET'])]

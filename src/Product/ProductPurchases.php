@@ -62,11 +62,11 @@ final class ProductPurchases
     }
 
     /**
-     * Dostawcy towaru: ostatni zakup, ostatnia cena i mediana cen z 12 miesięcy.
+     * Dostawcy towaru: ostatni zakup, ostatnia cena oraz minimum, maksimum i mediana cen z 12 miesięcy.
      *
      * @param list<array{date: \DateTimeImmutable, contractorId: ?int, contractor: string, quantity: ?float, unitPrice: ?float}> $rows
      *
-     * @return list<array{contractorId: ?int, contractor: string, lastDate: \DateTimeImmutable, lastPrice: ?float, medianPrice: ?float, purchases: int, quantity: float}>
+     * @return list<array{contractorId: ?int, contractor: string, lastDate: \DateTimeImmutable, lastPrice: ?float, minPrice: ?float, maxPrice: ?float, medianPrice: ?float, purchases: int, quantity: float}>
      */
     public static function suppliers(array $rows, ?\DateTimeImmutable $today = null): array
     {
@@ -91,7 +91,11 @@ final class ProductPurchases
         foreach ($groups as $group) {
             $prices = $group['prices'];
             unset($group['prices']);
-            $suppliers[] = $group + ['medianPrice' => OrderPredictor::median($prices)];
+            $suppliers[] = $group + [
+                'minPrice' => [] !== $prices ? min($prices) : null,
+                'maxPrice' => [] !== $prices ? max($prices) : null,
+                'medianPrice' => OrderPredictor::median($prices),
+            ];
         }
         usort($suppliers, static fn (array $a, array $b): int => $b['lastDate'] <=> $a['lastDate']);
 

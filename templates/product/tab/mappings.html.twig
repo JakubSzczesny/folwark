@@ -1,0 +1,32 @@
+<p class="mb-3 text-sm text-antracyt-500">Nazwy pozycji z faktur, które przypisują się do tego towaru automatycznie. Usuń błędne – kolejna taka pozycja trafi wtedy do ręcznego przypisania.</p>
+
+<div class="card">
+    {% if mappings is empty %}
+        <twig:EmptyState text="Brak zapamiętanych mapowań dla tego towaru." />
+    {% else %}
+        <div class="table-wrap">
+            <table class="table table-cards">
+                <thead><tr><th>Nazwa na fakturze</th><th>Dostawca</th><th class="text-right">Przelicznik</th><th class="text-right">Użyć</th><th>Ostatnio</th><th></th></tr></thead>
+                <tbody>
+                    {% for mapping in mappings %}
+                        <tr>
+                            <td class="card-title-cell">{{ mapping.nameKey }}</td>
+                            <td data-label="Dostawca">{{ mapping.contractor ? mapping.contractor.displayName : 'dowolny' }}</td>
+                            <td data-label="Przelicznik" class="num">{{ mapping.factor is not null ? '× ' ~ mapping.factor|qty(4) : '—' }}</td>
+                            <td data-label="Użyć" class="num">{{ mapping.uses }}</td>
+                            <td data-label="Ostatnio" class="tabular-nums">{{ mapping.updatedAt|pl_date }}</td>
+                            <td class="text-right">
+                                {% if is_granted('PRODUCT_EDIT') %}
+                                    <form method="post" action="{{ path('app_product_mapping_delete', {id: mapping.id}) }}" data-turbo-frame="_top" data-turbo-confirm="Usunąć mapowanie „{{ mapping.nameKey }}”?">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('product-mapping') }}">
+                                        <button type="submit" class="btn btn-ghost btn-icon btn-sm" aria-label="Usuń mapowanie {{ mapping.nameKey }}">{{ ux_icon('lucide:trash-2') }}</button>
+                                    </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>

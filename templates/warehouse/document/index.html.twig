@@ -1,0 +1,108 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Dokumenty magazynowe{% endblock %}
+{% block active_menu %}documents{% endblock %}
+
+{% block content %}
+    {% set amounts = is_granted('AMOUNTS_VIEW') %}
+    <twig:PageHeader title="Dokumenty magazynowe">
+        {% if is_granted('DOCUMENT_EDIT') %}
+            <a href="{{ path('app_document_new') }}" class="btn btn-primary">{{ ux_icon('lucide:plus') }} Nowy dokument</a>
+        {% endif %}
+    </twig:PageHeader>
+
+    <div data-controller="filters">
+    {{ include('_partials/filters_toggle.html.twig', {active: (filters.type ? 1 : 0) + (filters.status ? 1 : 0) + (filters.warehouse ? 1 : 0) + (filters.from ? 1 : 0) + (filters.to ? 1 : 0) + (filters.q ? 1 : 0)}) }}
+    <form method="get" class="filter-bar is-collapsible" data-filters-target="panel" data-controller="autosubmit" data-turbo-action="replace">
+        <div class="field">
+            <label class="label" for="f-q">Szukaj</label>
+            <input id="f-q" type="search" name="q" value="{{ filters.q }}" class="input" placeholder="Numer, kontrahent, uwagi" data-action="input->autosubmit#debounced">
+        </div>
+        <div class="field">
+            <label class="label" for="f-type">Typ</label>
+            <select id="f-type" name="typ" class="select" data-action="autosubmit#submit">
+                <option value="">Wszystkie</option>
+                {% for type in enum_cases('App\\Enum\\DocumentType') %}<option value="{{ type.value }}" {{ filters.type == type ? 'selected' }}>{{ type.label }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="field">
+            <label class="label" for="f-status">Status</label>
+            <select id="f-status" name="status" class="select" data-action="autosubmit#submit">
+                <option value="">Wszystkie</option>
+                {% for status in enum_cases('App\\Enum\\DocumentStatus') %}<option value="{{ status.value }}" {{ filters.status == status ? 'selected' }}>{{ status.label }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="field">
+            <label class="label" for="f-warehouse">Magazyn</label>
+            <select id="f-warehouse" name="magazyn" class="select" data-action="autosubmit#submit">
+                <option value="">Wszystkie</option>
+                {% for warehouse in warehouses %}<option value="{{ warehouse.id }}" {{ filters.warehouse == warehouse.id ? 'selected' }}>{{ warehouse.name }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="field">
+            <label class="label" for="f-from">Od</label>
+            <input id="f-from" type="date" name="od" value="{{ filters.from ? filters.from|date('Y-m-d') }}" class="input" data-action="change->autosubmit#submit">
+        </div>
+        <div class="field">
+            <label class="label" for="f-to">Do</label>
+            <input id="f-to" type="date" name="do" value="{{ filters.to ? filters.to|date('Y-m-d') }}" class="input" data-action="change->autosubmit#submit">
+        </div>
+        <a href="{{ path('app_document_index', {wyczysc: 1}) }}" class="btn btn-ghost">Wyczyść</a>
+    </form>
+    </div>
+
+    <div class="card">
+        {% if pager.items is empty %}
+            <twig:EmptyState text="Brak dokumentów spełniających filtry." actionLabel="{{ is_granted('DOCUMENT_EDIT') ? 'Nowy dokument' : null }}" actionUrl="{{ is_granted('DOCUMENT_EDIT') ? path('app_document_new') : null }}" />
+        {% else %}
+            <div class="table-wrap">
+                <table class="table table-cards" data-controller="table-nav context-menu" data-action="keydown@window->table-nav#keydown">
+                    <thead>
+                        <tr>
+                            <th>Data</th><th>Numer</th><th>Kontrahent / magazyn</th>
+                            {% if amounts %}<th class="text-right">Netto</th>{% endif %}
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for document in pager.items %}
+                            {% set url = path('app_document_show', {id: document.id}) %}
+                            <tr data-table-nav-target="row" data-href="{{ url }}" data-action="click->table-nav#click" class="{{ document.cancelled ? 'opacity-60' }}">
+                                <td data-label="Data" class="tabular-nums whitespace-nowrap">
+                                    <template data-context-menu>
+                                        {% import '_partials/context_menu.html.twig' as cm %}
+                                        {% if is_granted('DOCUMENT_EDIT') %}
+                                            {% if document.draft %}
+                                                {{ cm.link(path('app_document_edit', {id: document.id}), 'Edytuj', 'pencil') }}
+                                                {{ cm.post(path('app_document_approve', {id: document.id}), 'Zatwierdź', 'stock-document', 'check') }}
+                                            {% elseif document.approved %}
+                                                {{ cm.post(path('app_document_correct', {id: document.id}), 'Popraw', 'stock-document', 'pencil', 'Dokument zostanie anulowany, a jego kopia otworzy się jako szkic. Kontynuować?') }}
+                                                {{ cm.link(path('app_document_cancel', {id: document.id}), 'Anuluj…', 'ban', 'modal') }}
+                                            {% endif %}
+                                            {{ cm.separator() }}
+                                        {% endif %}
+                                        <a href="{{ path('app_document_pdf', {id: document.id}) }}" class="dropdown-item" role="menuitem" data-turbo="false">{{ ux_icon('lucide:download', {width: 16, height: 16}) }}Pobierz PDF</a>
+                                    </template>
+                                    {{ document.date|pl_date }}
+                                </td>
+                                <td class="card-title-cell">
+                                    <a href="{{ url }}" class="text-tekst hover:text-zielen-600">{{ document.label }}</a>
+                                    <span class="block text-xs text-antracyt-500">{{ document.type.shortLabel }}</span>
+                                </td>
+                                <td data-label="Kontrahent / magazyn">
+                                    {% if document.contractor %}
+                                        {% if is_granted('CONTRACTOR_VIEW') %}<a href="{{ path('app_contractor_show', {id: document.contractor.id}) }}" class="text-tekst hover:text-zielen-600 hover:underline">{{ document.contractor.displayName }}</a>{% else %}{{ document.contractor.displayName }}{% endif %}
+                                    {% endif %}
+                                    <span class="block text-xs text-antracyt-500">{{ [document.sourceWarehouse ? document.sourceWarehouse.name, document.targetWarehouse ? document.targetWarehouse.name]|filter(v => v)|join(' → ') }}</span>
+                                </td>
+                                {% if amounts %}<td data-label="Netto" class="num">{{ document.netTotal is not null ? document.netTotal|money : '—' }}</td>{% endif %}
+                                <td data-label="Status"><twig:Badge tone="{{ document.status.tone }}">{{ document.status.label }}</twig:Badge>{% if document.invoice %} <twig:Badge tone="neutral">z faktury</twig:Badge>{% endif %}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {{ include('_partials/pagination.html.twig') }}
+        {% endif %}
+    </div>
+{% endblock %}

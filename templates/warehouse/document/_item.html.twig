@@ -1,0 +1,12 @@
+<div class="grid gap-2 items-start {{ item.unitPriceNet is defined ? 'sm:grid-cols-[minmax(200px,1fr)_110px_90px_120px_auto]' : 'sm:grid-cols-[minmax(200px,1fr)_110px_90px_auto]' }} border-b border-szary-100 pb-2 sm:border-0 sm:pb-0" data-collection-item>
+    <div class="min-w-0">
+        {{ form_widget(item.product, {attr: {'aria-label': 'Towar'}}) }}
+        {{ form_errors(item.product) }}
+    </div>
+    <div>{{ form_widget(item.enteredQuantity, {attr: {class: 'input', 'aria-label': item.enteredQuantity.vars.label, placeholder: item.enteredQuantity.vars.label}}) }}{{ form_errors(item.enteredQuantity) }}</div>
+    <div>{{ form_widget(item.enteredUnit, {attr: {class: 'select', 'aria-label': 'Jednostka'}}) }}{{ form_errors(item.enteredUnit) }}</div>
+    {% if item.unitPriceNet is defined %}
+        <div>{{ form_widget(item.unitPriceNet, {attr: {class: 'input', 'aria-label': 'Cena netto za jednostkę', placeholder: 'Cena netto'}}) }}{{ form_errors(item.unitPriceNet) }}</div>
+    {% endif %}
+    <button type="button" class="btn btn-ghost btn-icon" data-action="collection#remove" aria-label="Usuń pozycję">{{ ux_icon('lucide:x') }}</button>
+</div>

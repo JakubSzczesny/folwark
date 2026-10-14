@@ -6,17 +6,22 @@ namespace App\Controller\Product;
 
 use App\Audit\AuditLogger;
 use App\Entity\InvoiceItem;
+use App\Entity\ItemMapping;
 use App\Entity\Product;
 use App\Form\OrderSettingsType;
 use App\Form\ProductType;
 use App\Order\OrderPlanner;
 use App\Product\ProductLinks;
+use App\Product\ProductMachines;
 use App\Product\ProductPurchases;
 use App\Product\UnitParser;
 use App\Repository\InvoiceItemRepository;
+use App\Repository\ItemMappingRepository;
 use App\Repository\OrderCycleRepository;
 use App\Repository\ProductCategoryRepository;
 use App\Repository\ProductRepository;
+use App\Repository\StockMovementRepository;
+use App\Repository\StockRepository;
 use App\Security\Permission;
 use App\Twig\FormatExtension;
 use App\Ui\ListFilters;
@@ -118,6 +123,50 @@ final class ProductController extends AbstractController
             'sections' => $links->sections($product),
             'show_all' => $showAll,
         ]);
+    }
+
+    #[Route('/{id}/stan', name: 'app_product_stock', requirements: ['id' => '\d+'], methods: ['GET'])]
+    #[IsGranted(Permission::DOCUMENT_VIEW)]
+    public function stock(Product $product, StockRepository $stocks, StockMovementRepository $movements): Response
+    {
+        return $this->renderTab($product, 'stock', [
+            'stocks' => $stocks->findForProduct($product),
+            'movements' => $movements->findRecentForProduct($product),
+        ]);
+    }
+
+    #[Route('/{id}/mapowania', name: 'app_product_mappings', requirements: ['id' => '\d+'], methods: ['GET'])]
+    public function mappings(Product $product, ItemMappingRepository $mappings): Response
+    {
+        return $this->renderTab($product, 'mappings', [
+            'mappings' => $mappings->findBy(['product' => $product], ['uses' => 'DESC']),
+        ]);
+    }
+
+    #[Route('/mapowanie/{id}/usun', name: 'app_product_mapping_delete', requirements: ['id' => '\d+'], methods: ['POST'])]
+    #[IsGranted(Permission::PRODUCT_EDIT)]
+    public function deleteMapping(ItemMapping $mapping, Request $request): Response
+    {
+        if (!$this->isCsrfTokenValid('product-mapping', $request->getPayload()->getString('_token'))) {
+            throw $this->createAccessDeniedException();
+        }
+
+        $product = $mapping->getProduct();
+        $this->audit->log('ItemMapping', $mapping->getId(), 'delete', ['name' => $mapping->getNameKey(), 'product' => $product?->getName()]);
+        $this->em->remove($mapping);
+        $this->em->flush();
+        $this->addFlash('success', 'Usunięto mapowanie. Kolejna faktura z tą pozycją nie przypisze się sama.');
+
+        return null !== $product
+            ? $this->redirectToRoute('app_product_mappings', ['id' => $product->getId()], Response::HTTP_SEE_OTHER)
+            : $this->redirectToRoute('app_product_index', [], Response::HTTP_SEE_OTHER);
+    }
+
+    #[Route('/{id}/maszyny', name: 'app_product_machines', requirements: ['id' => '\d+'], methods: ['GET'])]
+    #[IsGranted(Permission::MACHINE_VIEW)]
+    public function machines(Product $product, ProductMachines $machines): Response
+    {
+        return $this->renderTab($product, 'machines', ['machines' => $machines->find($product)]);
     }
 
     #[Route('/{id}/zamowienie', name: 'app_product_order', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
@@ -244,8 +293,12 @@ final class ProductController extends AbstractController
         return ['points' => $points, 'from' => (new \DateTimeImmutable())->setTimestamp($from), 'to' => (new \DateTimeImmutable())->setTimestamp(max($dates))];
     }
 
+    private const array SUPPLIER_COLORS = ['#2E7D46', '#C27A12', '#3D6FB6', '#8E44AD', '#B03A2E', '#5F666D'];
+
     /**
-     * @param list<array{date: \DateTimeImmutable, unitPrice: ?float}> $rows
+     * Cena jednostkowa w czasie – osobna linia dla każdego dostawcy.
+     *
+     * @param list<array{date: \DateTimeImmutable, contractorId: ?int, contractor: string, unitPrice: ?float}> $rows
      */
     private function priceChart(array $rows, ChartBuilderInterface $charts): ?Chart
     {
@@ -254,22 +307,34 @@ final class ProductController extends AbstractController
             return null;
         }
 
-        $chart = $charts->createChart(Chart::TYPE_LINE);
-        $chart->setData([
-            'labels' => array_map(static fn (array $r): string => FormatExtension::date($r['date']), $points),
-            'datasets' => [[
-                'label' => 'Cena jednostkowa netto',
-                'data' => array_map(static fn (array $r): float => round((float) $r['unitPrice'], 4), $points),
-                'borderColor' => '#2E7D46',
-                'backgroundColor' => 'rgba(46, 125, 70, 0.1)',
+        $labels = [];
+        $series = [];
+        foreach ($points as $point) {
+            $label = FormatExtension::date($point['date']);
+            $labels[$label] = true;
+            $series[$point['contractor']][$label] = round((float) $point['unitPrice'], 4);
+        }
+        $labels = array_keys($labels);
+
+        $datasets = [];
+        foreach (array_keys($series) as $index => $supplier) {
+            $color = self::SUPPLIER_COLORS[$index % \count(self::SUPPLIER_COLORS)];
+            $datasets[] = [
+                'label' => $supplier,
+                'data' => array_map(static fn (string $label): ?float => $series[$supplier][$label] ?? null, $labels),
+                'borderColor' => $color,
+                'backgroundColor' => $color,
                 'pointRadius' => 3,
                 'tension' => 0.2,
-                'fill' => true,
-            ]],
-        ]);
+                'spanGaps' => true,
+            ];
+        }
+
+        $chart = $charts->createChart(Chart::TYPE_LINE);
+        $chart->setData(['labels' => $labels, 'datasets' => $datasets]);
         $chart->setOptions([
             'maintainAspectRatio' => false,
-            'plugins' => ['legend' => ['display' => false]],
+            'plugins' => ['legend' => ['display' => \count($datasets) > 1, 'position' => 'bottom']],
             'scales' => ['y' => ['beginAtZero' => false]],
         ]);
 

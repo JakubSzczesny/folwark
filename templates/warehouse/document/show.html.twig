@@ -1,0 +1,116 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}{{ document.label }}{% endblock %}
+{% block active_menu %}documents{% endblock %}
+
+{% block content %}
+    {% set amounts = is_granted('AMOUNTS_VIEW') %}
+    {% set token = csrf_token('stock-document') %}
+    <twig:PageHeader title="{{ document.label }}" subtitle="{{ document.type.label }}" back="{{ path('app_document_index') }}">
+        <a href="{{ path('app_document_pdf', {id: document.id}) }}" class="btn btn-secondary" data-turbo="false">{{ ux_icon('lucide:download') }} PDF</a>
+        {% if is_granted('DOCUMENT_EDIT') %}
+            {% if document.draft %}
+                <a href="{{ path('app_document_edit', {id: document.id}) }}" class="btn btn-secondary">{{ ux_icon('lucide:pencil') }} Edytuj</a>
+                <form method="post" action="{{ path('app_document_approve', {id: document.id}) }}">
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <button type="submit" class="btn btn-primary">{{ ux_icon('lucide:check') }} Zatwierdź</button>
+                </form>
+            {% elseif document.approved %}
+                <a href="{{ path('app_document_cancel', {id: document.id}) }}" class="btn btn-ghost" data-turbo-frame="modal">{{ ux_icon('lucide:ban') }} Anuluj</a>
+                <form method="post" action="{{ path('app_document_correct', {id: document.id}) }}" data-turbo-confirm="Dokument zostanie anulowany, a jego kopia otworzy się jako szkic do poprawienia. Kontynuować?">
+                    <input type="hidden" name="_token" value="{{ token }}">
+                    <button type="submit" class="btn btn-primary">{{ ux_icon('lucide:pencil') }} Popraw</button>
+                </form>
+            {% endif %}
+        {% endif %}
+    </twig:PageHeader>
+
+    {% for warning in warnings %}
+        <div class="alert alert-warning mb-3">Po zatwierdzeniu: {{ warning }} Stan ujemny jest dozwolony.</div>
+    {% endfor %}
+    {% if document.cancelled %}
+        <div class="alert alert-info mb-4">
+            Anulowany {{ document.cancelledAt|pl_datetime }}{% if document.cancelReason %}: {{ document.cancelReason }}{% endif %}.
+            {% if replaced_by %}Zastąpiony przez <a href="{{ path('app_document_show', {id: replaced_by.id}) }}">{{ replaced_by.label }}</a>.{% endif %}
+        </div>
+    {% endif %}
+
+    <div class="grid gap-6 lg:grid-cols-[1fr_340px]">
+        <section class="card">
+            <div class="card-header"><h2 class="card-title">Pozycje</h2></div>
+            <div class="table-wrap">
+                <table class="table table-cards">
+                    <thead>
+                        <tr>
+                            <th>Towar</th>
+                            <th class="text-right">{{ document.type.value == 'INW' ? 'Stan ze spisu' : 'Ilość' }}</th>
+                            {% if amounts %}<th class="text-right">Cena netto</th><th class="text-right">Wartość netto</th>{% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in document.items %}
+                            <tr>
+                                <td class="card-title-cell"><a href="{{ path('app_product_show', {id: item.product.id}) }}">{{ item.product.name }}</a></td>
+                                <td data-label="Ilość" class="num">
+                                    {{ item.enteredQuantity|qty }} {{ item.enteredUnitSymbol }}
+                                    {% if item.enteredUnit and item.enteredUnit.symbol != item.product.unitSymbol %}<span class="block text-xs text-antracyt-500">= {{ item.quantity|qty }} {{ item.product.unitSymbol }}</span>{% endif %}
+                                </td>
+                                {% if amounts %}
+                                    <td data-label="Cena netto" class="num">{{ item.unitPriceNet is not null ? item.unitPriceNet|amount(item.unitPriceNet < 10 ? 4 : 2) ~ ' zł/' ~ item.enteredUnitSymbol : '—' }}</td>
+                                    <td data-label="Wartość netto" class="num">{{ item.netValue is not null ? item.netValue|money : '—' }}</td>
+                                {% endif %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                    {% if amounts and document.netTotal is not null %}
+                        <tfoot><tr><td colspan="3" class="text-right font-semibold">Razem netto</td><td class="num font-semibold">{{ document.netTotal|money }}</td></tr></tfoot>
+                    {% endif %}
+                </table>
+            </div>
+
+            {% if movements is not empty %}
+                <div class="card-header border-t border-szary-200"><h2 class="card-title">Ruchy magazynowe</h2></div>
+                <div class="table-wrap">
+                    <table class="table table-cards">
+                        <thead><tr><th>Towar</th><th>Magazyn</th><th class="text-right">Ilość</th>{% if amounts %}<th class="text-right">Wartość</th>{% endif %}</tr></thead>
+                        <tbody>
+                            {% for movement in movements %}
+                                <tr>
+                                    <td class="card-title-cell">{{ movement.product.name }}</td>
+                                    <td data-label="Magazyn">{{ movement.warehouse.name }}</td>
+                                    <td data-label="Ilość" class="num {{ movement.quantity < 0 ? 'text-danger' }}">{{ movement.quantity > 0 ? '+' }}{{ movement.quantity|qty }} {{ movement.product.unitSymbol }}</td>
+                                    {% if amounts %}<td data-label="Wartość" class="num">{{ movement.value|money }}</td>{% endif %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% elseif document.approved and document.type.value == 'INW' %}
+                <p class="px-4 py-4 text-sm text-antracyt-500 border-t border-szary-200">Stany zgadzały się ze spisem – bez ruchów korygujących.</p>
+            {% endif %}
+        </section>
+
+        <aside class="space-y-6">
+            <section class="card card-body">
+                <dl class="dl">
+                    <dt>Status</dt><dd><twig:Badge tone="{{ document.status.tone }}">{{ document.status.label }}</twig:Badge></dd>
+                    <dt>Data</dt><dd>{{ document.date|pl_date }}</dd>
+                    {% if document.sourceWarehouse %}<dt>{{ document.type.value == 'MM' ? 'Z magazynu' : 'Magazyn' }}</dt><dd>{{ document.sourceWarehouse.name }}</dd>{% endif %}
+                    {% if document.targetWarehouse %}<dt>{{ document.type.value == 'MM' ? 'Do magazynu' : 'Magazyn' }}</dt><dd>{{ document.targetWarehouse.name }}</dd>{% endif %}
+                    {% if document.contractor %}
+                        <dt>{{ document.type.value == 'PZ' ? 'Dostawca' : 'Odbiorca' }}</dt>
+                        <dd>{% if is_granted('CONTRACTOR_VIEW') %}<a href="{{ path('app_contractor_show', {id: document.contractor.id}) }}">{{ document.contractor.name }}</a>{% else %}{{ document.contractor.name }}{% endif %}</dd>
+                    {% endif %}
+                    {% if document.contract %}<dt>Umowa</dt><dd>{% if is_granted('CONTRACT_VIEW') %}<a href="{{ path('app_contract_show', {id: document.contract.id}) }}">{{ document.contract.number }}</a>{% else %}{{ document.contract.number }}{% endif %}</dd>{% endif %}
+                    {% if document.costCenter %}<dt>Ośrodek kosztów</dt><dd>{{ document.costCenter.name }}</dd>{% endif %}
+                    {% if document.invoice %}<dt>Faktura</dt><dd>{% if is_granted('INVOICE_VIEW') %}<a href="{{ path('app_invoice_show', {id: document.invoice.id}) }}">{{ document.invoice.number }}</a>{% else %}{{ document.invoice.number }}{% endif %}</dd>{% endif %}
+                    {% if document.replaces %}<dt>Poprawia</dt><dd><a href="{{ path('app_document_show', {id: document.replaces.id}) }}">{{ document.replaces.label }}</a></dd>{% endif %}
+                    <dt>Utworzył</dt><dd>{{ document.createdBy ? document.createdBy.fullName : '—' }}<span class="block text-xs text-antracyt-500">{{ document.createdAt|pl_datetime }}</span></dd>
+                    {% if document.approvedAt %}<dt>Zatwierdził</dt><dd>{{ document.approvedBy ? document.approvedBy.fullName : '—' }}<span class="block text-xs text-antracyt-500">{{ document.approvedAt|pl_datetime }}</span></dd>{% endif %}
+                </dl>
+                {% if document.notes %}<p class="mt-3 text-sm whitespace-pre-line">{{ document.notes }}</p>{% endif %}
+            </section>
+            <p class="text-xs text-antracyt-500">Stany są orientacyjne – bez ewidencji zużycia.</p>
+        </aside>
+    </div>
+{% endblock %}

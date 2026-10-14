@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ document.label }}</title>
+    <style>
+        @page { margin: 18mm 14mm; }
+        body { font-family: "DejaVu Sans", sans-serif; font-size: 9pt; color: #1E2226; }
+        h1 { font-size: 15pt; margin: 0 0 1mm; }
+        .muted { color: #5F666D; }
+        .meta { margin: 4mm 0; }
+        .meta td { padding: 0.6mm 4mm 0.6mm 0; vertical-align: top; }
+        table.items { width: 100%; border-collapse: collapse; margin-top: 3mm; }
+        table.items th { text-align: left; font-weight: bold; color: #5F666D; border-bottom: 1px solid #1E2226; padding: 1.5mm; }
+        table.items td { border-bottom: 1px solid #DDE1E4; padding: 1.5mm; }
+        table.items tfoot td { font-weight: bold; border-top: 1px solid #1E2226; border-bottom: 0; }
+        .num { text-align: right; white-space: nowrap; }
+        .signatures { width: 100%; margin-top: 20mm; }
+        .signatures td { width: 50%; text-align: center; padding-top: 2mm; }
+        .signatures span { display: inline-block; width: 60mm; border-top: 1px solid #5F666D; padding-top: 1mm; color: #5F666D; font-size: 8pt; }
+    </style>
+</head>
+<body>
+    <p class="muted">{{ farm_name }}</p>
+    <h1>{{ document.type.label }}</h1>
+    <p><strong>{{ document.label }}</strong>{% if document.cancelled %} – ANULOWANY{% endif %}</p>
+
+    <table class="meta">
+        <tr><td class="muted">Data</td><td>{{ document.date|pl_date }}</td></tr>
+        {% if document.sourceWarehouse %}<tr><td class="muted">{{ document.type.value == 'MM' ? 'Z magazynu' : 'Magazyn' }}</td><td>{{ document.sourceWarehouse.name }}</td></tr>{% endif %}
+        {% if document.targetWarehouse %}<tr><td class="muted">{{ document.type.value == 'MM' ? 'Do magazynu' : 'Magazyn' }}</td><td>{{ document.targetWarehouse.name }}</td></tr>{% endif %}
+        {% if document.contractor %}<tr><td class="muted">{{ document.type.value == 'PZ' ? 'Dostawca' : 'Odbiorca' }}</td><td>{{ document.contractor.name }}{% if document.contractor.nip %}, NIP {{ document.contractor.nip }}{% endif %}</td></tr>{% endif %}
+        {% if document.contract %}<tr><td class="muted">Umowa</td><td>{{ document.contract.number }}</td></tr>{% endif %}
+        {% if document.costCenter %}<tr><td class="muted">Ośrodek kosztów</td><td>{{ document.costCenter.name }}</td></tr>{% endif %}
+        {% if document.invoice %}<tr><td class="muted">Faktura</td><td>{{ document.invoice.number }}</td></tr>{% endif %}
+        {% if document.notes %}<tr><td class="muted">Uwagi</td><td>{{ document.notes|nl2br }}</td></tr>{% endif %}
+    </table>
+
+    <table class="items">
+        <thead>
+            <tr>
+                <th>Lp.</th><th>Towar</th><th class="num">{{ document.type.value == 'INW' ? 'Stan ze spisu' : 'Ilość' }}</th><th>J.m.</th>
+                {% if amounts %}<th class="num">Cena netto</th><th class="num">Wartość netto</th>{% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in document.items %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ item.product.name }}{% if item.product.internalCode %} <span class="muted">({{ item.product.internalCode }})</span>{% endif %}</td>
+                    <td class="num">{{ item.enteredQuantity|qty }}</td>
+                    <td>{{ item.enteredUnitSymbol }}</td>
+                    {% if amounts %}
+                        <td class="num">{{ item.unitPriceNet is not null ? item.unitPriceNet|amount(item.unitPriceNet < 10 ? 4 : 2) : '' }}</td>
+                        <td class="num">{{ item.netValue is not null ? item.netValue|money : '' }}</td>
+                    {% endif %}
+                </tr>
+            {% endfor %}
+        </tbody>
+        {% if amounts and document.netTotal is not null %}
+            <tfoot><tr><td colspan="5" class="num">Razem netto</td><td class="num">{{ document.netTotal|money }}</td></tr></tfoot>
+        {% endif %}
+    </table>
+
+    <table class="signatures">
+        <tr>
+            <td><span>Wystawił{% if document.createdBy %}: {{ document.createdBy.fullName }}{% endif %}</span></td>
+            <td><span>{{ document.type.value in ['PZ', 'PW'] ? 'Przyjął' : (document.type.value == 'INW' ? 'Spisał' : 'Wydał') }}</span></td>
+        </tr>
+    </table>
+</body>
+</html>

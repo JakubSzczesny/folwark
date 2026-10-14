@@ -36,6 +36,9 @@ use App\Entity\RecentChoice;
 use App\Entity\SavedFilter;
 use App\Entity\ServiceType;
 use App\Entity\Setting;
+use App\Entity\Stock;
+use App\Entity\StockDocument;
+use App\Entity\StockMovement;
 use App\Entity\Unit;
 use App\Entity\User;
 use App\Entity\Warehouse;
@@ -74,6 +77,9 @@ final class FarmWiper
         Machine::class,
         MachineCategory::class,
         ServiceType::class,
+        StockMovement::class,
+        Stock::class,
+        StockDocument::class,
         MilkProduction::class,
         CropSeason::class,
         Field::class,

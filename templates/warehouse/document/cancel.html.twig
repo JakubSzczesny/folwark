@@ -1,0 +1,15 @@
+<twig:Modal title="Anuluj {{ document.label }}">
+    <p class="text-sm text-antracyt-500 mb-4">Ruchy dokumentu zostaną cofnięte ze stanów. Anulowanego dokumentu nie da się przywrócić – można go poprawić przez „Popraw”.</p>
+    <form method="post" action="{{ path('app_document_cancel', {id: document.id}) }}" data-turbo-frame="modal">
+        <input type="hidden" name="_token" value="{{ csrf_token('stock-document') }}">
+        <div class="field">
+            <label class="label" for="cancel-reason">Powód anulowania</label>
+            <input id="cancel-reason" name="reason" class="input" maxlength="255" required autofocus>
+            {% if error %}<p class="form-error">{{ error }}</p>{% endif %}
+        </div>
+        <div class="flex gap-2">
+            <button type="submit" class="btn btn-primary">Anuluj dokument</button>
+            <button type="button" class="btn btn-ghost" data-action="modal#close">Zamknij</button>
+        </div>
+    </form>
+</twig:Modal>

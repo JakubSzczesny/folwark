@@ -1,0 +1,22 @@
+<p class="mb-3 text-sm text-antracyt-500">Maszyny, przy których ten towar był kupowany: faktury podpięte pod serwis albo przypisane do ośrodka kosztów maszyny.</p>
+
+<div class="card">
+    {% if machines is empty %}
+        <twig:EmptyState text="Towar nie występuje przy żadnej maszynie." />
+    {% else %}
+        <div class="table-wrap">
+            <table class="table table-cards">
+                <thead><tr><th>Maszyna</th><th>Ostatni zakup</th><th class="text-right">Faktur</th></tr></thead>
+                <tbody>
+                    {% for entry in machines %}
+                        <tr>
+                            <td class="card-title-cell"><a href="{{ path('app_machine_show', {id: entry.machine.id}) }}" data-turbo-frame="_top">{{ entry.machine.label }}</a></td>
+                            <td data-label="Ostatni zakup" class="tabular-nums">{{ entry.lastDate|pl_date }}</td>
+                            <td data-label="Faktur" class="num">{{ entry.invoices }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</div>

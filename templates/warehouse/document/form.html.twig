@@ -1,0 +1,68 @@
+{% extends 'layout.html.twig' %}
+
+{% set type = document.type %}
+{% set title = document.id ? 'Szkic ' ~ type.value : 'Nowy dokument ' ~ type.value %}
+{% set back = document.id ? path('app_document_show', {id: document.id}) : path('app_document_index') %}
+{% block title %}{{ title }}{% endblock %}
+{% block active_menu %}documents{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="{{ title }}" subtitle="{{ type.shortLabel|capitalize }}" back="{{ back }}" />
+
+    <div class="card card-body max-w-4xl">
+        {{ form_start(form) }}
+            <div class="grid gap-x-4 sm:grid-cols-3">
+                {{ form_row(form.date) }}
+                {% if form.sourceWarehouse is defined %}{{ form_row(form.sourceWarehouse) }}{% endif %}
+                {% if form.targetWarehouse is defined %}{{ form_row(form.targetWarehouse) }}{% endif %}
+            </div>
+            {% if form.contractor is defined %}
+                <div class="form-grid">
+                    {{ form_row(form.contractor) }}
+                    {{ form_row(form.contract) }}
+                </div>
+            {% endif %}
+            {% if form.costCenter is defined %}
+                <div class="form-grid">{{ form_row(form.costCenter) }}</div>
+            {% endif %}
+
+            <fieldset class="rounded-ui border border-szary-200 p-4 mb-4" data-controller="collection" data-collection-autofill-value="true" data-collection-index-value="{{ form.items|length > 0 ? form.items|keys|last + 1 : 0 }}">
+                <legend class="px-1 text-sm font-semibold">Pozycje</legend>
+                {% if type.value == 'INW' %}
+                    <p class="help mb-3">Wpisz stan ze spisu. Przy zatwierdzeniu różnica względem stanu w magazynie zostanie zaksięgowana ruchem korygującym. Cena wyceni ewentualną nadwyżkę.</p>
+                {% elseif type.isPriced %}
+                    <p class="help mb-3">Cena netto za wpisaną jednostkę. Pusta jednostka = jednostka podstawowa towaru.</p>
+                {% else %}
+                    <p class="help mb-3">Wydania wyceniamy średnią ważoną ceną z magazynu.</p>
+                {% endif %}
+                {{ form_errors(form.items) }}
+                <div data-collection-target="list" class="space-y-2">
+                    {% for item in form.items %}
+                        {{ include('warehouse/document/_item.html.twig', {item: item}) }}
+                    {% endfor %}
+                </div>
+                <template data-collection-target="template">{{ include('warehouse/document/_item.html.twig', {item: form.items.vars.prototype}) }}</template>
+                <button type="button" class="btn btn-ghost btn-sm mt-2" data-action="collection#add">{{ ux_icon('lucide:plus') }} Dodaj pozycję</button>
+                {% do form.items.setRendered %}
+            </fieldset>
+
+            {{ form_row(form.notes) }}
+            {{ form_rest(form) }}
+
+            <div class="flex flex-wrap gap-2">
+                <button type="submit" class="btn btn-primary" name="approve" value="1">{{ ux_icon('lucide:check') }} Zapisz i zatwierdź</button>
+                <button type="submit" class="btn btn-secondary">Zapisz szkic</button>
+                <a href="{{ back }}" class="btn btn-ghost">Anuluj</a>
+                {% if document.id %}
+                    <button type="submit" form="delete-document" class="btn btn-ghost text-danger ml-auto">{{ ux_icon('lucide:trash-2') }} Usuń szkic</button>
+                {% endif %}
+            </div>
+        {{ form_end(form) }}
+
+        {% if document.id %}
+            <form id="delete-document" method="post" action="{{ path('app_document_delete', {id: document.id}) }}" data-turbo-confirm="Usunąć szkic dokumentu?">
+                <input type="hidden" name="_token" value="{{ csrf_token('stock-document') }}">
+            </form>
+        {% endif %}
+    </div>
+{% endblock %}

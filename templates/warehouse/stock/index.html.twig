@@ -1,0 +1,87 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Stany magazynowe{% endblock %}
+{% block active_menu %}stock{% endblock %}
+
+{% block content %}
+    {% set amounts = is_granted('AMOUNTS_VIEW') %}
+    <twig:PageHeader title="Stany magazynowe">
+        {% if is_granted('DOCUMENT_EDIT') %}
+            <a href="{{ path('app_document_new', {typ: 'INW'}) }}" class="btn btn-secondary">{{ ux_icon('lucide:clipboard-check') }} Inwentaryzacja</a>
+            <a href="{{ path('app_document_new') }}" class="btn btn-primary">{{ ux_icon('lucide:plus') }} Nowy dokument</a>
+        {% endif %}
+    </twig:PageHeader>
+
+    <div class="alert alert-info mb-4">Stany orientacyjne – bez ewidencji zużycia. Liczą się tylko z zatwierdzonych dokumentów; żadna analiza ani powiadomienie z nich nie korzysta.</div>
+
+    <div data-controller="filters">
+    {{ include('_partials/filters_toggle.html.twig', {active: (filters.warehouse ? 1 : 0) + (filters.category ? 1 : 0) + (filters.q ? 1 : 0) + (filters.zero ? 1 : 0)}) }}
+    <form method="get" class="filter-bar is-collapsible" data-filters-target="panel" data-controller="autosubmit" data-turbo-action="replace">
+        <div class="field">
+            <label class="label" for="f-q">Szukaj</label>
+            <input id="f-q" type="search" name="q" value="{{ filters.q }}" class="input" placeholder="Nazwa, kod" data-action="input->autosubmit#debounced">
+        </div>
+        <div class="field">
+            <label class="label" for="f-warehouse">Magazyn</label>
+            <select id="f-warehouse" name="magazyn" class="select" data-action="autosubmit#submit">
+                <option value="">Wszystkie</option>
+                {% for warehouse in warehouses %}<option value="{{ warehouse.id }}" {{ filters.warehouse == warehouse.id ? 'selected' }}>{{ warehouse.name }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="field">
+            <label class="label" for="f-category">Kategoria</label>
+            <select id="f-category" name="kategoria" class="select" data-action="autosubmit#submit">
+                <option value="">Wszystkie</option>
+                {% for category in categories %}<option value="{{ category.id }}" {{ filters.category == category.id ? 'selected' }}>{{ category.name }}</option>{% endfor %}
+            </select>
+        </div>
+        <label class="inline-flex items-center gap-2 cursor-pointer" style="min-height:40px">
+            <input type="checkbox" class="checkbox" name="zerowe" value="1" {{ filters.zero ? 'checked' }} data-action="autosubmit#submit">
+            Pokaż zerowe
+        </label>
+        <a href="{{ path('app_stock_index', {wyczysc: 1}) }}" class="btn btn-ghost">Wyczyść</a>
+    </form>
+    </div>
+
+    {% if groups is empty %}
+        <div class="card"><twig:EmptyState text="Brak stanów. Stany powstają z zatwierdzonych dokumentów magazynowych (PZ, PW, INW…)." /></div>
+    {% endif %}
+
+    {% for group in groups %}
+        <section class="card mb-6">
+            <div class="card-header flex items-center justify-between gap-3">
+                <h2 class="card-title">{{ group.warehouse.name }} <span class="text-sm font-normal text-antracyt-500">{{ group.warehouse.type.label }}</span></h2>
+                {% if amounts %}<span class="text-sm tabular-nums text-antracyt-500">wartość {{ group.value|money }}</span>{% endif %}
+            </div>
+            <div class="table-wrap">
+                <table class="table table-cards" data-controller="table-nav" data-action="keydown@window->table-nav#keydown">
+                    <thead>
+                        <tr>
+                            <th>Towar</th><th class="text-right">Stan</th>
+                            {% if amounts %}<th class="text-right">Średnia cena</th><th class="text-right">Wartość</th>{% endif %}
+                            <th>Ostatni ruch</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for stock in group.stocks %}
+                            {% set url = path('app_product_stock', {id: stock.product.id}) %}
+                            <tr data-table-nav-target="row" data-href="{{ url }}" data-action="click->table-nav#click">
+                                <td class="card-title-cell"><a href="{{ url }}" class="text-tekst hover:text-zielen-600">{{ stock.product.name }}</a></td>
+                                <td data-label="Stan" class="num {{ stock.negative ? 'text-danger' }}">
+                                    {{ stock.quantity|qty }} {{ stock.product.unitSymbol }}
+                                    {% if stock.negative %}<span class="block text-xs">stan ujemny</span>{% endif %}
+                                </td>
+                                {% if amounts %}
+                                    {% set avg = stock.averagePrice %}
+                                    <td data-label="Średnia cena" class="num">{{ avg is not null ? avg|amount(avg < 10 ? 4 : 2) ~ ' zł/' ~ stock.product.unitSymbol : '—' }}</td>
+                                    <td data-label="Wartość" class="num">{{ stock.value|money }}</td>
+                                {% endif %}
+                                <td data-label="Ostatni ruch" class="tabular-nums">{{ stock.lastMovementDate ? stock.lastMovementDate|pl_date : '—' }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    {% endfor %}
+{% endblock %}

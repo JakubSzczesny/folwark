@@ -1,0 +1,54 @@
+{% set amounts = is_granted('AMOUNTS_VIEW') %}
+<p class="mb-3 text-sm text-antracyt-500">Stany orientacyjne – bez ewidencji zużycia.</p>
+
+<section class="card mb-6">
+    {% if stocks is empty %}
+        <twig:EmptyState text="Towar nie ma stanu w żadnym magazynie. Stan powstaje z zatwierdzonych dokumentów (PZ, PW, INW…)." />
+    {% else %}
+        <div class="table-wrap">
+            <table class="table table-cards">
+                <thead>
+                    <tr>
+                        <th>Magazyn</th><th class="text-right">Stan</th>
+                        {% if amounts %}<th class="text-right">Średnia cena</th><th class="text-right">Wartość</th>{% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stock in stocks %}
+                        <tr>
+                            <td class="card-title-cell">{{ stock.warehouse.name }}</td>
+                            <td data-label="Stan" class="num {{ stock.negative ? 'text-danger' }}">{{ stock.quantity|qty }} {{ product.unitSymbol }}</td>
+                            {% if amounts %}
+                                {% set avg = stock.averagePrice %}
+                                <td data-label="Średnia cena" class="num">{{ avg is not null ? avg|amount(avg < 10 ? 4 : 2) ~ ' zł' : '—' }}</td>
+                                <td data-label="Wartość" class="num">{{ stock.value|money }}</td>
+                            {% endif %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+</section>
+
+{% if movements is not empty %}
+    <section class="card">
+        <div class="card-header"><h2 class="card-title">Ostatnie ruchy</h2></div>
+        <div class="table-wrap">
+            <table class="table table-cards">
+                <thead><tr><th>Data</th><th>Dokument</th><th>Magazyn</th><th class="text-right">Ilość</th>{% if amounts %}<th class="text-right">Wartość</th>{% endif %}</tr></thead>
+                <tbody>
+                    {% for movement in movements %}
+                        <tr>
+                            <td class="card-title-cell tabular-nums">{{ movement.date|pl_date }}</td>
+                            <td data-label="Dokument"><a href="{{ path('app_document_show', {id: movement.document.id}) }}" data-turbo-frame="_top">{{ movement.document.label }}</a></td>
+                            <td data-label="Magazyn">{{ movement.warehouse.name }}</td>
+                            <td data-label="Ilość" class="num {{ movement.quantity < 0 ? 'text-danger' }}">{{ movement.quantity > 0 ? '+' }}{{ movement.quantity|qty }} {{ product.unitSymbol }}</td>
+                            {% if amounts %}<td data-label="Wartość" class="num">{{ movement.value|money }}</td>{% endif %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+{% endif %}

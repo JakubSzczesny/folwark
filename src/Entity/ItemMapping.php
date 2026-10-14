@@ -96,6 +96,11 @@ class ItemMapping implements FarmScoped
         return $this->uses;
     }
 
+    public function getUpdatedAt(): \DateTimeImmutable
+    {
+        return $this->updatedAt;
+    }
+
     public function remember(?Product $product, bool $skip, ?string $factor, ?CostCenter $costCenter): static
     {
         $this->product = $skip ? null : $product;

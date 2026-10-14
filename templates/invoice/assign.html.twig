@@ -97,6 +97,28 @@
                 {% endfor %}
             </div>
 
+            {% if existing_pz %}
+                <p class="mt-4 text-sm text-antracyt-500">Przyjęcie do magazynu: <a href="{{ path('app_document_show', {id: existing_pz.id}) }}">{{ existing_pz.label }}</a>.</p>
+            {% elseif is_granted('DOCUMENT_EDIT') %}
+                <div class="card card-body mt-4 flex flex-wrap items-end gap-4">
+                    <label class="inline-flex items-center gap-2 cursor-pointer" style="min-height:40px">
+                        <input type="checkbox" class="checkbox" name="pz" value="1" {{ create_pz ? 'checked' }} {{ warehouses is empty ? 'disabled' }}>
+                        Utwórz też PZ
+                    </label>
+                    {% if warehouses is empty %}
+                        <p class="help mb-0">Najpierw dodaj magazyn w <a href="{{ path('admin') }}">słownikach</a>.</p>
+                    {% else %}
+                        <div class="field mb-0">
+                            <label class="label" for="pz-warehouse">Magazyn</label>
+                            <select id="pz-warehouse" name="pz_warehouse" class="select">
+                                {% for warehouse in warehouses %}<option value="{{ warehouse.id }}">{{ warehouse.name }}</option>{% endfor %}
+                            </select>
+                        </div>
+                        <p class="help mb-0 basis-full">Przyjmie przypisane pozycje na stan. Stany są orientacyjne – bez ewidencji zużycia.</p>
+                    {% endif %}
+                </div>
+            {% endif %}
+
             <div class="sticky bottom-0 mt-4 flex flex-wrap gap-2 border-t border-szary-200 bg-szary-50/95 py-3">
                 <button type="submit" class="btn btn-primary">{{ ux_icon('lucide:package-check') }} Zatwierdź przypisanie</button>
                 <a href="{{ path('app_invoice_show', {id: invoice.id}) }}" class="btn btn-ghost">Anuluj</a>

@@ -175,7 +175,7 @@ final class OrderController extends AbstractController
         $referer = (string) $request->headers->get('referer');
         $path = (string) parse_url($referer, \PHP_URL_PATH);
         $query = (string) parse_url($referer, \PHP_URL_QUERY);
-        if (parse_url($referer, \PHP_URL_HOST) !== $request->getHost() || !preg_match('~^/(zamowienia|towary)(/|$)~', $path)) {
+        if (parse_url($referer, \PHP_URL_HOST) !== $request->getHost() || !preg_match('~^(/|/(zamowienia|towary)(/.*)?)$~', $path)) {
             return $this->redirectToRoute('app_order_index', [], Response::HTTP_SEE_OTHER);
         }
 

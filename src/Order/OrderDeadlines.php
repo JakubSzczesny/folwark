@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Order;
 
+use App\Dashboard\AttentionAction;
 use App\Dashboard\AttentionItem;
 use App\Dashboard\AttentionSource;
 use App\Entity\OrderCycle;
@@ -86,10 +87,27 @@ final class OrderDeadlines implements DeadlineSource, AttentionSource, MenuBadge
                 $cycle->getLabel(),
                 $this->url($cycle),
                 $overdue ? 'Po terminie – brak faktury' : self::detail($cycle),
+                $this->actions($cycle),
             );
         }
 
         return $items;
+    }
+
+    /**
+     * @return list<AttentionAction>
+     */
+    private function actions(OrderCycle $cycle): array
+    {
+        $actions = [];
+        if ($this->auth->isGranted(Permission::ORDER_MARK)) {
+            $actions[] = AttentionAction::post('Oznacz jako zamówione', $this->urls->generate('app_order_mark', ['id' => $cycle->getId()]), 'order', 'shopping-cart');
+        }
+        if ($this->auth->isGranted(Permission::ORDER_MANAGE)) {
+            $actions[] = AttentionAction::post('Pomiń ten termin', $this->urls->generate('app_order_skip', ['id' => $cycle->getId()]), 'order');
+        }
+
+        return $actions;
     }
 
     public function badges(User $user): array

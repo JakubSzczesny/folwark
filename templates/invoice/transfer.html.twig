@@ -1,0 +1,40 @@
+<twig:Modal title="Przelew – {{ invoice.number }}">
+    {% import '_partials/copy_field.html.twig' as c %}
+    <div data-controller="bspay" data-bspay-bank-url-value="{{ bspay_enabled ? bank_url : '' }}">
+        {% for warning in transfer.warnings %}
+            <div class="alert alert-warning mb-2 text-sm">{{ warning }}</div>
+        {% endfor %}
+
+        {{ c.field('Odbiorca', transfer.recipient) }}
+        {{ c.field('Adres odbiorcy', transfer.address) }}
+        {{ c.field('Numer rachunku' ~ (transfer.accountSource ? ' (z: ' ~ transfer.accountSource ~ ')' : ''), transfer.account, transfer.accountFormatted ~ (transfer.accountOnWhiteList ? ' ✓ biała lista' : '')) }}
+        {{ c.field('Kwota', transfer.amount|replace({'.': ','}), transfer.amount|money(transfer.currency)) }}
+        {{ c.field('Tytuł', transfer.title) }}
+        {% if transfer.splitPayment %}
+            <p class="mt-3 mb-1 text-sm font-semibold">Mechanizm podzielonej płatności</p>
+            {{ c.field('Kwota VAT', transfer.vat|replace({'.': ','}), transfer.vat|money(transfer.currency)) }}
+            {{ c.field('NIP odbiorcy', transfer.nip) }}
+            {{ c.field('Numer faktury', transfer.invoiceNumber) }}
+            {{ c.field('Komunikat MPP (gdy bank prosi o jeden tytuł)', transfer.splitTitle) }}
+        {% endif %}
+        {% if transfer.paymentDue %}<p class="mt-2 text-sm text-antracyt-500">Termin płatności: {{ transfer.paymentDue|date('d.m.Y') }}</p>{% endif %}
+
+        <script type="application/json" data-bspay-target="data" data-bspay-transfer>{{ transfer|json_encode(constant('JSON_UNESCAPED_UNICODE') b-or constant('JSON_HEX_TAG'))|raw }}</script>
+
+        <div class="mt-4 flex flex-wrap gap-2">
+            {% if bspay_enabled and bank_url %}
+                <button type="button" class="btn btn-primary" data-action="bspay#send">{{ ux_icon('lucide:external-link') }} Przelew w BS</button>
+            {% endif %}
+            {% if not invoice.paid %}
+                <form method="post" action="{{ path('app_invoice_paid', {id: invoice.id}) }}">
+                    <input type="hidden" name="_token" value="{{ csrf_token('invoice') }}">
+                    <button type="submit" class="btn btn-secondary">{{ ux_icon('lucide:check') }} Oznacz jako opłaconą</button>
+                </form>
+            {% endif %}
+            <button type="button" class="btn btn-ghost" data-action="modal#close">Zamknij</button>
+        </div>
+        {% if bspay_enabled %}
+            <p class="help mt-3 mb-0" data-bspay-target="status"></p>
+        {% endif %}
+    </div>
+</twig:Modal>

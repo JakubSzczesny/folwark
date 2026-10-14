@@ -31,6 +31,7 @@
                 <button type="submit" class="btn btn-ghost">Cofnij opłacenie</button>
             </form>
         {% else %}
+            {% if invoice.cost %}<a href="{{ path('app_invoice_transfer', {id: invoice.id}) }}" class="btn btn-secondary" data-turbo-frame="modal">{{ ux_icon('lucide:banknote') }} Dane do przelewu</a>{% endif %}
             <form method="post" action="{{ path('app_invoice_paid', {id: invoice.id, z: z}) }}" {{ frame_attrs }}>
                 <input type="hidden" name="_token" value="{{ token }}">
                 <button type="submit" class="btn btn-secondary">{{ ux_icon('lucide:check') }} Oznacz jako opłaconą</button>

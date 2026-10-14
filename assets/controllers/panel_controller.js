@@ -1,8 +1,8 @@
 import { Controller } from '@hotwired/stimulus';
 
 /*
- * Wysuwany z prawej panel podglądu. Otwiera się, gdy ramka "preview" załaduje treść;
- * zamyka przyciskiem lub klawiszem Esc. Lista pod spodem pozostaje widoczna.
+ * Okno podglądu na środku ekranu z rozmytym tłem. Otwiera się, gdy ramka "preview" załaduje treść;
+ * zamyka przyciskiem, klawiszem Esc albo kliknięciem w tło.
  */
 export default class extends Controller {
     static targets = ['panel', 'frame'];
@@ -18,21 +18,33 @@ export default class extends Controller {
 
     disconnect() {
         document.removeEventListener('turbo:frame-load', this.onLoad);
+        document.documentElement.classList.remove('has-overlay');
     }
 
     open() {
+        if (!this.panelTarget.hidden) {
+            return;
+        }
         this.panelTarget.hidden = false;
-        // wymuszenie przeliczenia układu, żeby panel wjechał z prawej, a nie pojawił się od razu
+        // wymuszenie przeliczenia układu, żeby okno pojawiło się z animacją
         void this.panelTarget.offsetWidth;
-        this.panelTarget.classList.remove('translate-x-full');
+        this.panelTarget.classList.remove('is-closed');
+        document.documentElement.classList.add('has-overlay');
     }
 
     close() {
-        this.panelTarget.classList.add('translate-x-full');
+        this.panelTarget.classList.add('is-closed');
+        document.documentElement.classList.remove('has-overlay');
         setTimeout(() => {
             this.panelTarget.hidden = true;
-        }, 220);
+        }, 180);
         this.dispatch('closed');
+    }
+
+    backdrop(event) {
+        if (event.target === this.panelTarget) {
+            this.close();
+        }
     }
 
     keydown(event) {

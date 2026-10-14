@@ -29,6 +29,7 @@ use App\Repository\InvoiceRepository;
 use App\Repository\KsefSyncRepository;
 use App\Repository\SavedFilterRepository;
 use App\Security\Permission;
+use App\Twig\FormatExtension;
 use App\Ui\ListFilters;
 use App\Ui\Pager;
 use App\Ui\RecentChoices;
@@ -155,7 +156,18 @@ final class InvoiceController extends AbstractController
         $bus->dispatch(new SyncKsefMetadata(true, $user->getId(), $this->farmContext->farmId()));
         $this->addFlash('success', 'Synchronizacja z KSeF została zlecona. Nowe faktury pojawią się za chwilę.');
 
-        return $this->redirectToRoute('app_invoice_index', [], Response::HTTP_SEE_OTHER);
+        return $this->redirectToRoute('pulpit' === $request->query->get('z') ? 'app_dashboard' : 'app_invoice_index', [], Response::HTTP_SEE_OTHER);
+    }
+
+    #[Route('/przeczytane', name: 'app_invoice_read_all', methods: ['POST'])]
+    #[IsGranted(Permission::INVOICE_MANAGE)]
+    public function readAll(Request $request, #[CurrentUser] User $user): Response
+    {
+        $this->assertToken($request);
+        $count = $this->actions->markAllRead($user);
+        $this->addFlash('success', \sprintf('Oznaczono jako przeczytane: %d %s.', $count, FormatExtension::plural($count, 'faktura', 'faktury', 'faktur')));
+
+        return $this->redirectToRoute('pulpit' === $request->query->get('z') ? 'app_dashboard' : 'app_invoice_index', [], Response::HTTP_SEE_OTHER);
     }
 
     #[Route('/{id}/podglad', name: 'app_invoice_preview', requirements: ['id' => '\d+'], methods: ['GET'])]
@@ -388,6 +400,10 @@ final class InvoiceController extends AbstractController
             $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
 
             return $this->render('_partials/refresh.stream.html.twig');
+        }
+
+        if ('pulpit' === $request->query->get('z')) {
+            return $this->redirectToRoute('app_dashboard', [], Response::HTTP_SEE_OTHER);
         }
 
         // Akcja z menu pod prawym przyciskiem na liście – wracamy na tę samą listę (z filtrami).

@@ -38,6 +38,11 @@ final class SettingKey
     public const string WAREHOUSE_CREATE_PZ = 'warehouse.create_pz';
     public const string WAREHOUSE_NUMBER_PATTERN = 'warehouse.number_pattern';
 
+    public const string BSPAY_ENABLED = 'bspay.enabled';
+    public const string BSPAY_BANK_URL = 'bspay.bank_url';
+    public const string BSPAY_TITLE = 'bspay.title';
+    public const string BSPAY_SPLIT_PAYMENT = 'bspay.split_payment';
+
     public const array DEFAULTS = [
         self::KSEF_TOKEN => null,
         self::KSEF_NIP => null,
@@ -66,6 +71,10 @@ final class SettingKey
         self::ATTENTION_DAYS => 30,
         self::WAREHOUSE_CREATE_PZ => false,
         self::WAREHOUSE_NUMBER_PATTERN => '{TYP}/{RRRR}/{MM}/{NNNN}',
+        self::BSPAY_ENABLED => false,
+        self::BSPAY_BANK_URL => null,
+        self::BSPAY_TITLE => 'Faktura {numer}',
+        self::BSPAY_SPLIT_PAYMENT => true,
     ];
 
     /** Klucze zapisywane przez system, a nie przez użytkownika; ich zmian nie logujemy. */

@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Contract;
 
+use App\Dashboard\AttentionAction;
 use App\Dashboard\AttentionItem;
 use App\Dashboard\AttentionSource;
+use App\Entity\Contract;
 use App\Enum\NotificationPriority;
 use App\Enum\NotificationType;
 use App\Notification\DeadlineSource;
@@ -16,6 +18,7 @@ use App\Settings\SettingKey;
 use App\Settings\Settings;
 use App\Twig\FormatExtension;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 final class ContractDeadlines implements DeadlineSource, AttentionSource
 {
@@ -26,6 +29,7 @@ final class ContractDeadlines implements DeadlineSource, AttentionSource
         private readonly Notifier $notifier,
         private readonly Settings $settings,
         private readonly UrlGeneratorInterface $urls,
+        private readonly AuthorizationCheckerInterface $auth,
     ) {
     }
 
@@ -63,6 +67,7 @@ final class ContractDeadlines implements DeadlineSource, AttentionSource
                 \sprintf('%s – %s', $contract->getNumber(), $contract->getContractor()?->getDisplayName()),
                 $this->urls->generate('app_contract_show', ['id' => $contract->getId()]),
                 'Wygasa '.FormatExtension::daysLabel($days),
+                $this->editAction($contract),
             );
         }
 
@@ -79,9 +84,20 @@ final class ContractDeadlines implements DeadlineSource, AttentionSource
                 \sprintf('%s – %s', $contract->getNumber(), $contract->getContractor()?->getDisplayName()),
                 $this->urls->generate('app_contract_show', ['id' => $contract->getId()]),
                 \sprintf('Płatność %s%s', FormatExtension::daysLabel($days), null !== $contract->getRentAmount() ? ' · '.FormatExtension::money($contract->getRentAmount()) : ''),
+                $this->editAction($contract),
             );
         }
 
         return $items;
+    }
+
+    /**
+     * @return list<AttentionAction>
+     */
+    private function editAction(Contract $contract): array
+    {
+        return $this->auth->isGranted(Permission::CONTRACT_EDIT)
+            ? [AttentionAction::link('Edytuj umowę', $this->urls->generate('app_contract_edit', ['id' => $contract->getId()]), 'pencil')]
+            : [];
     }
 }

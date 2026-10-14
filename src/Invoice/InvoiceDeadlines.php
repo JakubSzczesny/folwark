@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Invoice;
 
+use App\Dashboard\AttentionAction;
 use App\Dashboard\AttentionItem;
 use App\Dashboard\AttentionSource;
+use App\Entity\Invoice;
 use App\Entity\User;
 use App\Enum\InvoiceKind;
 use App\Enum\NotificationPriority;
@@ -79,12 +81,15 @@ final class InvoiceDeadlines implements DeadlineSource, AttentionSource, MenuBad
                 \sprintf('%d %s', $new, FormatExtension::plural($new, 'nowa faktura', 'nowe faktury', 'nowych faktur')),
                 $this->urls->generate('app_invoice_index', ['rodzaj' => 'wszystkie', 'status' => 'new']),
                 'Do przejrzenia',
+                $this->auth->isGranted(Permission::INVOICE_MANAGE) ? [AttentionAction::post('Oznacz wszystkie jako przeczytane', $this->urls->generate('app_invoice_read_all', ['z' => 'pulpit']), 'invoice', 'check-check')] : [],
             );
         }
 
         $last = $this->syncs->findLastFinished();
         if (null !== $last && $last->isFailed()) {
-            $items[] = new AttentionItem(-1000, 'danger', 'KSeF', 'Błąd synchronizacji KSeF', $this->urls->generate('app_settings_ksef'), $last->getError());
+            $items[] = new AttentionItem(-1000, 'danger', 'KSeF', 'Błąd synchronizacji KSeF', $this->urls->generate('app_settings_ksef'), $last->getError(), $this->auth->isGranted(Permission::INVOICE_MANAGE)
+                ? [AttentionAction::post('Synchronizuj teraz', $this->urls->generate('app_invoice_sync', ['z' => 'pulpit']), 'invoice', 'refresh-cw')]
+                : []);
         }
 
         $before = $this->settings->int(SettingKey::NOTIFY_PAYMENT_DAYS);
@@ -97,10 +102,28 @@ final class InvoiceDeadlines implements DeadlineSource, AttentionSource, MenuBad
                 \sprintf('%s – %s', $invoice->getNumber(), $invoice->getContractorLabel()),
                 $this->urls->generate('app_invoice_show', ['id' => $invoice->getId()]),
                 ucfirst(self::dueLabel($days)).($canSeeAmounts ? ' · '.FormatExtension::money($invoice->getGross(), $invoice->getCurrency()) : ''),
+                $this->paymentActions($invoice),
             );
         }
 
         return $items;
+    }
+
+    /**
+     * @return list<AttentionAction>
+     */
+    private function paymentActions(Invoice $invoice): array
+    {
+        if (!$this->auth->isGranted(Permission::INVOICE_MANAGE)) {
+            return [];
+        }
+        $id = $invoice->getId();
+
+        return [
+            AttentionAction::post('Oznacz jako opłaconą', $this->urls->generate('app_invoice_paid', ['id' => $id, 'z' => 'pulpit']), 'invoice', 'check'),
+            AttentionAction::link('Dane do przelewu', $this->urls->generate('app_invoice_transfer', ['id' => $id]), 'banknote', 'modal'),
+            AttentionAction::post('Pomiń fakturę', $this->urls->generate('app_invoice_skip', ['id' => $id, 'z' => 'pulpit']), 'invoice', null, 'Pominąć fakturę? Zniknie z płatności i analiz.'),
+        ];
     }
 
     public static function dueLabel(int $days): string

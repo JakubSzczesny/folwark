@@ -147,12 +147,14 @@
             {% endif %}
         {% endfor %}
 
-        <aside data-panel-target="panel" class="slide-panel translate-x-full" hidden aria-label="Szczegóły zamówienia">
-            <div class="flex items-center justify-between border-b border-szary-200 px-4" style="min-height:56px">
-                <span class="font-semibold">Szczegóły</span>
-                <button type="button" class="btn btn-ghost btn-icon" data-action="panel#close" aria-label="Zamknij">{{ ux_icon('lucide:x') }}</button>
-            </div>
-            <turbo-frame id="preview" data-panel-target="frame" class="block flex-1 overflow-y-auto" {% if open_cycle %}src="{{ path('app_order_preview', {id: open_cycle}) }}"{% endif %}></turbo-frame>
-        </aside>
+        <div data-panel-target="panel" class="preview-overlay is-closed" hidden data-action="click->panel#backdrop">
+            <aside class="preview-dialog" role="dialog" aria-modal="true" aria-label="Szczegóły zamówienia">
+                <div class="flex items-center justify-between border-b border-szary-200 px-4" style="min-height:56px">
+                    <span class="font-semibold">Szczegóły</span>
+                    <button type="button" class="btn btn-ghost btn-icon" data-action="panel#close" aria-label="Zamknij">{{ ux_icon('lucide:x') }}</button>
+                </div>
+                <turbo-frame id="preview" data-panel-target="frame" class="block flex-1 overflow-y-auto" {% if open_cycle %}src="{{ path('app_order_preview', {id: open_cycle}) }}"{% endif %}></turbo-frame>
+            </aside>
+        </div>
     </div>
 {% endblock %}

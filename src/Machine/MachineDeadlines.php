@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Machine;
 
+use App\Dashboard\AttentionAction;
 use App\Dashboard\AttentionItem;
 use App\Dashboard\AttentionSource;
 use App\Entity\Machine;
@@ -19,6 +20,7 @@ use App\Settings\SettingKey;
 use App\Settings\Settings;
 use App\Twig\FormatExtension;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 /**
  * Ubezpieczenia, przeglądy techniczne i zaplanowane serwisy: powiadomienia o 6:00 i pozycje na pulpicie.
@@ -36,6 +38,7 @@ final class MachineDeadlines implements DeadlineSource, AttentionSource
         private readonly Notifier $notifier,
         private readonly Settings $settings,
         private readonly UrlGeneratorInterface $urls,
+        private readonly AuthorizationCheckerInterface $auth,
     ) {
     }
 
@@ -104,6 +107,7 @@ final class MachineDeadlines implements DeadlineSource, AttentionSource
                     $machine->getLabel(),
                     $this->urls->generate('app_machine_show', ['id' => $machine->getId()]),
                     \sprintf('Do %s · %s', FormatExtension::date($date), FormatExtension::daysLabel($days)),
+                    $this->auth->isGranted(Permission::MACHINE_EDIT) ? [AttentionAction::link('Zmień datę – edytuj maszynę', $this->urls->generate('app_machine_edit', ['id' => $machine->getId()]), 'pencil')] : [],
                 );
             }
         }
@@ -138,7 +142,7 @@ final class MachineDeadlines implements DeadlineSource, AttentionSource
                 $unit,
                 FormatExtension::quantity($plan->getNextServiceMeter(), 1),
                 $unit,
-            ));
+            ), $this->serviceActions($plan));
         }
 
         $date = $plan->getNextServiceDate();
@@ -147,7 +151,22 @@ final class MachineDeadlines implements DeadlineSource, AttentionSource
         }
         $days = FormatExtension::daysLeft($date, $today) ?? 0;
 
-        return new AttentionItem($days, self::tone($days), 'Serwis', $machine->getLabel().' – '.mb_strtolower($name), $url, \sprintf('Zaplanowany na %s · %s', FormatExtension::date($date), FormatExtension::daysLabel($days)));
+        return new AttentionItem($days, self::tone($days), 'Serwis', $machine->getLabel().' – '.mb_strtolower($name), $url, \sprintf('Zaplanowany na %s · %s', FormatExtension::date($date), FormatExtension::daysLabel($days)), $this->serviceActions($plan));
+    }
+
+    /**
+     * @return list<AttentionAction>
+     */
+    private function serviceActions(MachineService $plan): array
+    {
+        if (!$this->auth->isGranted(Permission::MACHINE_EDIT)) {
+            return [];
+        }
+
+        return [
+            AttentionAction::link('Wpisz wykonany serwis', $this->urls->generate('app_machine_service_new', ['id' => $plan->getMachine()->getId()]), 'wrench'),
+            AttentionAction::link('Zmień plan serwisu', $this->urls->generate('app_machine_service_edit', ['id' => $plan->getId()]), 'pencil'),
+        ];
     }
 
     /**

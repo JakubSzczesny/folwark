@@ -56,6 +56,27 @@ class InvoiceActions
         }
     }
 
+    /**
+     * @return int liczba odczytanych faktur
+     */
+    public function markAllRead(?User $user): int
+    {
+        $count = 0;
+        foreach ($this->invoices->findBy(['readAt' => null]) as $invoice) {
+            if ($invoice->markRead($user)) {
+                $this->audit->log('Invoice', $invoice->getId(), 'read', [], $user);
+                ++$count;
+            }
+        }
+        $this->em->flush();
+
+        if (null !== $user) {
+            $this->notifications->markReadByType($user, NotificationType::NewInvoices);
+        }
+
+        return $count;
+    }
+
     public function skip(Invoice $invoice): void
     {
         $this->changeStatus($invoice, InvoiceStatus::Skipped);

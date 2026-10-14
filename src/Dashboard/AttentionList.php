@@ -9,7 +9,7 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
 
 final class AttentionList
 {
-    public const int LIMIT = 10;
+    public const int PER_PAGE = 8;
 
     /**
      * @param iterable<AttentionSource> $sources
@@ -22,9 +22,11 @@ final class AttentionList
     }
 
     /**
-     * @return array{items: list<AttentionItem>, total: int}
+     * Jedna strona listy posortowanej wg pilności.
+     *
+     * @return array{items: list<AttentionItem>, total: int, page: int, pages: int}
      */
-    public function build(?\DateTimeImmutable $today = null): array
+    public function build(int $page = 1, ?\DateTimeImmutable $today = null): array
     {
         $today ??= new \DateTimeImmutable('today');
         $items = [];
@@ -38,6 +40,14 @@ final class AttentionList
 
         usort($items, static fn (AttentionItem $a, AttentionItem $b): int => [$a->urgency, $a->title] <=> [$b->urgency, $b->title]);
 
-        return ['items' => \array_slice($items, 0, self::LIMIT), 'total' => \count($items)];
+        $pages = max(1, (int) ceil(\count($items) / self::PER_PAGE));
+        $page = min(max(1, $page), $pages);
+
+        return [
+            'items' => \array_slice($items, ($page - 1) * self::PER_PAGE, self::PER_PAGE),
+            'total' => \count($items),
+            'page' => $page,
+            'pages' => $pages,
+        ];
     }
 }

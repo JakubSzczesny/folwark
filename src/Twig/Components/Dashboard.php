@@ -15,6 +15,9 @@ use App\Enum\InvoiceKind;
 use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
 use Symfony\UX\Chartjs\Model\Chart;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
+use Symfony\UX\LiveComponent\Attribute\LiveAction;
+use Symfony\UX\LiveComponent\Attribute\LiveArg;
+use Symfony\UX\LiveComponent\Attribute\LiveProp;
 use Symfony\UX\LiveComponent\DefaultActionTrait;
 
 /**
@@ -24,6 +27,9 @@ use Symfony\UX\LiveComponent\DefaultActionTrait;
 final class Dashboard
 {
     use DefaultActionTrait;
+
+    #[LiveProp(writable: true)]
+    public int $attentionPage = 1;
 
     public function __construct(
         private readonly AttentionList $attention,
@@ -46,11 +52,20 @@ final class Dashboard
     }
 
     /**
-     * @return array{items: list<\App\Dashboard\AttentionItem>, total: int}
+     * @return array{items: list<\App\Dashboard\AttentionItem>, total: int, page: int, pages: int}
      */
     public function getAttention(): array
     {
-        return $this->attention->build();
+        $attention = $this->attention->build($this->attentionPage);
+        $this->attentionPage = $attention['page'];
+
+        return $attention;
+    }
+
+    #[LiveAction]
+    public function showAttentionPage(#[LiveArg] int $page): void
+    {
+        $this->attentionPage = max(1, $page);
     }
 
     /**

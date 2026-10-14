@@ -1,0 +1,28 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}BS Pay · Ustawienia{% endblock %}
+{% block active_menu %}settings{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="BS Pay" subtitle="Przelewy za faktury w bankowości BS Bydgoszcz" back="{{ path('app_settings') }}" />
+
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,42rem)_1fr]">
+        <div class="card card-body">
+            {{ form_start(form) }}
+                {{ form_widget(form) }}
+                <button type="submit" class="btn btn-primary">Zapisz</button>
+            {{ form_end(form) }}
+        </div>
+
+        <aside class="card card-body text-sm space-y-3" data-controller="bspay">
+            <h2 class="card-title">Jak to działa</h2>
+            <p>Przy nieopłaconej fakturze kosztowej (na fakturze, w podglądzie i pod prawym przyciskiem w „Wymaga uwagi”) jest okno <strong>„Dane do przelewu”</strong>: odbiorca, rachunek, kwota i tytuł z przyciskami „Kopiuj”, a dla podzielonej płatności także VAT, NIP i numer faktury.</p>
+            <p>Docelowo <strong>dodatek do przeglądarki</strong> wypełni formularz przelewu w karcie banku sam: przycisk „Przelew w BS” przekazuje mu dane i otwiera bankowość. Przelew zawsze zatwierdzasz sam w banku (SMS / aplikacja) – Folwark nie ma dostępu do konta ani haseł.</p>
+            <p class="text-antracyt-500" data-bspay-target="status"></p>
+            <details>
+                <summary class="cursor-pointer font-semibold">Dla dodatku – format danych</summary>
+                <p class="mt-2">Strona Folwarku ustawia <code>&lt;html data-bspay-transfer="…"&gt;</code> i wysyła zdarzenie <code>bspay:transfer</code> (JSON w <code>detail</code>). W oknie przelewu dane są też w <code>&lt;script type="application/json" data-bspay-transfer&gt;</code>. Pola: <code>recipient</code>, <code>address</code>, <code>account</code> (26 cyfr), <code>iban</code>, <code>amount</code>, <code>currency</code>, <code>title</code>, <code>splitPayment</code>, <code>vat</code>, <code>nip</code>, <code>invoiceNumber</code>, <code>paymentDue</code>. Dodatek zgłasza się atrybutem <code>data-bspay-extension="wersja"</code> na <code>&lt;html&gt;</code>.</p>
+            </details>
+        </aside>
+    </div>
+{% endblock %}

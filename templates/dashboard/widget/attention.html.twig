@@ -1,27 +1,46 @@
+{% import '_partials/context_menu.html.twig' as cm %}
 {% set attention = this.attention %}
 <section class="card h-full" aria-labelledby="attention-title">
     <div class="card-header">
         <h2 id="attention-title" class="card-title">Wymaga uwagi</h2>
-        {% if attention.total > attention.items|length %}
-            <span class="text-sm text-antracyt-500">pokazano {{ attention.items|length }} z {{ attention.total }}</span>
-        {% endif %}
+        {% if attention.total > 0 %}<span class="text-sm text-antracyt-500">{{ attention.total }} {{ attention.total|plural('pozycja', 'pozycje', 'pozycji') }}</span>{% endif %}
     </div>
     {% if attention.items is empty %}
         <p class="px-4 py-6 text-sm text-antracyt-500">Nic nie wymaga teraz uwagi.</p>
     {% else %}
-        <ul class="divide-y divide-szary-200">
+        <ul class="divide-y divide-szary-200" data-controller="context-menu">
             {% for item in attention.items %}
                 <li>
-                    <a href="{{ item.url }}" class="flex items-center gap-3 px-4 py-3 text-tekst hover:bg-szary-100 hover:text-tekst">
+                    <a href="{{ item.url }}" class="attention-row flex items-center gap-3 px-4 py-3 text-tekst hover:bg-szary-100 hover:text-tekst" data-table-nav-target="row" data-href="{{ item.url }}">
                         <twig:Badge tone="{{ item.tone }}" class="shrink-0">{{ item.category }}</twig:Badge>
                         <span class="flex-1 min-w-0">
                             <span class="block truncate font-semibold text-sm">{{ item.title }}</span>
                             {% if item.detail %}<span class="block truncate text-sm text-antracyt-500">{{ item.detail }}</span>{% endif %}
                         </span>
                         <span class="text-antracyt-500">{{ ux_icon('lucide:chevron-right') }}</span>
+                        {% if item.actions is not empty %}
+                            <template data-context-menu>
+                                {% for action in item.actions %}
+                                    {% if action.isPost %}
+                                        {{ cm.post(action.url, action.label, action.token, action.icon, action.confirm) }}
+                                    {% else %}
+                                        {{ cm.link(action.url, action.label, action.icon, action.frame) }}
+                                    {% endif %}
+                                {% endfor %}
+                            </template>
+                        {% endif %}
                     </a>
                 </li>
             {% endfor %}
         </ul>
+        {% if attention.pages > 1 %}
+            <nav class="flex items-center justify-between gap-2 border-t border-szary-200 px-4 py-2 text-sm" aria-label="Strony listy „Wymaga uwagi”">
+                <button type="button" class="btn btn-ghost btn-sm" {{ attention.page <= 1 ? 'disabled' }}
+                        data-action="live#action" data-live-action-param="showAttentionPage" data-live-page-param="{{ attention.page - 1 }}">{{ ux_icon('lucide:chevron-left') }} Poprzednie</button>
+                <span class="text-antracyt-500 tabular-nums">{{ attention.page }} / {{ attention.pages }}</span>
+                <button type="button" class="btn btn-ghost btn-sm" {{ attention.page >= attention.pages ? 'disabled' }}
+                        data-action="live#action" data-live-action-param="showAttentionPage" data-live-page-param="{{ attention.page + 1 }}">Następne {{ ux_icon('lucide:chevron-right') }}</button>
+            </nav>
+        {% endif %}
     {% endif %}
 </section>

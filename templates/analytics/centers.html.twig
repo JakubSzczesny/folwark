@@ -1,0 +1,115 @@
+{% extends 'analytics/_layout.html.twig' %}
+
+{% block analysis %}
+    <form method="get" class="filter-bar" data-controller="autosubmit" data-turbo-action="replace">
+        {{ include('analytics/_year.html.twig') }}
+        {% if is_granted('SETTINGS') %}<a href="{{ path('admin') }}" class="btn btn-ghost">Ośrodki, pola i sezony w słownikach</a>{% endif %}
+    </form>
+    <p class="mb-4 text-sm text-antracyt-500">Koszt trafia do ośrodka pozycji faktury, a jeśli pozycja go nie ma – do ośrodka faktury. Ośrodki przypisuje się przy „Przypisz towary” albo „Tylko koszt”.</p>
+
+    <section class="card mb-6">
+        <div class="card-header"><h2 class="card-title">Pola i sezony {{ year }}</h2></div>
+        {% if seasons is empty %}
+            <p class="px-4 py-6 text-sm text-antracyt-500">Brak sezonów upraw na {{ year }}. Dodaj je w słownikach (Pola → Sezony upraw) – każdy sezon dostaje własny ośrodek kosztów.</p>
+        {% else %}
+            <div class="table-wrap">
+                <table class="table table-cards">
+                    <thead><tr><th>Pole i uprawa</th><th class="text-right">Powierzchnia</th><th class="text-right">Koszty sezonu</th><th class="text-right">Koszt na ha</th></tr></thead>
+                    <tbody>
+                        {% for row in seasons %}
+                            <tr>
+                                <td class="card-title-cell">{{ row.season.label }}</td>
+                                <td data-label="Powierzchnia" class="num">{{ row.season.effectiveArea|qty(2) }} ha</td>
+                                <td data-label="Koszty sezonu" class="num">{{ row.total|money }}</td>
+                                <td data-label="Koszt na ha" class="num font-semibold">{{ row.perHa is not null ? row.perHa|money : '—' }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </section>
+
+    {% for herd in herds %}
+        <section class="card mb-6">
+            <div class="card-header">
+                <h2 class="card-title">{{ herd.center.name }} – {{ year }}</h2>
+                <p class="text-sm text-antracyt-500">Pasze to towary i koszty z kategorii z „pasz” w nazwie oraz dodatki mineralne. Wpisz litry mleka, żeby policzyć koszt na litr.</p>
+            </div>
+            <form method="post" action="{{ path('app_analytics_milk') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('milk') }}">
+                <input type="hidden" name="center" value="{{ herd.center.id }}">
+                <input type="hidden" name="rok" value="{{ year }}">
+                <div class="table-wrap">
+                    <table class="table table-cards">
+                        <thead><tr><th>Miesiąc</th><th class="text-right">Pasze</th><th class="text-right">Wszystkie koszty</th><th class="text-right">Mleko (l)</th><th class="text-right">Pasze na litr</th><th class="text-right">Koszty na litr</th></tr></thead>
+                        <tbody>
+                            {% for month, row in herd.months %}
+                                {% set label = date(month ~ '-01')|pl_month %}
+                                <tr>
+                                    <td class="card-title-cell">{{ label }}</td>
+                                    <td data-label="Pasze" class="num">{{ row.feed|money }}</td>
+                                    <td data-label="Wszystkie koszty" class="num text-antracyt-500">{{ row.total|money }}</td>
+                                    <td data-label="Mleko (l)" class="text-right">
+                                        <input name="liters[{{ month }}]" value="{{ row.liters is not null ? row.liters|number_format(0, ',', '') }}" class="input w-28 text-right tabular-nums" inputmode="decimal" aria-label="Litry mleka – {{ label }}">
+                                    </td>
+                                    <td data-label="Pasze na litr" class="num font-semibold">{{ row.liters ? (row.feed / row.liters)|amount(2) ~ ' zł' : '—' }}</td>
+                                    <td data-label="Koszty na litr" class="num">{{ row.liters ? (row.total / row.liters)|amount(2) ~ ' zł' : '—' }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="font-semibold">
+                                <td>Razem</td>
+                                <td class="num">{{ herd.feed|money }}</td>
+                                <td class="num">{{ herd.total|money }}</td>
+                                <td class="num">{{ herd.liters|qty(0) }} l</td>
+                                <td class="num">{{ herd.liters > 0 ? (herd.feed / herd.liters)|amount(2) ~ ' zł' : '—' }}</td>
+                                <td class="num">{{ herd.liters > 0 ? (herd.total / herd.liters)|amount(2) ~ ' zł' : '—' }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div class="p-4"><button type="submit" class="btn btn-secondary">Zapisz produkcję mleka</button></div>
+            </form>
+        </section>
+    {% endfor %}
+
+    <section class="card mb-6">
+        <div class="card-header"><h2 class="card-title">Maszyny {{ year }}</h2></div>
+        {% if machines is empty %}
+            <p class="px-4 py-6 text-sm text-antracyt-500">Brak kosztów przypisanych do maszyn w {{ year }}.</p>
+        {% else %}
+            <div class="table-wrap">
+                <table class="table table-cards">
+                    <thead><tr><th>Maszyna</th><th class="text-right">Paliwo</th><th class="text-right">Części i materiały</th><th class="text-right">Serwis i usługi</th><th class="text-right">Razem</th></tr></thead>
+                    <tbody>
+                        {% for row in machines %}
+                            <tr>
+                                <td class="card-title-cell">{% if row.machine %}<a href="{{ path('app_machine_show', {id: row.machine.id}) }}">{{ row.machine.label }}</a>{% else %}{{ row.center.name }}{% endif %}</td>
+                                {% for group, amount in row.groups %}<td data-label="{{ group }}" class="num">{{ amount|money }}</td>{% endfor %}
+                                <td data-label="Razem" class="num font-semibold">{{ row.total|money }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </section>
+
+    {% if others is not empty %}
+        <section class="card">
+            <div class="card-header"><h2 class="card-title">Pozostałe ośrodki {{ year }}</h2></div>
+            <div class="table-wrap">
+                <table class="table table-cards">
+                    <thead><tr><th>Ośrodek</th><th class="text-right">Koszty</th></tr></thead>
+                    <tbody>
+                        {% for row in others %}
+                            <tr><td class="card-title-cell">{{ row.center.name }}</td><td data-label="Koszty" class="num">{{ row.total|money }}</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    {% endif %}
+{% endblock %}

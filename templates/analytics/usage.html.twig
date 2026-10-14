@@ -1,0 +1,32 @@
+{% extends 'analytics/_layout.html.twig' %}
+
+{% block analysis %}
+    <p class="mb-3 text-sm text-antracyt-500">Szacunek z zakupów, nie z ewidencji zużycia: ile towaru kupowaliśmy średnio na dzień w ostatnich 12 miesiącach i rok wcześniej. „Tempo z cyklu” to zużycie między ostatnimi zamówieniami (Zamówienia).</p>
+    <div class="card">
+        {% if products is empty %}
+            <twig:EmptyState text="Brak zakupów z przypisanymi towarami w ostatnich 2 latach." />
+        {% else %}
+            <div class="table-wrap">
+                <table class="table table-cards" data-controller="table-nav" data-action="keydown@window->table-nav#keydown">
+                    <thead>
+                        <tr><th>Towar</th><th class="text-right">Kupiono – 12 mies.</th><th class="text-right">Na dzień</th><th class="text-right">Rok wcześniej</th><th class="text-right">Na dzień</th><th class="text-right">Zmiana</th><th class="text-right">Tempo z cyklu</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for row in products %}
+                            {% set url = path('app_product_show', {id: row.productId}) %}
+                            <tr data-table-nav-target="row" data-href="{{ url }}" data-action="click->table-nav#click">
+                                <td class="card-title-cell"><a href="{{ url }}" class="text-tekst hover:text-zielen-600">{{ row.product }}</a></td>
+                                <td data-label="Kupiono – 12 mies." class="num">{{ row.current|qty }} {{ row.unit }}</td>
+                                <td data-label="Na dzień" class="num font-semibold">{{ row.perDay|qty(row.perDay < 10 ? 2 : 0) }} {{ row.unit }}</td>
+                                <td data-label="Rok wcześniej" class="num text-antracyt-500">{{ row.previous|qty }} {{ row.unit }}</td>
+                                <td data-label="Na dzień" class="num text-antracyt-500">{{ row.perDayPrevious|qty(row.perDayPrevious < 10 ? 2 : 0) }} {{ row.unit }}</td>
+                                <td data-label="Zmiana" class="num">{% if row.change is not null %}{{ row.change > 0 ? '+' }}{{ (row.change * 100)|percent }}{% else %}<span class="text-antracyt-500">—</span>{% endif %}</td>
+                                <td data-label="Tempo z cyklu" class="num">{{ row.cycleUsage ? '≈ ' ~ row.cycleUsage|qty(row.cycleUsage < 10 ? 2 : 0) ~ ' ' ~ row.unit ~ '/dzień' : '—' }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

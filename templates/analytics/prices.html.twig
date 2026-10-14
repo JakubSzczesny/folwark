@@ -1,0 +1,67 @@
+{% extends 'analytics/_layout.html.twig' %}
+
+{% block analysis %}
+    <section class="card mb-6">
+        <div class="card-header">
+            <h2 class="card-title">Zakupy droższe od mediany o ponad {{ (threshold * 100)|percent }}</h2>
+            <p class="text-sm text-antracyt-500">Ostatnie 90 dni, porównanie z medianą ceny towaru z 12 miesięcy przed zakupem.</p>
+        </div>
+        {% if alerts is empty %}
+            <p class="px-4 py-6 text-sm text-antracyt-500">Brak – ceny w normie.</p>
+        {% else %}
+            <div class="table-wrap">
+                <table class="table table-cards">
+                    <thead><tr><th>Data</th><th>Towar</th><th>Faktura</th><th class="text-right">Cena</th><th class="text-right">Mediana</th><th class="text-right">Różnica</th></tr></thead>
+                    <tbody>
+                        {% for alert in alerts %}
+                            <tr>
+                                <td data-label="Data" class="tabular-nums">{{ alert.date|pl_date }}</td>
+                                <td class="card-title-cell"><a href="{{ path('app_product_suppliers', {id: alert.productId}) }}">{{ alert.product }}</a></td>
+                                <td data-label="Faktura"><a href="{{ path('app_invoice_show', {id: alert.invoiceId}) }}">{{ alert.invoiceNumber }}</a><span class="block text-xs text-antracyt-500">{{ alert.contractor }}</span></td>
+                                <td data-label="Cena" class="num">{{ alert.price|amount(alert.price < 10 ? 4 : 2) }} zł/{{ alert.unit }}</td>
+                                <td data-label="Mediana" class="num text-antracyt-500">{{ alert.median|amount(alert.median < 10 ? 4 : 2) }} zł</td>
+                                <td data-label="Różnica" class="num text-danger">+{{ (alert.percent * 100)|percent }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </section>
+
+    <section class="card">
+        <div class="card-header">
+            <h2 class="card-title">Ceny towarów – 12 miesięcy</h2>
+            <p class="text-sm text-antracyt-500">Cena netto za jednostkę podstawową. Historia per dostawca – na karcie towaru, zakładka „Dostawcy”.</p>
+        </div>
+        {% if products is empty %}
+            <twig:EmptyState text="Brak zakupów z przypisanymi towarami w ostatnich 12 miesiącach." />
+        {% else %}
+            <div class="table-wrap">
+                <table class="table table-cards" data-controller="table-nav" data-action="keydown@window->table-nav#keydown">
+                    <thead>
+                        <tr>
+                            <th>Towar</th><th>Ostatni zakup</th><th class="text-right">Ostatnia</th><th class="text-right">Min</th><th class="text-right">Maks</th><th class="text-right">Mediana</th><th class="text-right">Ostatnia vs mediana</th><th class="text-right">Dostawców</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in products %}
+                            {% set url = path('app_product_suppliers', {id: row.productId}) %}
+                            {% set decimals = row.median < 10 ? 4 : 2 %}
+                            <tr data-table-nav-target="row" data-href="{{ url }}" data-action="click->table-nav#click">
+                                <td class="card-title-cell"><a href="{{ url }}" class="text-tekst hover:text-zielen-600">{{ row.product }}</a><span class="block text-xs text-antracyt-500">zł/{{ row.unit }}</span></td>
+                                <td data-label="Ostatni zakup" class="tabular-nums">{{ row.lastDate|pl_date }}<span class="block text-xs text-antracyt-500">{{ row.lastSupplier }}</span></td>
+                                <td data-label="Ostatnia" class="num">{{ row.lastPrice|amount(decimals) }}</td>
+                                <td data-label="Min" class="num text-antracyt-500">{{ row.min|amount(decimals) }}</td>
+                                <td data-label="Maks" class="num text-antracyt-500">{{ row.max|amount(decimals) }}</td>
+                                <td data-label="Mediana" class="num">{{ row.median|amount(decimals) }}</td>
+                                <td data-label="Ostatnia vs mediana" class="num {{ row.change > threshold ? 'text-danger font-semibold' : (row.change < 0 ? 'text-zielen-700') }}">{{ row.change > 0 ? '+' }}{{ (row.change * 100)|percent }}</td>
+                                <td data-label="Dostawców" class="num">{{ row.suppliers }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </section>
+{% endblock %}

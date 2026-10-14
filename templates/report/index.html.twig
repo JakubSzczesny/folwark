@@ -1,0 +1,102 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Zestawienia{% endblock %}
+{% block active_menu %}reports{% endblock %}
+
+{% macro buttons(route, pdf = true) %}
+    <div class="flex flex-wrap gap-2">
+        <button type="submit" class="btn btn-primary" formaction="{{ path(route, {format: 'xlsx'}) }}">{{ ux_icon('lucide:file-spreadsheet') }} XLSX</button>
+        {% if pdf %}<button type="submit" class="btn btn-secondary" formaction="{{ path(route, {format: 'pdf'}) }}">{{ ux_icon('lucide:file-text') }} PDF</button>{% endif %}
+    </div>
+{% endmacro %}
+
+{% macro period(from, to, prefix) %}
+    <div class="grid grid-cols-2 gap-3">
+        <div class="field"><label class="label" for="{{ prefix }}-from">Od</label><input id="{{ prefix }}-from" type="date" name="od" value="{{ from|date('Y-m-d') }}" class="input" required></div>
+        <div class="field"><label class="label" for="{{ prefix }}-to">Do</label><input id="{{ prefix }}-to" type="date" name="do" value="{{ to|date('Y-m-d') }}" class="input" required></div>
+    </div>
+{% endmacro %}
+
+{% block content %}
+    <twig:PageHeader title="Zestawienia" subtitle="Do pobrania jako XLSX (Excel) lub PDF" />
+
+    <div class="grid gap-6 lg:grid-cols-2">
+        {% if is_granted('INVOICE_VIEW') %}
+            <section class="card card-body">
+                <h2 class="card-title mb-1">Faktury za okres</h2>
+                <p class="mb-4 text-sm text-antracyt-500">Ze statusami, płatnościami, ośrodkami i kategoriami kosztów.</p>
+                <form method="get" data-turbo="false">
+                    {{ _self.period(month_start, month_end, 'inv') }}
+                    <div class="field">
+                        <label class="label" for="inv-kind">Rodzaj</label>
+                        <select id="inv-kind" name="rodzaj" class="select">
+                            <option value="cost">Kosztowe</option>
+                            <option value="income">Przychodowe</option>
+                            <option value="">Wszystkie</option>
+                        </select>
+                    </div>
+                    {{ _self.buttons('app_report_invoices') }}
+                </form>
+            </section>
+
+            <section class="card card-body">
+                <h2 class="card-title mb-1">Olej napędowy – zwrot akcyzy</h2>
+                <p class="mb-4 text-sm text-antracyt-500">Litry i kwoty z faktur za okres wniosku, z listą faktur.</p>
+                <form method="get" data-turbo="false">
+                    <div class="grid grid-cols-[1fr_120px] gap-3">
+                        <div class="field">
+                            <label class="label" for="diesel-half">Wniosek</label>
+                            <select id="diesel-half" name="polrocze" class="select">
+                                <option value="1" {{ diesel_half == 1 ? 'selected' }}>w lutym – faktury sierpień–styczeń</option>
+                                <option value="2" {{ diesel_half == 2 ? 'selected' }}>w sierpniu – faktury luty–lipiec</option>
+                            </select>
+                        </div>
+                        <div class="field">
+                            <label class="label" for="diesel-year">Rok wniosku</label>
+                            <select id="diesel-year" name="rok" class="select">
+                                {% for y in (year + 1)..(year - 4) %}<option value="{{ y }}" {{ y == diesel_year ? 'selected' }}>{{ y }}</option>{% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    {{ _self.buttons('app_report_diesel') }}
+                </form>
+            </section>
+
+            <section class="card card-body">
+                <h2 class="card-title mb-1">Zakupy per towar i dostawca</h2>
+                <p class="mb-4 text-sm text-antracyt-500">Ilości, kwoty i średnie ceny z pozycji przypisanych do towarów.</p>
+                <form method="get" data-turbo="false">
+                    {{ _self.period(month_start, month_end, 'pur') }}
+                    {{ _self.buttons('app_report_purchases') }}
+                </form>
+            </section>
+        {% endif %}
+
+        {% if is_granted('MACHINE_VIEW') %}
+            <section class="card card-body">
+                <h2 class="card-title mb-1">Terminy maszyn</h2>
+                <p class="mb-4 text-sm text-antracyt-500">Ubezpieczenia, przeglądy techniczne i zaplanowane serwisy aktywnych maszyn.</p>
+                <form method="get" data-turbo="false">
+                    {{ _self.buttons('app_report_machines') }}
+                </form>
+            </section>
+        {% endif %}
+
+        {% if is_granted('ORDER_VIEW') %}
+            <section class="card card-body">
+                <h2 class="card-title mb-1">Przewidywane zamówienia</h2>
+                <p class="mb-4 text-sm text-antracyt-500">Co i kiedy trzeba będzie zamówić, z typową ilością i kwotą. Także zaległe.</p>
+                <form method="get" data-turbo="false">
+                    <div class="field">
+                        <label class="label" for="orders-days">Horyzont</label>
+                        <select id="orders-days" name="dni" class="select">
+                            <option value="30">30 dni</option>
+                            <option value="90">90 dni</option>
+                        </select>
+                    </div>
+                    {{ _self.buttons('app_report_orders') }}
+                </form>
+            </section>
+        {% endif %}
+    </div>
+{% endblock %}

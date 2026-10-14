@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ report.title }}</title>
+    <style>
+        @page { margin: 14mm 12mm; }
+        body { font-family: "DejaVu Sans", sans-serif; font-size: 8pt; color: #1E2226; }
+        h1 { font-size: 14pt; margin: 0 0 1mm; }
+        .muted { color: #5F666D; }
+        table { width: 100%; border-collapse: collapse; margin-top: 4mm; }
+        th { text-align: left; font-weight: bold; color: #5F666D; border-bottom: 1px solid #1E2226; padding: 1.2mm; }
+        td { border-bottom: 1px solid #DDE1E4; padding: 1.2mm; vertical-align: top; }
+        tfoot td { font-weight: bold; border-top: 1px solid #1E2226; border-bottom: 0; }
+        .num { text-align: right; white-space: nowrap; }
+        .notes { margin-top: 4mm; color: #5F666D; }
+    </style>
+</head>
+<body>
+    <p class="muted">{{ farm_name() }}</p>
+    <h1>{{ report.title }}</h1>
+    <p class="muted">{{ report.subtitle }} · wygenerowano {{ 'now'|date('d.m.Y H:i') }}</p>
+
+    {% macro cell(value, type) %}
+        {%- if value is null -%}
+        {%- elseif type == 'money' -%}{{ value|amount }}
+        {%- elseif type == 'qty' -%}{{ value|qty }}
+        {%- elseif type == 'date' -%}{{ value|pl_date }}
+        {%- elseif type == 'percent' -%}{{ (value * 100)|percent(1) }}
+        {%- else -%}{{ value }}
+        {%- endif -%}
+    {% endmacro %}
+
+    {% if report.rows is empty %}
+        <p>Brak danych w tym okresie.</p>
+    {% else %}
+        <table>
+            <thead>
+                <tr>{% for column in report.columns %}<th class="{{ column.type|default('text') != 'text' and column.type|default('text') != 'date' ? 'num' }}">{{ column.label }}</th>{% endfor %}</tr>
+            </thead>
+            <tbody>
+                {% for row in report.rows %}
+                    <tr>{% for column in report.columns %}{% set type = column.type|default('text') %}<td class="{{ type not in ['text', 'date'] ? 'num' }}">{{ _self.cell(row[loop.index0], type) }}</td>{% endfor %}</tr>
+                {% endfor %}
+            </tbody>
+            {% if report.totals %}
+                <tfoot>
+                    <tr>{% for column in report.columns %}{% set type = column.type|default('text') %}<td class="{{ type not in ['text', 'date'] ? 'num' }}">{{ loop.first ? report.totals[0] : _self.cell(report.totals[loop.index0], type) }}</td>{% endfor %}</tr>
+                </tfoot>
+            {% endif %}
+        </table>
+    {% endif %}
+
+    {% for note in report.notes %}<p class="notes">{{ note }}</p>{% endfor %}
+</body>
+</html>

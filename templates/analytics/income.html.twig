@@ -1,0 +1,87 @@
+{% extends 'analytics/_layout.html.twig' %}
+
+{% block analysis %}
+    <form method="get" class="filter-bar" data-controller="autosubmit" data-turbo-action="replace">
+        {{ include('analytics/_year.html.twig') }}
+    </form>
+
+    <div class="grid gap-6 lg:grid-cols-2 mb-6">
+        <section class="card">
+            <div class="card-header"><h2 class="card-title">Per towar {{ year }}</h2></div>
+            {% if products is empty %}
+                <p class="px-4 py-6 text-sm text-antracyt-500">Brak faktur przychodowych z pozycjami w {{ year }}.</p>
+            {% else %}
+                <div class="table-wrap">
+                    <table class="table table-cards">
+                        <thead><tr><th>Towar</th><th class="text-right">Ilość</th><th class="text-right">Śr. cena</th><th class="text-right">Netto</th></tr></thead>
+                        <tbody>
+                            {% for row in products %}
+                                <tr>
+                                    <td class="card-title-cell">{% if row.productId %}<a href="{{ path('app_product_show', {id: row.productId}) }}">{{ row.product }}</a>{% else %}{{ row.product }} <span class="text-xs text-antracyt-500">(bez towaru)</span>{% endif %}</td>
+                                    <td data-label="Ilość" class="num">{{ row.productId ? row.quantity|qty ~ ' ' ~ row.unit : '—' }}</td>
+                                    <td data-label="Śr. cena" class="num">{{ row.avgPrice is not null ? row.avgPrice|amount(row.avgPrice < 10 ? 4 : 2) ~ ' zł/' ~ row.unit : '—' }}</td>
+                                    <td data-label="Netto" class="num">{{ row.net|money }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </section>
+
+        <section class="card">
+            <div class="card-header"><h2 class="card-title">Per odbiorca {{ year }}</h2></div>
+            {% if customers is empty %}
+                <p class="px-4 py-6 text-sm text-antracyt-500">Brak faktur przychodowych w {{ year }}.</p>
+            {% else %}
+                {% if chart %}<div class="px-4 pt-4" style="height: {{ 60 + 32 * min(customers|length, 8) }}px">{{ render_chart(chart) }}</div>{% endif %}
+                <div class="table-wrap">
+                    <table class="table table-cards">
+                        <thead><tr><th>Odbiorca</th><th class="text-right">Faktur</th><th class="text-right">Netto</th><th class="text-right">Brutto</th></tr></thead>
+                        <tbody>
+                            {% for row in customers %}
+                                <tr>
+                                    <td class="card-title-cell">{% if row.contractorId and is_granted('CONTRACTOR_VIEW') %}<a href="{{ path('app_contractor_show', {id: row.contractorId}) }}">{{ row.contractor }}</a>{% else %}{{ row.contractor }}{% endif %}</td>
+                                    <td data-label="Faktur" class="num">{{ row.invoices }}</td>
+                                    <td data-label="Netto" class="num">{{ row.net|money }}</td>
+                                    <td data-label="Brutto" class="num text-antracyt-500">{{ row.gross|money }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% endif %}
+        </section>
+    </div>
+
+    <section class="card">
+        <div class="card-header"><h2 class="card-title">Realizacja umów</h2></div>
+        {% if contracts is empty %}
+            <p class="px-4 py-6 text-sm text-antracyt-500">Brak aktywnych umów sprzedaży i zakupu.</p>
+        {% else %}
+            <div class="table-wrap">
+                <table class="table table-cards">
+                    <thead><tr><th>Umowa</th><th>Kontrahent</th><th>Realizacja</th><th>Obowiązuje do</th></tr></thead>
+                    <tbody>
+                        {% for row in contracts %}
+                            {% set r = row.realization %}
+                            <tr>
+                                <td class="card-title-cell"><a href="{{ path('app_contract_show', {id: row.contract.id}) }}">{{ row.contract.number }}</a><span class="block text-xs text-antracyt-500">{{ row.contract.subject }}</span></td>
+                                <td data-label="Kontrahent">{{ row.contract.contractor.displayName }}</td>
+                                <td data-label="Realizacja" class="min-w-[200px]">
+                                    {% if r.target %}
+                                        <twig:Progress value="{{ r.quantity }}" max="{{ r.target }}" />
+                                        <span class="text-xs tabular-nums">{{ r.quantity|qty }} z {{ r.target|qty }} {{ r.unit }} ({{ r.percent|percent }})</span>
+                                    {% else %}
+                                        <span class="tabular-nums">{{ r.quantity|qty }} {{ r.unit }}</span>
+                                    {% endif %}
+                                </td>
+                                <td data-label="Obowiązuje do" class="tabular-nums">{{ row.contract.validTo ? row.contract.validTo|pl_date : 'bezterminowo' }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+    </section>
+{% endblock %}

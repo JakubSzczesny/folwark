@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Analytics\PriceAnalysis;
 use App\Entity\Contract;
 use App\Entity\Invoice;
 use App\Entity\User;
@@ -53,6 +54,7 @@ final class InvoiceController extends AbstractController
         private readonly InvoiceXmlService $xml,
         private readonly EntityManagerInterface $em,
         private readonly FarmContext $farmContext,
+        private readonly PriceAnalysis $prices,
     ) {
     }
 
@@ -350,7 +352,12 @@ final class InvoiceController extends AbstractController
             $parseError = $e->getMessage();
         }
 
-        return ['invoice' => $invoice, 'parsed' => $parsed, 'parse_error' => $parseError];
+        return [
+            'invoice' => $invoice,
+            'parsed' => $parsed,
+            'parse_error' => $parseError,
+            'price_alerts' => $this->isGranted(Permission::AMOUNTS_VIEW) ? $this->prices->alertsForInvoice($invoice) : [],
+        ];
     }
 
     private function markRead(Invoice $invoice, User $user): void

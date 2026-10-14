@@ -1,0 +1,8 @@
+{# Wybór roku w filtrach analiz. Parametr: year. #}
+<div class="field">
+    <label class="label" for="f-year">Rok</label>
+    <select id="f-year" name="rok" class="select" data-action="autosubmit#submit">
+        {% set current = 'now'|date('Y') %}
+        {% for y in current..(current - 6) %}<option value="{{ y }}" {{ year == y ? 'selected' }}>{{ y }}</option>{% endfor %}
+    </select>
+</div>

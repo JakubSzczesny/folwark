@@ -1,0 +1,87 @@
+{% extends 'analytics/_layout.html.twig' %}
+
+{% block analysis %}
+    <form method="get" class="filter-bar" data-controller="autosubmit" data-turbo-action="replace">
+        {{ include('analytics/_year.html.twig') }}
+        <div class="field">
+            <label class="label" for="f-category">Kategoria kosztu</label>
+            <select id="f-category" name="kategoria" class="select" data-action="autosubmit#submit">
+                <option value="">Wszystkie</option>
+                {% for category in categories %}<option value="{{ category.id }}" {{ filters.category == category.id ? 'selected' }}>{{ category.name }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="field">
+            <label class="label" for="f-center">Ośrodek kosztów</label>
+            <select id="f-center" name="osrodek" class="select" data-action="autosubmit#submit">
+                <option value="">Wszystkie</option>
+                {% for center in centers %}<option value="{{ center.id }}" {{ filters.costCenter == center.id ? 'selected' }}>{{ center.name }}</option>{% endfor %}
+            </select>
+        </div>
+        <div class="field min-w-[220px]">
+            <label class="label" for="f-contractor">Kontrahent</label>
+            <select id="f-contractor" name="kontrahent"
+                    data-controller="symfony--ux-autocomplete--autocomplete"
+                    data-symfony--ux-autocomplete--autocomplete-url-value="{{ path('ux_entity_autocomplete', {alias: 'contractor'}) }}"
+                    data-symfony--ux-autocomplete--autocomplete-preload-value="focus"
+                    data-action="change->autosubmit#submit">
+                <option value="">Wszyscy</option>
+                {% if selected_contractor %}<option value="{{ selected_contractor.id }}" selected>{{ selected_contractor.name }}</option>{% endif %}
+            </select>
+        </div>
+        <a href="{{ path('app_analytics_index') }}" class="btn btn-ghost">Wyczyść</a>
+    </form>
+    {% if filters.category or filters.costCenter %}
+        <p class="mb-3 text-sm text-antracyt-500">Kategoria i ośrodek zawężają tylko koszty – wg faktur, którym je przypisano („Tylko koszt” i reguły).</p>
+    {% endif %}
+
+    <section class="card card-body mb-6">
+        <h2 class="card-title mb-3">{{ year }} na tle {{ year - 1 }}</h2>
+        <div style="height: 300px">{{ render_chart(chart) }}</div>
+    </section>
+
+    {% set totals = {costs: months|reduce((s, m) => s + m.costs, 0), income: months|reduce((s, m) => s + m.income, 0), previousCosts: months|reduce((s, m) => s + m.previousCosts, 0), previousIncome: months|reduce((s, m) => s + m.previousIncome, 0)} %}
+    <div class="card">
+        <div class="table-wrap">
+            <table class="table table-cards">
+                <thead>
+                    <tr>
+                        <th>Miesiąc</th>
+                        <th class="text-right">Koszty</th><th class="text-right">Koszty {{ year - 1 }}</th><th class="text-right">Zmiana</th>
+                        <th class="text-right">Przychody</th><th class="text-right">Przychody {{ year - 1 }}</th><th class="text-right">Wynik</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in months %}
+                        <tr>
+                            <td class="card-title-cell">{{ row.month|pl_month }}</td>
+                            <td data-label="Koszty" class="num">{{ row.costs|money }}</td>
+                            <td data-label="Koszty {{ year - 1 }}" class="num text-antracyt-500">{{ row.previousCosts|money }}</td>
+                            <td data-label="Zmiana" class="num">{{ _self.change(row.costs, row.previousCosts, true) }}</td>
+                            <td data-label="Przychody" class="num">{{ row.income|money }}</td>
+                            <td data-label="Przychody {{ year - 1 }}" class="num text-antracyt-500">{{ row.previousIncome|money }}</td>
+                            <td data-label="Wynik" class="num {{ row.income - row.costs < 0 ? 'text-danger' }}">{{ (row.income - row.costs)|money }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="font-semibold">
+                        <td>Razem</td>
+                        <td class="num">{{ totals.costs|money }}</td>
+                        <td class="num text-antracyt-500">{{ totals.previousCosts|money }}</td>
+                        <td class="num">{{ _self.change(totals.costs, totals.previousCosts, true) }}</td>
+                        <td class="num">{{ totals.income|money }}</td>
+                        <td class="num text-antracyt-500">{{ totals.previousIncome|money }}</td>
+                        <td class="num {{ totals.income - totals.costs < 0 ? 'text-danger' }}">{{ (totals.income - totals.costs)|money }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+{% endblock %}
+
+{% macro change(current, previous, cost = false) %}
+    {%- if previous > 0 -%}
+        {%- set ratio = (current / previous - 1) * 100 -%}
+        <span class="{{ (cost ? ratio > 0 : ratio < 0) ? 'text-danger' : 'text-zielen-700' }}">{{ ratio > 0 ? '+' }}{{ ratio|percent }}</span>
+    {%- else -%}<span class="text-antracyt-500">—</span>{%- endif -%}
+{% endmacro %}

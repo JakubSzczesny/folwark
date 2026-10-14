@@ -30,6 +30,7 @@ final class Navigation
             ['key' => 'stock', 'label' => 'Stany', 'route' => 'app_stock_index', 'permission' => Permission::DOCUMENT_VIEW],
         ]],
         ['key' => 'analytics', 'label' => 'Analizy', 'route' => 'app_analytics_index', 'icon' => 'chart-column', 'permission' => Permission::ANALYTICS_VIEW],
+        ['key' => 'reports', 'label' => 'Zestawienia', 'route' => 'app_report_index', 'icon' => 'file-spreadsheet', 'permission' => Permission::EXPORT],
         ['key' => 'weighbridge', 'label' => 'Waga', 'route' => 'app_weighbridge', 'icon' => 'scale', 'permission' => null],
         ['key' => 'notifications', 'label' => 'Powiadomienia', 'route' => 'app_notification_index', 'icon' => 'bell', 'permission' => null],
         ['key' => 'settings', 'label' => 'Ustawienia', 'route' => 'app_settings', 'icon' => 'settings', 'permission' => Permission::SETTINGS, 'separator' => true],

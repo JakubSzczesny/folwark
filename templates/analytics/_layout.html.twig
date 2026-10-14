@@ -1,0 +1,20 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Analizy{% endblock %}
+{% block active_menu %}analytics{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="Analizy" subtitle="Z faktur i ich pozycji, kwoty netto">
+        {% block actions %}{% endblock %}
+    </twig:PageHeader>
+
+    <nav class="tabs mb-4" aria-label="Rodzaj analizy">
+        <a href="{{ path('app_analytics_index') }}" class="tab {{ tab == 'costs' ? 'tab-active' }}">Koszty i przychody</a>
+        <a href="{{ path('app_analytics_prices') }}" class="tab {{ tab == 'prices' ? 'tab-active' }}">Ceny</a>
+        <a href="{{ path('app_analytics_centers') }}" class="tab {{ tab == 'centers' ? 'tab-active' }}">Ośrodki kosztów</a>
+        <a href="{{ path('app_analytics_usage') }}" class="tab {{ tab == 'usage' ? 'tab-active' }}">Zużycie</a>
+        <a href="{{ path('app_analytics_income') }}" class="tab {{ tab == 'income' ? 'tab-active' }}">Przychody</a>
+    </nav>
+
+    {% block analysis %}{% endblock %}
+{% endblock %}

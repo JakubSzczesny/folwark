@@ -29,7 +29,7 @@ final class BsPaySettingsType extends AbstractType
     {
         $builder
             ->add(SettingsForm::field(SettingKey::BSPAY_ENABLED), CheckboxType::class, [
-                'label' => 'Włącz BS Pay – przycisk „Przelew w BS” przy fakturach do zapłaty',
+                'label' => 'Włącz BS Pay – przycisk „Uzupełnij w BS” przy fakturach do zapłaty',
                 'required' => false,
             ])
             ->add(SettingsForm::field(SettingKey::BSPAY_BANK_URL), UrlType::class, [

@@ -72,7 +72,7 @@ final class SettingKey
         self::WAREHOUSE_CREATE_PZ => false,
         self::WAREHOUSE_NUMBER_PATTERN => '{TYP}/{RRRR}/{MM}/{NNNN}',
         self::BSPAY_ENABLED => false,
-        self::BSPAY_BANK_URL => null,
+        self::BSPAY_BANK_URL => 'https://i24.bsbydgoszcz.pl/',
         self::BSPAY_TITLE => 'Faktura {numer}',
         self::BSPAY_SPLIT_PAYMENT => true,
     ];

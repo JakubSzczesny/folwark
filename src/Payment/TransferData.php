@@ -26,7 +26,7 @@ final class TransferData
 
     /**
      * @return array{
-     *     invoiceId: int, invoiceNumber: string, recipient: string, address: string, nip: ?string,
+     *     invoiceId: int, invoiceNumber: string, recipient: string, address: string, street: ?string, postalCode: ?string, city: ?string, nip: ?string,
      *     account: ?string, iban: ?string, accountFormatted: ?string, accountOnWhiteList: ?bool, accountSource: ?string,
      *     amount: string, vat: string, currency: string, title: string, splitPayment: bool, splitTitle: ?string,
      *     paymentDue: ?string, paid: bool, warnings: list<string>
@@ -96,6 +96,9 @@ final class TransferData
             'invoiceNumber' => $invoice->getNumber(),
             'recipient' => $contractor?->getName() ?? $invoice->getContractorLabel(),
             'address' => $contractor?->getAddressLine() ?? '',
+            'street' => $contractor?->getStreet(),
+            'postalCode' => $contractor?->getPostalCode(),
+            'city' => $contractor?->getCity(),
             'nip' => $nip,
             'account' => null !== $account ? self::domestic($account) : null,
             'iban' => $account,

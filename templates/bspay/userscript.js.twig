@@ -1,0 +1,288 @@
+{% autoescape false -%}
+// ==UserScript==
+// @name         Folwark – BS Pay
+// @namespace    {{ folwark_origin }}
+// @version      {{ version }}
+// @description  Uzupełnia przelew krajowy w bankowości BS Bydgoszcz danymi faktury z Folwarku. Przelew zatwierdzasz sam w banku.
+// @match        {{ folwark_origin }}/*
+// @match        {{ bank_origin }}/*
+// @grant        GM_getValue
+// @grant        GM_setValue
+// @grant        GM_deleteValue
+// @grant        GM_addValueChangeListener
+// @grant        GM_openInTab
+// @grant        unsafeWindow
+// @run-at       document-idle
+// @noframes
+// @updateURL    {{ script_url }}
+// @downloadURL  {{ script_url }}
+// ==/UserScript==
+
+const CONFIG = {{ config|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or constant('JSON_UNESCAPED_UNICODE'))|raw }};
+{% verbatim %}
+(function () {
+    'use strict';
+
+    /* Przelew czeka w schowku skryptu najwyżej 15 minut; potem trzeba go wysłać z Folwarku ponownie. */
+    const TTL = 15 * 60 * 1000;
+    const BANK_ALIVE = 10 * 1000;
+
+    const pending = () => {
+        const item = GM_getValue('pending', null);
+        if (!item || Date.now() - item.createdAt > TTL) {
+            return null;
+        }
+        return item;
+    };
+
+    const money = (amount, currency) => `${Number(amount).toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency === 'PLN' ? 'zł' : currency}`;
+
+    const style = (element, css) => Object.assign(element.style, css);
+
+    function toast(text, tone = 'info') {
+        const box = document.createElement('div');
+        box.textContent = text;
+        style(box, {
+            position: 'fixed', right: '16px', bottom: '16px', zIndex: 2147483647, maxWidth: '360px',
+            padding: '12px 16px', borderRadius: '8px', font: '14px/1.4 system-ui, sans-serif', color: '#fff',
+            background: tone === 'error' ? '#B42318' : '#2E7D46', boxShadow: '0 8px 24px rgba(0,0,0,.2)',
+        });
+        document.body.append(box);
+        setTimeout(() => box.remove(), 6000);
+    }
+
+    /* ---------------- Folwark ---------------- */
+
+    function onFolwark() {
+        document.documentElement.dataset.bspayExtension = GM_info.script.version;
+
+        document.addEventListener('bspay:transfer', (event) => {
+            let transfer;
+            try {
+                transfer = JSON.parse(event.detail || document.documentElement.dataset.bspayTransfer || '{}');
+            } catch {
+                toast('BS Pay: nieczytelne dane przelewu.', 'error');
+                return;
+            }
+            if (!transfer.account || !transfer.amount) {
+                toast('BS Pay: brak rachunku albo kwoty – uzupełnij dane faktury.', 'error');
+                return;
+            }
+
+            GM_setValue('pending', { transfer, createdAt: Date.now(), filledAt: null });
+
+            const bankOpen = Date.now() - GM_getValue('bankAlive', 0) < BANK_ALIVE;
+            if (bankOpen) {
+                toast(`Przelew dla „${transfer.recipient}” czeka w otwartej karcie BS – przejdź do niej.`);
+            } else {
+                GM_openInTab(CONFIG.bankUrl, { active: true, insert: true });
+                toast('Otwieram BS. Po zalogowaniu kliknij „Uzupełnij przelew” w okienku Folwarku.');
+            }
+        });
+    }
+
+    /* ---------------- Bank ---------------- */
+
+    const field = (key) => document.getElementById(CONFIG.fieldPrefix + CONFIG.fields[key]);
+
+    const isTransferForm = () => location.pathname.includes(CONFIG.transferPath) && field('account') !== null;
+
+    const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+    /* Formularz banku po każdej zmianie pola wysyła zapytanie AJAX (PrimeFaces) – czekamy, aż się skończy. */
+    async function idle() {
+        const page = unsafeWindow;
+        for (let i = 0; i < 50; i++) {
+            const queueEmpty = !page.PrimeFaces?.ajax?.Queue || page.PrimeFaces.ajax.Queue.isEmpty();
+            const jqueryIdle = !page.jQuery || page.jQuery.active === 0;
+            if (queueEmpty && jqueryIdle) {
+                return;
+            }
+            await sleep(100);
+        }
+    }
+
+    /* Tekst w liniach po N znaków (nazwa: 2 × 35, tytuł: 4 × 35), z podziałem na granicy słów. */
+    function lines(text, count, width) {
+        const result = [];
+        let rest = (text || '').replace(/\s+/g, ' ').trim();
+        while (rest && result.length < count) {
+            if (rest.length <= width) {
+                result.push(rest);
+                break;
+            }
+            let cut = rest.lastIndexOf(' ', width);
+            if (cut < width / 2) {
+                cut = width;
+            }
+            result.push(rest.slice(0, cut).trim());
+            rest = rest.slice(cut).trim();
+        }
+        return result;
+    }
+
+    async function type(key, value) {
+        const element = field(key);
+        if (!element || element.disabled || element.readOnly) {
+            return false;
+        }
+        const $ = unsafeWindow.jQuery;
+        if ($) {
+            $(element).trigger('focus').val(value).trigger('input').trigger('keyup').trigger('change').trigger('blur');
+        } else {
+            element.focus();
+            element.value = value;
+            for (const name of ['input', 'keyup', 'change', 'blur']) {
+                element.dispatchEvent(new Event(name, { bubbles: true }));
+            }
+        }
+        await idle();
+        return true;
+    }
+
+    async function fill(transfer) {
+        const name = lines(transfer.recipient, 2, 35);
+        const title = lines(transfer.title, 4, 35);
+        const postal = (transfer.postalCode || '').replace(/^(\d{2})(\d{3})$/, '$1-$2');
+        const values = [
+            ['account', transfer.account],
+            ['name1', name[0] || ''],
+            ['name2', name[1] || ''],
+            ['street', (transfer.street || '').slice(0, 35)],
+            ['postalCode', postal],
+            ['city', (transfer.city || '').slice(0, 28)],
+            ['amount', String(transfer.amount).replace('.', ',')],
+            ['title1', title[0] || ''],
+            ['title2', title[1] || ''],
+            ['title3', title[2] || ''],
+            ['title4', title[3] || ''],
+        ];
+
+        const missing = [];
+        for (const [key, value] of values) {
+            const typed = await type(key, value);
+            if (!typed && CONFIG.required.includes(key)) {
+                missing.push(key);
+            }
+        }
+
+        /* Bank po wpisaniu rachunku potrafi przeładować część formularza – sprawdzamy i poprawiamy raz jeszcze. */
+        for (const [key, value] of values) {
+            const element = field(key);
+            if (element && value && element.value.replace(/\s/g, '') !== value.replace(/\s/g, '') && key !== 'amount' && key !== 'postalCode') {
+                await type(key, value);
+            }
+        }
+
+        return missing;
+    }
+    function panel(item) {
+        document.getElementById('folwark-bspay')?.remove();
+        if (!item) {
+            return;
+        }
+        const { transfer } = item;
+        const box = document.createElement('div');
+        box.id = 'folwark-bspay';
+        style(box, {
+            position: 'fixed', right: '16px', bottom: '16px', zIndex: 2147483646, width: '340px',
+            background: '#fff', color: '#1E2226', border: '1px solid #DDE1E4', borderRadius: '10px',
+            boxShadow: '0 12px 32px rgba(0,0,0,.18)', font: '14px/1.45 system-ui, sans-serif', padding: '14px 16px',
+        });
+
+        const title = document.createElement('div');
+        title.textContent = 'Folwark – przelew do uzupełnienia';
+        style(title, { fontWeight: '600', marginBottom: '6px', color: '#2E7D46' });
+
+        const details = document.createElement('div');
+        details.innerText = `${transfer.recipient}\n${transfer.accountFormatted || transfer.account}\n${money(transfer.amount, transfer.currency)}\n${transfer.title}`
+            + (transfer.splitPayment ? '\nPodzielona płatność (MPP)' : '')
+            + (item.filledAt ? '\n\nUzupełniono – sprawdź dane i zatwierdź przelew w banku.' : '');
+        style(details, { whiteSpace: 'pre-line', fontSize: '13px', marginBottom: '10px' });
+
+        const actions = document.createElement('div');
+        style(actions, { display: 'flex', gap: '8px' });
+        const button = (label, primary, handler) => {
+            const b = document.createElement('button');
+            b.type = 'button';
+            b.textContent = label;
+            style(b, {
+                cursor: 'pointer', padding: '7px 12px', borderRadius: '6px', font: 'inherit',
+                border: primary ? '1px solid #2E7D46' : '1px solid #DDE1E4',
+                background: primary ? '#2E7D46' : '#fff', color: primary ? '#fff' : '#1E2226',
+            });
+            b.addEventListener('click', handler);
+            actions.append(b);
+        };
+        button(item.filledAt ? 'Uzupełnij ponownie' : 'Uzupełnij przelew', true, () => start());
+        button('Odrzuć', false, () => {
+            GM_deleteValue('pending');
+            panel(null);
+        });
+
+        box.append(title, details, actions);
+        document.body.append(box);
+    }
+
+    function start() {
+        const item = pending();
+        if (!item) {
+            panel(null);
+            return;
+        }
+        if (isTransferForm()) {
+            GM_deleteValue('autofill');
+            fill(item.transfer).then((missing) => {
+                item.filledAt = Date.now();
+                GM_setValue('pending', item);
+                panel(item);
+                if (missing.length) {
+                    toast(`Nie udało się wpisać pól: ${missing.join(', ')}. Uzupełnij je ręcznie.`, 'error');
+                }
+            });
+            return;
+        }
+        const link = document.querySelector(`a[href*="${CONFIG.transferPath}"]`);
+        if (!link) {
+            toast('Zaloguj się do bankowości – formularz przelewu otworzy się po zalogowaniu.', 'error');
+            return;
+        }
+        GM_setValue('autofill', Date.now());
+        link.click();
+    }
+
+    function onBank() {
+        const beat = () => GM_setValue('bankAlive', Date.now());
+        beat();
+        setInterval(beat, 3000);
+        window.addEventListener('beforeunload', () => GM_setValue('bankAlive', 0));
+
+        GM_addValueChangeListener('pending', (name, before, after, remote) => {
+            if (remote) {
+                panel(pending());
+            }
+        });
+
+        panel(pending());
+
+        const autofill = GM_getValue('autofill', 0);
+        if (autofill && Date.now() - autofill < 60 * 1000 && pending()) {
+            /* Formularz bankowości dociąga się chwilę po załadowaniu strony. */
+            let tries = 0;
+            const wait = setInterval(() => {
+                if (isTransferForm() || ++tries > 20) {
+                    clearInterval(wait);
+                    start();
+                }
+            }, 500);
+        }
+    }
+
+    if (location.origin === CONFIG.folwarkOrigin) {
+        onFolwark();
+    } else if (location.origin === CONFIG.bankOrigin) {
+        onBank();
+    }
+})();
+{% endverbatim %}
+{% endautoescape %}

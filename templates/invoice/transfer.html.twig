@@ -23,7 +23,7 @@
 
         <div class="mt-4 flex flex-wrap gap-2">
             {% if bspay_enabled and bank_url %}
-                <button type="button" class="btn btn-primary" data-action="bspay#send">{{ ux_icon('lucide:external-link') }} Przelew w BS</button>
+                <button type="button" class="btn btn-primary" data-action="bspay#send">{{ ux_icon('lucide:external-link') }} Uzupełnij w BS</button>
             {% endif %}
             {% if not invoice.paid %}
                 <form method="post" action="{{ path('app_invoice_paid', {id: invoice.id}) }}">

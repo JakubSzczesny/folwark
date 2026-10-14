@@ -95,4 +95,19 @@ final class PaymentTest extends FunctionalTestCase
         self::assertTrue($settings->bool(SettingKey::BSPAY_ENABLED));
         self::assertSame('https://e-bank.example.pl/przelew', $settings->string(SettingKey::BSPAY_BANK_URL));
     }
+
+    public function testUserscriptForTampermonkey(): void
+    {
+        $this->loginAs(UserFactory::owner());
+        $this->client->request('GET', '/bs-pay/folwark-bs-pay.user.js');
+        self::assertResponseIsSuccessful();
+        self::assertResponseHeaderSame('content-type', 'text/javascript; charset=UTF-8');
+
+        $script = (string) $this->client->getResponse()->getContent();
+        self::assertStringStartsWith('// ==UserScript==', $script);
+        self::assertStringContainsString('// @match        http://localhost/*', $script);
+        self::assertStringContainsString('// @match        https://i24.bsbydgoszcz.pl/*', $script);
+        self::assertStringContainsString('"numerRachunkuField"', $script);
+        self::assertStringNotContainsString('{%', $script);
+    }
 }

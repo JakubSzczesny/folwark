@@ -17,7 +17,14 @@
         <aside class="card card-body text-sm space-y-3" data-controller="bspay">
             <h2 class="card-title">Jak to działa</h2>
             <p>Przy nieopłaconej fakturze kosztowej (na fakturze, w podglądzie i pod prawym przyciskiem w „Wymaga uwagi”) jest okno <strong>„Dane do przelewu”</strong>: odbiorca, rachunek, kwota i tytuł z przyciskami „Kopiuj”, a dla podzielonej płatności także VAT, NIP i numer faktury.</p>
-            <p>Docelowo <strong>dodatek do przeglądarki</strong> wypełni formularz przelewu w karcie banku sam: przycisk „Przelew w BS” przekazuje mu dane i otwiera bankowość. Przelew zawsze zatwierdzasz sam w banku (SMS / aplikacja) – Folwark nie ma dostępu do konta ani haseł.</p>
+            <p>Skrypt <strong>„Folwark – BS Pay”</strong> dla Tampermonkey wypełnia przelew w karcie banku sam. Przelew zawsze zatwierdzasz sam w banku (SMS / aplikacja) – skrypt niczego nie wysyła, a Folwark nie ma dostępu do konta ani haseł.</p>
+            <ol class="list-decimal pl-5 space-y-1">
+                <li>Zainstaluj w przeglądarce rozszerzenie <a href="https://www.tampermonkey.net/" target="_blank" rel="noopener">Tampermonkey</a>.</li>
+                <li>Kliknij „Zainstaluj skrypt” i potwierdź w oknie Tampermonkey. Po zmianie adresu banku zainstaluj go ponownie.</li>
+                <li>Przy fakturze otwórz „Dane do przelewu” → <strong>„Uzupełnij w BS”</strong>. Skrypt przejdzie do karty BS (albo ją otworzy), a w rogu banku pojawi się okienko z przyciskiem „Uzupełnij przelew”.</li>
+                <li>Sprawdź dane w formularzu banku i zatwierdź przelew. Potem oznacz fakturę jako opłaconą.</li>
+            </ol>
+            <a href="{{ path('app_bspay_userscript') }}" class="btn btn-primary" data-turbo="false">{{ ux_icon('lucide:download') }} Zainstaluj skrypt</a>
             <p class="text-antracyt-500" data-bspay-target="status"></p>
             <details>
                 <summary class="cursor-pointer font-semibold">Dla dodatku – format danych</summary>

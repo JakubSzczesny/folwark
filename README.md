@@ -145,6 +145,7 @@ composer cs      # PHP-CS-Fixer (@Symfony), podgląd zmian
 | 13. Powiadomienia | `src/Notification/`, `src/Scheduler/MainSchedule.php`, `src/MessageHandler/` |
 | 14. Analizy | `src/Analytics/`, `src/Controller/AnalyticsController.php` |
 | 15. Zestawienia i eksporty | `src/Report/`, `src/Controller/ReportController.php`, `src/Export/` (XLSX, PDF) |
+| BS Pay – przelewy w BS Bydgoszcz | `src/Payment/TransferData.php`, `src/Controller/PaymentController.php`, skrypt Tampermonkey `templates/bspay/userscript.js.twig` (instalacja: Ustawienia → BS Pay) |
 | 16. Ustawienia | `src/Settings/`, `src/Controller/Settings/`, `src/Form/Settings/` |
 | 17. Audyt | `src/Audit/AuditLogger.php`, dziennik w Ustawieniach |
 | 17. Kopie, usługi | `deploy/` |

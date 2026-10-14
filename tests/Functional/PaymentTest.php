@@ -110,4 +110,29 @@ final class PaymentTest extends FunctionalTestCase
         self::assertStringContainsString('"numerRachunkuField"', $script);
         self::assertStringNotContainsString('{%', $script);
     }
+
+    public function testFillInBsButtonAndJson(): void
+    {
+        $this->useFarm();
+        $invoice = InvoiceFactory::createOne(['kind' => InvoiceKind::Cost, 'paymentDue' => new \DateTimeImmutable('-1 day')]);
+        $this->service(Settings::class)->set(SettingKey::BSPAY_ENABLED, true);
+        $this->loginAs(UserFactory::owner());
+
+        $crawler = $this->client->request('GET', \sprintf('/faktury/%d', $invoice->getId()));
+        $button = $crawler->filter('button[data-controller="bspay-send"]');
+        self::assertCount(1, $button);
+        self::assertSame(\sprintf('/faktury/%d/przelew.json', $invoice->getId()), $button->attr('data-bspay-send-url-value'));
+
+        $crawler = $this->client->request('GET', '/');
+        self::assertStringContainsString('data-controller="bspay-send"', $crawler->filter('[data-widget="attention"]')->html());
+
+        $this->client->request('GET', \sprintf('/faktury/%d/przelew.json', $invoice->getId()));
+        self::assertResponseIsSuccessful();
+        $json = json_decode((string) $this->client->getResponse()->getContent(), true);
+        self::assertSame($invoice->getNumber(), $json['invoiceNumber']);
+        self::assertSame('1230.00', $json['amount']);
+
+        $this->client->request('GET', '/bs-pay/folwark-bs-pay.user.js');
+        self::assertStringContainsString('"nameWidth":32', (string) $this->client->getResponse()->getContent());
+    }
 }

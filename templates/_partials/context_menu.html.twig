@@ -11,6 +11,10 @@
     </form>
 {% endmacro %}
 
+{% macro bspay(url) %}
+    <button type="button" class="dropdown-item" role="menuitem" data-controller="bspay-send" data-action="bspay-send#send" data-bspay-send-url-value="{{ url }}" data-bspay-send-bank-url-value="{{ bspay_bank_url() }}">{{ ux_icon('lucide:landmark', {width: 16, height: 16}) }}Uzupełnij w BS</button>
+{% endmacro %}
+
 {% macro separator() %}
     <hr>
 {% endmacro %}

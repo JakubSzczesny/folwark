@@ -3,6 +3,8 @@
 {% set token = csrf_token('invoice') %}
 {% set frame_attrs = z ? '' : 'data-turbo-frame=_top' %}
 {% if is_granted('INVOICE_MANAGE') %}
+    {% set to_pay = invoice.cost and not invoice.paid %}
+    <div class="flex flex-wrap items-start gap-x-2 gap-y-3">
     <div class="flex flex-wrap gap-2">
         {% if invoice.cost %}
             {% if invoice.status.value != 'skipped' %}
@@ -31,11 +33,20 @@
                 <button type="submit" class="btn btn-ghost">Cofnij opłacenie</button>
             </form>
         {% else %}
-            {% if invoice.cost %}<a href="{{ path('app_invoice_transfer', {id: invoice.id}) }}" class="btn btn-secondary" data-turbo-frame="modal">{{ ux_icon('lucide:banknote') }} Dane do przelewu</a>{% endif %}
             <form method="post" action="{{ path('app_invoice_paid', {id: invoice.id, z: z}) }}" {{ frame_attrs }}>
                 <input type="hidden" name="_token" value="{{ token }}">
                 <button type="submit" class="btn btn-secondary">{{ ux_icon('lucide:check') }} Oznacz jako opłaconą</button>
             </form>
         {% endif %}
+    </div>
+    {% if to_pay %}
+        <div class="ml-auto flex flex-col items-end gap-1">
+            {% if bspay_enabled() %}
+                <button type="button" class="btn btn-primary" data-controller="bspay-send" data-action="bspay-send#send"
+                        data-bspay-send-url-value="{{ path('app_invoice_transfer_json', {id: invoice.id}) }}" data-bspay-send-bank-url-value="{{ bspay_bank_url() }}">{{ ux_icon('lucide:landmark') }} Uzupełnij w BS</button>
+            {% endif %}
+            <a href="{{ path('app_invoice_transfer', {id: invoice.id}) }}" class="btn btn-ghost btn-sm" data-turbo-frame="modal">{{ ux_icon('lucide:banknote') }} Dane do przelewu</a>
+        </div>
+    {% endif %}
     </div>
 {% endif %}

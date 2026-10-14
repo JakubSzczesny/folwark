@@ -21,7 +21,9 @@
                         {% if item.actions is not empty %}
                             <template data-context-menu>
                                 {% for action in item.actions %}
-                                    {% if action.isPost %}
+                                    {% if action.bsPay %}
+                                        {{ cm.bspay(action.url) }}
+                                    {% elseif action.isPost %}
                                         {{ cm.post(action.url, action.label, action.token, action.icon, action.confirm) }}
                                     {% else %}
                                         {{ cm.link(action.url, action.label, action.icon, action.frame) }}

@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace App\Dashboard;
 
 /**
- * Akcja w menu pod prawym przyciskiem na pozycji „Wymaga uwagi”: link albo formularz POST z tokenem CSRF.
+ * Akcja w menu pod prawym przyciskiem na pozycji „Wymaga uwagi”: link, formularz POST z tokenem CSRF
+ * albo „Uzupełnij w BS”.
  */
 final readonly class AttentionAction
 {
@@ -16,6 +17,7 @@ final readonly class AttentionAction
         public ?string $icon,
         public ?string $confirm,
         public ?string $frame,
+        public bool $bsPay = false,
     ) {
     }
 
@@ -27,6 +29,14 @@ final readonly class AttentionAction
     public static function post(string $label, string $url, string $token, ?string $icon = null, ?string $confirm = null): self
     {
         return new self($label, $url, $token, $icon, $confirm, null);
+    }
+
+    /**
+     * „Uzupełnij w BS” – $url to dane przelewu w JSON.
+     */
+    public static function bsPay(string $url): self
+    {
+        return new self('Uzupełnij w BS', $url, null, 'landmark', null, null, true);
     }
 
     public function isPost(): bool

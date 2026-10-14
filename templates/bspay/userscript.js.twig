@@ -10,7 +10,6 @@
 // @grant        GM_setValue
 // @grant        GM_deleteValue
 // @grant        GM_addValueChangeListener
-// @grant        GM_openInTab
 // @grant        unsafeWindow
 // @run-at       document-idle
 // @noframes
@@ -71,14 +70,14 @@ const CONFIG = {{ config|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or con
 
             GM_setValue('pending', { transfer, createdAt: Date.now(), filledAt: null });
 
-            const bankOpen = Date.now() - GM_getValue('bankAlive', 0) < BANK_ALIVE;
-            if (bankOpen) {
-                toast(`Przelew dla „${transfer.recipient}” czeka w otwartej karcie BS – przejdź do niej.`);
-            } else {
-                GM_openInTab(CONFIG.bankUrl, { active: true, insert: true });
-                toast('Otwieram BS. Po zalogowaniu kliknij „Uzupełnij przelew” w okienku Folwarku.');
-            }
         });
+
+        /* Folwark sprawdza ten znacznik, żeby nie otwierać drugiej karty banku (bank wylogowuje przy kilku oknach). */
+        const markBank = () => {
+            document.documentElement.dataset.bspayBankOpen = Date.now() - GM_getValue('bankAlive', 0) < BANK_ALIVE ? '1' : '0';
+        };
+        markBank();
+        setInterval(markBank, 2000);
     }
 
     /* ---------------- Bank ---------------- */
@@ -111,7 +110,8 @@ const CONFIG = {{ config|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or con
                 result.push(rest);
                 break;
             }
-            let cut = rest.lastIndexOf(' ', width);
+            /* Łamiemy na spacji albo zaraz po łączniku („Handlowo-” / „Usługowe”). */
+            let cut = Math.max(rest.lastIndexOf(' ', width), rest.lastIndexOf('-', width - 1) + 1);
             if (cut < width / 2) {
                 cut = width;
             }
@@ -141,7 +141,7 @@ const CONFIG = {{ config|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or con
     }
 
     async function fill(transfer) {
-        const name = lines(transfer.recipient, 2, 35);
+        const name = lines(transfer.recipient, 2, CONFIG.nameWidth);
         const title = lines(transfer.title, 4, 35);
         const postal = (transfer.postalCode || '').replace(/^(\d{2})(\d{3})$/, '$1-$2');
         const values = [
@@ -196,8 +196,7 @@ const CONFIG = {{ config|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or con
 
         const details = document.createElement('div');
         details.innerText = `${transfer.recipient}\n${transfer.accountFormatted || transfer.account}\n${money(transfer.amount, transfer.currency)}\n${transfer.title}`
-            + (transfer.splitPayment ? '\nPodzielona płatność (MPP)' : '')
-            + (item.filledAt ? '\n\nUzupełniono – sprawdź dane i zatwierdź przelew w banku.' : '');
+            + (transfer.splitPayment ? '\n\nUwaga: faktura z podzieloną płatnością (MPP). Ten formularz to zwykły przelew – MPP wybierz w banku, jeśli jest dostępny.' : '');
         style(details, { whiteSpace: 'pre-line', fontSize: '13px', marginBottom: '10px' });
 
         const actions = document.createElement('div');
@@ -214,7 +213,7 @@ const CONFIG = {{ config|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or con
             b.addEventListener('click', handler);
             actions.append(b);
         };
-        button(item.filledAt ? 'Uzupełnij ponownie' : 'Uzupełnij przelew', true, () => start());
+        button('Uzupełnij przelew', true, () => start());
         button('Odrzuć', false, () => {
             GM_deleteValue('pending');
             panel(null);
@@ -230,14 +229,15 @@ const CONFIG = {{ config|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or con
             panel(null);
             return;
         }
+        panel(null);
         if (isTransferForm()) {
             GM_deleteValue('autofill');
             fill(item.transfer).then((missing) => {
-                item.filledAt = Date.now();
-                GM_setValue('pending', item);
-                panel(item);
+                GM_deleteValue('pending');
                 if (missing.length) {
                     toast(`Nie udało się wpisać pól: ${missing.join(', ')}. Uzupełnij je ręcznie.`, 'error');
+                } else {
+                    toast('Uzupełniono przelew – sprawdź dane i zatwierdź go w banku.');
                 }
             });
             return;
@@ -252,6 +252,8 @@ const CONFIG = {{ config|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or con
     }
 
     function onBank() {
+        /* Nazwa okna pozwala Folwarkowi przełączyć się na tę kartę zamiast otwierać nową. */
+        window.name = CONFIG.windowName;
         const beat = () => GM_setValue('bankAlive', Date.now());
         beat();
         setInterval(beat, 3000);
@@ -263,10 +265,10 @@ const CONFIG = {{ config|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or con
             }
         });
 
-        panel(pending());
-
         const autofill = GM_getValue('autofill', 0);
-        if (autofill && Date.now() - autofill < 60 * 1000 && pending()) {
+        if (!(autofill && Date.now() - autofill < 60 * 1000 && pending())) {
+            panel(pending());
+        } else {
             /* Formularz bankowości dociąga się chwilę po załadowaniu strony. */
             let tries = 0;
             const wait = setInterval(() => {

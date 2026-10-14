@@ -119,7 +119,13 @@ final class InvoiceDeadlines implements DeadlineSource, AttentionSource, MenuBad
         }
         $id = $invoice->getId();
 
+        $actions = [];
+        if ($this->settings->bool(SettingKey::BSPAY_ENABLED)) {
+            $actions[] = AttentionAction::bsPay($this->urls->generate('app_invoice_transfer_json', ['id' => $id]));
+        }
+
         return [
+            ...$actions,
             AttentionAction::post('Oznacz jako opłaconą', $this->urls->generate('app_invoice_paid', ['id' => $id, 'z' => 'pulpit']), 'invoice', 'check'),
             AttentionAction::link('Dane do przelewu', $this->urls->generate('app_invoice_transfer', ['id' => $id]), 'banknote', 'modal'),
             AttentionAction::post('Pomiń fakturę', $this->urls->generate('app_invoice_skip', ['id' => $id, 'z' => 'pulpit']), 'invoice', null, 'Pominąć fakturę? Zniknie z płatności i analiz.'),

@@ -11,6 +11,7 @@ use App\Settings\SettingKey;
 use App\Settings\Settings;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Attribute\Route;
@@ -41,14 +42,18 @@ final class PaymentController extends AbstractController
     ];
 
     #[Route('/faktury/{id}/przelew', name: 'app_invoice_transfer', requirements: ['id' => '\d+'], methods: ['GET'])]
-    public function transfer(Invoice $invoice, TransferData $transfers, Settings $settings): Response
+    public function transfer(Invoice $invoice, TransferData $transfers): Response
     {
         return $this->render('invoice/transfer.html.twig', [
             'invoice' => $invoice,
             'transfer' => $transfers->forInvoice($invoice),
-            'bspay_enabled' => $settings->bool(SettingKey::BSPAY_ENABLED),
-            'bank_url' => $settings->string(SettingKey::BSPAY_BANK_URL),
         ]);
+    }
+
+    #[Route('/faktury/{id}/przelew.json', name: 'app_invoice_transfer_json', requirements: ['id' => '\d+'], methods: ['GET'])]
+    public function transferJson(Invoice $invoice, TransferData $transfers): JsonResponse
+    {
+        return new JsonResponse($transfers->forInvoice($invoice));
     }
 
     /**
@@ -72,6 +77,8 @@ final class PaymentController extends AbstractController
                 'bankOrigin' => $bankOrigin,
                 'bankUrl' => $bankUrl,
                 'transferPath' => 'dodawanie-przelewow-elixir',
+                'windowName' => 'folwark-bs',
+                'nameWidth' => 32,
                 'fieldPrefix' => 'ibankForm:elixirPanel:',
                 'fields' => self::BANK_FIELDS,
                 'required' => ['account', 'name1', 'amount', 'title1'],

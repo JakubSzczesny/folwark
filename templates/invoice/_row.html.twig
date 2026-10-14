@@ -20,7 +20,10 @@
                     {{ cm.post(path('app_invoice_unpaid', {id: invoice.id, z: 'lista'}), 'Cofnij opłacenie', 'invoice') }}
                 {% else %}
                     {{ cm.post(path('app_invoice_paid', {id: invoice.id, z: 'lista'}), 'Oznacz jako opłaconą', 'invoice', 'check') }}
-                    {% if invoice.cost %}{{ cm.link(path('app_invoice_transfer', {id: invoice.id}), 'Dane do przelewu', 'banknote', 'modal') }}{% endif %}
+                    {% if invoice.cost %}
+                        {% if bspay_enabled() %}{{ cm.bspay(path('app_invoice_transfer_json', {id: invoice.id})) }}{% endif %}
+                        {{ cm.link(path('app_invoice_transfer', {id: invoice.id}), 'Dane do przelewu', 'banknote', 'modal') }}
+                    {% endif %}
                 {% endif %}
                 {% if invoice.cost %}
                     {% if invoice.status.value == 'skipped' %}

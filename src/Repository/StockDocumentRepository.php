@@ -8,6 +8,7 @@ use App\Entity\Invoice;
 use App\Entity\StockDocument;
 use App\Enum\DocumentStatus;
 use App\Enum\DocumentType;
+use App\Search\GlobalSearch;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
@@ -61,6 +62,22 @@ class StockDocumentRepository extends ServiceEntityRepository
         }
 
         return $qb;
+    }
+
+    /**
+     * @return list<StockDocument>
+     */
+    public function search(string $query, int $limit): array
+    {
+        return $this->createQueryBuilder('d')
+            ->leftJoin('d.contractor', 'c')
+            ->addSelect('c')
+            ->where('LOWER(d.number) LIKE :q OR LOWER(c.name) LIKE :q OR LOWER(d.notes) LIKE :q')
+            ->setParameter('q', GlobalSearch::likePattern($query))
+            ->orderBy('d.date', 'DESC')
+            ->setMaxResults($limit)
+            ->getQuery()
+            ->getResult();
     }
 
     /**

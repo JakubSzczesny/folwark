@@ -1,0 +1,10 @@
+[Unit]
+Description=Folwark – kopia zapasowa bazy i plików
+After=mariadb.service
+
+[Service]
+Type=oneshot
+User=root
+Environment=APP_DIR=/srv/folwark
+Environment=BACKUP_DIR=/var/backups/folwark
+ExecStart=/srv/folwark/deploy/backup.sh

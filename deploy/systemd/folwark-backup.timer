@@ -1,0 +1,10 @@
+[Unit]
+Description=Folwark – codzienna kopia zapasowa o 2:30
+
+[Timer]
+OnCalendar=*-*-* 02:30:00
+Persistent=true
+RandomizedDelaySec=10m
+
+[Install]
+WantedBy=timers.target

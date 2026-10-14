@@ -1,0 +1,16 @@
+[Unit]
+Description=Folwark – zadania w tle (synchronizacja KSeF, pobieranie XML, przeliczanie zamówień, e-maile)
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/srv/folwark
+Environment=APP_ENV=prod
+ExecStart=/usr/bin/php bin/console messenger:consume async --time-limit=3600 --memory-limit=256M
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,16 @@
+[Unit]
+Description=Folwark – harmonogram (KSeF co 5 min, zamówienia 5:30, terminy 6:00, skrót e-mail 6:05)
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+User=www-data
+Group=www-data
+WorkingDirectory=/srv/folwark
+Environment=APP_ENV=prod
+ExecStart=/usr/bin/php bin/console messenger:consume scheduler_default --time-limit=3600 --memory-limit=256M
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

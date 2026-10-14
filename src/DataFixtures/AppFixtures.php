@@ -7,8 +7,10 @@ namespace App\DataFixtures;
 use App\Entity\Contract;
 use App\Entity\CostCategory;
 use App\Entity\CostCenter;
+use App\Entity\CropSeason;
 use App\Entity\Farm;
 use App\Entity\FarmMembership;
+use App\Entity\Field;
 use App\Entity\Invoice;
 use App\Entity\InvoiceRule;
 use App\Entity\ItemMapping;
@@ -16,6 +18,7 @@ use App\Entity\Machine;
 use App\Entity\MachineCategory;
 use App\Entity\MachineInfoCategory;
 use App\Entity\MachineInfoEntry;
+use App\Entity\MilkProduction;
 use App\Entity\Product;
 use App\Entity\ProductCategory;
 use App\Entity\ProductLink;
@@ -23,11 +26,14 @@ use App\Entity\ProductLinkCategory;
 use App\Entity\ServiceType;
 use App\Entity\Unit;
 use App\Entity\User;
+use App\Entity\Warehouse;
 use App\Enum\ContractKind;
+use App\Enum\CostCenterType;
 use App\Enum\InvoiceKind;
 use App\Enum\MeterUnit;
 use App\Enum\PaymentFrequency;
 use App\Enum\UserRole;
+use App\Enum\WarehouseType;
 use App\Farm\FarmCreator;
 use App\Farm\FarmRunner;
 use App\Invoice\InvoiceXmlService;
@@ -42,6 +48,7 @@ use App\Product\ProductMatcher;
 use App\Repository\ContractorRepository;
 use App\Settings\SettingKey;
 use App\Settings\Settings;
+use App\Warehouse\InvoiceReceipt;
 use Doctrine\Bundle\FixturesBundle\Fixture;
 use Doctrine\Persistence\ObjectManager;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
@@ -70,6 +77,7 @@ final class AppFixtures extends Fixture
         private readonly ServiceRecorder $serviceRecorder,
         private readonly ItemAssigner $assigner,
         private readonly OrderPlanner $planner,
+        private readonly InvoiceReceipt $receipt,
         #[Autowire('%env(resolve:KSEF_FAKE_DIR)%')]
         private readonly string $fakeDirectory,
     ) {
@@ -170,6 +178,7 @@ final class AppFixtures extends Fixture
         $manager->flush();
         $products = $this->loadProducts($manager);
         $this->loadMachines($manager, $owner, $products);
+        $this->loadWarehouse($manager, $owner, $products);
     }
 
     /**
@@ -301,6 +310,53 @@ final class AppFixtures extends Fixture
                 $service->setNextServiceDate(new \DateTimeImmutable('today +10 days'))->setNextServiceMeter(number_format($meter + 220, 1, '.', ''));
             }
             $this->serviceRecorder->save($service);
+        }
+    }
+
+    /**
+     * Magazyny, pole z sezonem, produkcja mleka i przyjęcie oleju napędowego z ostatniej faktury.
+     *
+     * @param array<string, Product> $products
+     */
+    private function loadWarehouse(ObjectManager $manager, User $owner, array $products): void
+    {
+        $units = $manager->getRepository(Unit::class);
+        $tank = (new Warehouse())->setName('Zbiornik ON')->setType(WarehouseType::Tank)->setCapacity('5000')->setCapacityUnit($units->findOneBy(['symbol' => 'l']));
+        $manager->persist($tank);
+        $manager->persist((new Warehouse())->setName('Hala magazynowa')->setType(WarehouseType::Hall));
+        $manager->persist((new Warehouse())->setName('Silos 1')->setType(WarehouseType::Silo)->setCapacity('120')->setCapacityUnit($units->findOneBy(['symbol' => 't'])));
+
+        $field = (new Field())->setName('Za stodołą')->setAreaHa('12.5')->setParcelNumbers('114/1, 115');
+        $manager->persist($field);
+        $season = (new CropSeason())->setField($field)->setYear((int) date('Y'))->setCrop('Pszenica ozima');
+        $center = (new CostCenter())->setType(CostCenterType::FieldSeason)->setName($season->getLabel());
+        $season->setCostCenter($center);
+        $manager->persist($center);
+        $manager->persist($season);
+
+        $herd = $manager->getRepository(CostCenter::class)->findOneBy(['type' => CostCenterType::HerdGroup]);
+        if (null !== $herd) {
+            $month = new \DateTimeImmutable('first day of this month');
+            foreach ([31200, 30400, 29800, 30900, 31800, 32500] as $index => $liters) {
+                $manager->persist((new MilkProduction($herd, $month->modify(\sprintf('-%d months', $index + 1))))->setLiters((string) $liters));
+            }
+        }
+        $manager->flush();
+
+        $diesel = $products['on'] ?? null;
+        if (null === $diesel) {
+            return;
+        }
+        $latest = $manager->getRepository(Invoice::class)->createQueryBuilder('i')
+            ->join('i.items', 'it')
+            ->where('it.product = :product')
+            ->setParameter('product', $diesel)
+            ->orderBy('i.issueDate', 'DESC')
+            ->setMaxResults(1)
+            ->getQuery()
+            ->getOneOrNullResult();
+        if ($latest instanceof Invoice) {
+            $this->receipt->create($latest, $tank, $owner);
         }
     }
 }

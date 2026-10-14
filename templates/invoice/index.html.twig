@@ -114,7 +114,7 @@
                                  actionUrl="{{ filter.hasActiveFilters ? path('app_invoice_index', {wyczysc: 1}) : null }}" />
             {% else %}
                 <div class="table-wrap">
-                    <table class="table table-cards {{ filter.tab != 'wszystkie' ? 'hide-kind' }}" data-controller="table-nav" data-action="keydown@window->table-nav#keydown">
+                    <table class="table table-cards {{ filter.tab != 'wszystkie' ? 'hide-kind' }}" data-controller="table-nav context-menu" data-action="keydown@window->table-nav#keydown">
                         <thead>
                             <tr>
                                 <th class="w-4 !pr-0"><span class="sr-only">Nowa</span></th>

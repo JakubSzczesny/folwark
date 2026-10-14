@@ -74,7 +74,7 @@ final class ProductOrderTest extends FunctionalTestCase
         self::assertSelectorTextContains('main', 'co 21 dni');
 
         $this->client->request('GET', '/zamowienia');
-        $this->client->submit($this->client->getCrawler()->filter(\sprintf('form[action="/zamowienia/%d/zamowione"]', $cycle->getId()))->form());
+        $this->client->submit($this->client->getCrawler()->filter(\sprintf('td.text-right form[action="/zamowienia/%d/zamowione"]', $cycle->getId()))->form());
         $em->clear();
         self::assertSame(OrderStatus::Ordered, $em->find(OrderCycle::class, $cycle->getId())?->getStatus());
 

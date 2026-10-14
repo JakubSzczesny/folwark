@@ -1,0 +1,66 @@
+/* Słowniki (EasyAdmin) w kolorach aplikacji: ciemne menu z jasnym tekstem, zielony akcent. */
+:root {
+    --color-primary: #2E7D46;
+    --link-color: #2E7D46;
+    --body-bg: #F6F7F8;
+    --sidebar-bg: #24282C;
+    --sidebar-border-color: #383D42;
+    --sidebar-logo-color: #FFFFFF;
+    --sidebar-menu-color: #D5D9DC;
+    --sidebar-menu-submenu-color: #D5D9DC;
+    --sidebar-menu-icon-color: #A9AFB5;
+    --sidebar-menu-header-color: #A9AFB5;
+    --sidebar-menu-active-item-bg: #383D42;
+    --sidebar-menu-active-item-color: #FFFFFF;
+    --sidebar-menu-badge-bg: #2E7D46;
+    --sidebar-menu-badge-color: #FFFFFF;
+    --sidebar-menu-badge-active-bg: #2E7D46;
+    --sidebar-menu-badge-active-color: #FFFFFF;
+}
+
+.main-header .logo,
+.main-header .logo a {
+    color: #FFFFFF;
+    font-weight: 600;
+}
+
+.folwark-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.menu-item .menu-item-contents {
+    border-radius: 6px;
+}
+
+.menu-item:not(.active) .menu-item-contents:hover {
+    background: #383D42;
+    color: #FFFFFF;
+}
+
+.menu-item:not(.active) .menu-item-contents:hover .menu-icon {
+    color: #FFFFFF;
+}
+
+.menu-item.active .menu-item-contents {
+    box-shadow: inset 3px 0 0 #2E7D46;
+}
+
+.menu-item.active .menu-icon {
+    color: #FFFFFF;
+}
+
+.menu-header .menu-item-contents,
+.menu-header .menu-item-label {
+    color: #A9AFB5;
+    letter-spacing: 0.04em;
+}
+
+.btn-primary {
+    --bs-btn-bg: #2E7D46;
+    --bs-btn-border-color: #2E7D46;
+    --bs-btn-hover-bg: #24693B;
+    --bs-btn-hover-border-color: #24693B;
+    --bs-btn-active-bg: #24693B;
+}

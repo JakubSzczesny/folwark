@@ -13,7 +13,7 @@
             <twig:EmptyState text="Brak reguł." actionLabel="Dodaj regułę" actionUrl="{{ path('app_settings_rule_new') }}" />
         {% else %}
             <div class="table-wrap">
-                <table class="table table-cards" data-controller="table-nav" data-action="keydown@window->table-nav#keydown">
+                <table class="table table-cards" data-controller="table-nav context-menu" data-action="keydown@window->table-nav#keydown">
                     <thead><tr><th>Dostawca</th><th>Ośrodek kosztów</th><th>Kategoria</th><th>Status</th></tr></thead>
                     <tbody>
                         {% for rule in rules %}

@@ -1,0 +1,16 @@
+{# Pozycje menu pod prawym przyciskiem myszy (wnętrze <template data-context-menu>). #}
+
+{% macro link(url, label, icon = null, frame = null) %}
+    <a href="{{ url }}" class="dropdown-item" role="menuitem" {% if frame %}data-turbo-frame="{{ frame }}"{% endif %}>{% if icon %}{{ ux_icon('lucide:' ~ icon, {width: 16, height: 16}) }}{% endif %}{{ label }}</a>
+{% endmacro %}
+
+{% macro post(url, label, token_id, icon = null, confirm = null) %}
+    <form method="post" action="{{ url }}" {% if confirm %}data-turbo-confirm="{{ confirm }}"{% endif %}>
+        <input type="hidden" name="_token" value="{{ csrf_token(token_id) }}">
+        <button type="submit" class="dropdown-item" role="menuitem">{% if icon %}{{ ux_icon('lucide:' ~ icon, {width: 16, height: 16}) }}{% endif %}{{ label }}</button>
+    </form>
+{% endmacro %}
+
+{% macro separator() %}
+    <hr>
+{% endmacro %}

@@ -173,8 +173,13 @@ final class OrderController extends AbstractController
     private function back(Request $request): Response
     {
         $referer = (string) $request->headers->get('referer');
+        $path = (string) parse_url($referer, \PHP_URL_PATH);
+        $query = (string) parse_url($referer, \PHP_URL_QUERY);
+        if (parse_url($referer, \PHP_URL_HOST) !== $request->getHost() || !preg_match('~^/(zamowienia|towary)(/|$)~', $path)) {
+            return $this->redirectToRoute('app_order_index', [], Response::HTTP_SEE_OTHER);
+        }
 
-        return $this->redirect(str_contains($referer, '/zamowienia') || str_contains($referer, '/towary') ? $referer : $this->generateUrl('app_order_index'), Response::HTTP_SEE_OTHER);
+        return $this->redirect($path.('' !== $query ? '?'.$query : ''), Response::HTTP_SEE_OTHER);
     }
 
     private function assertToken(Request $request): void

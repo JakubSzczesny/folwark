@@ -17,6 +17,7 @@ use EasyCorp\Bundle\EasyAdminBundle\Config\Dashboard;
 use EasyCorp\Bundle\EasyAdminBundle\Config\MenuItem;
 use EasyCorp\Bundle\EasyAdminBundle\Controller\AbstractDashboardController;
 use EasyCorp\Bundle\EasyAdminBundle\Router\AdminUrlGenerator;
+use Symfony\Component\Asset\Packages;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -29,6 +30,7 @@ final class DictionaryDashboardController extends AbstractDashboardController
 {
     public function __construct(
         private readonly AdminUrlGenerator $urls,
+        private readonly Packages $assets,
     ) {
     }
 
@@ -40,14 +42,15 @@ final class DictionaryDashboardController extends AbstractDashboardController
     public function configureDashboard(): Dashboard
     {
         return Dashboard::new()
-            ->setTitle('Folwark · słowniki')
+            ->setTitle(\sprintf('<span class="folwark-brand"><img src="%s" width="28" height="28" alt=""> Słowniki</span>', $this->assets->getUrl('images/folwark.svg')))
+            ->setFaviconPath($this->assets->getUrl('images/folwark.svg'))
             ->setLocales(['pl'])
             ->disableDarkMode();
     }
 
     public function configureAssets(): Assets
     {
-        return Assets::new()->addHtmlContentToHead('<style>:root{--color-primary:#2E7D46;--link-color:#2E7D46;--sidebar-bg:#24282C;}</style>');
+        return Assets::new()->addCssFile('styles/admin.css');
     }
 
     public function configureMenuItems(): iterable

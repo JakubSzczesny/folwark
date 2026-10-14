@@ -22,7 +22,7 @@ export default class extends Controller {
 
     open() {
         this.panelTarget.hidden = false;
-        // wymuszenie przeliczenia układu, żeby przejście transform zadziałało od stanu ukrytego
+        // wymuszenie przeliczenia układu, żeby panel wjechał z prawej, a nie pojawił się od razu
         void this.panelTarget.offsetWidth;
         this.panelTarget.classList.remove('translate-x-full');
     }
@@ -31,7 +31,7 @@ export default class extends Controller {
         this.panelTarget.classList.add('translate-x-full');
         setTimeout(() => {
             this.panelTarget.hidden = true;
-        }, 150);
+        }, 220);
         this.dispatch('closed');
     }
 

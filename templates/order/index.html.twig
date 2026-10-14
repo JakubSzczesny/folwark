@@ -72,7 +72,7 @@
                     </h2>
                     <div class="card">
                         <div class="table-wrap">
-                            <table class="table table-cards" data-controller="table-nav" data-action="keydown@window->table-nav#keydown">
+                            <table class="table table-cards" data-controller="table-nav context-menu" data-action="keydown@window->table-nav#keydown">
                                 <thead>
                                     <tr>
                                         <th>Towar / dostawca</th>
@@ -94,6 +94,20 @@
                                             data-action="click->table-nav#click"
                                             class="cursor-pointer {{ open_cycle == cycle.id ? 'is-selected' }}">
                                             <td class="card-title-cell">
+                                                <template data-context-menu>
+                                                    {% import '_partials/context_menu.html.twig' as cm %}
+                                                    {% if cycle.predictedDate and is_granted('ORDER_MARK') %}
+                                                        {% if cycle.status.manual %}
+                                                            {{ cm.post(path('app_order_unmark', {id: cycle.id}), 'Cofnij oznaczenie', 'order') }}
+                                                        {% else %}
+                                                            {{ cm.post(path('app_order_mark', {id: cycle.id}), 'Oznacz jako zamówione', 'order', 'check') }}
+                                                        {% endif %}
+                                                    {% endif %}
+                                                    {% if is_granted('ORDER_MANAGE') %}
+                                                        {% if cycle.predictedDate and not cycle.status.manual %}{{ cm.post(path('app_order_skip', {id: cycle.id}), 'Pomiń ten cykl', 'order') }}{% endif %}
+                                                        {{ cm.link(path('app_order_settings', {id: cycle.id}), 'Ustaw ręcznie / ukryj…', 'settings', 'modal') }}
+                                                    {% endif %}
+                                                </template>
                                                 {{ cycle.label }}
                                                 <span class="block text-xs text-antracyt-500">{{ cycle.product ? (cycle.product.category ? cycle.product.category.name : 'towar') : 'dostawca (bez przypisanych towarów)' }}</span>
                                             </td>

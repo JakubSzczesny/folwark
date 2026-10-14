@@ -5,7 +5,35 @@
     data-preview-url="{{ path('app_invoice_preview', {id: invoice.id}) }}"
     data-href="{{ path('app_invoice_show', {id: invoice.id}) }}"
     data-action="click->table-nav#click">
-    <td class="w-4 !pr-0">{% if invoice.unread %}<span class="dot-new" title="Nowa"></span><span class="sr-only">Nowa</span>{% endif %}</td>
+    <td class="w-4 !pr-0">
+        {% if invoice.unread %}<span class="dot-new" title="Nowa"></span><span class="sr-only">Nowa</span>{% endif %}
+        <template data-context-menu>
+            {% import '_partials/context_menu.html.twig' as cm %}
+            {% if is_granted('INVOICE_MANAGE') %}
+                {% if invoice.cost %}
+                    {% if invoice.status.value != 'skipped' %}{{ cm.link(path('app_invoice_assign', {id: invoice.id}), 'Przypisz towary', 'package-check') }}{% endif %}
+                    {{ cm.link(path('app_invoice_cost_only', {id: invoice.id, z: 'lista'}), 'Tylko koszt…', null, 'modal') }}
+                {% else %}
+                    {{ cm.link(path('app_invoice_contract', {id: invoice.id, z: 'lista'}), 'Przypisz umowę…', 'file-signature', 'modal') }}
+                {% endif %}
+                {% if invoice.paid %}
+                    {{ cm.post(path('app_invoice_unpaid', {id: invoice.id, z: 'lista'}), 'Cofnij opłacenie', 'invoice') }}
+                {% else %}
+                    {{ cm.post(path('app_invoice_paid', {id: invoice.id, z: 'lista'}), 'Oznacz jako opłaconą', 'invoice', 'check') }}
+                {% endif %}
+                {% if invoice.cost %}
+                    {% if invoice.status.value == 'skipped' %}
+                        {{ cm.post(path('app_invoice_restore', {id: invoice.id, z: 'lista'}), 'Przywróć', 'invoice') }}
+                    {% else %}
+                        {{ cm.post(path('app_invoice_skip', {id: invoice.id, z: 'lista'}), 'Pomiń fakturę', 'invoice') }}
+                    {% endif %}
+                {% endif %}
+                {{ cm.separator() }}
+            {% endif %}
+            <a href="{{ path('app_invoice_pdf', {id: invoice.id}) }}" class="dropdown-item" role="menuitem" data-turbo="false">{{ ux_icon('lucide:download', {width: 16, height: 16}) }}Pobierz PDF</a>
+            <a href="{{ path('app_invoice_xml', {id: invoice.id}) }}" class="dropdown-item" role="menuitem" data-turbo="false">{{ ux_icon('lucide:file-code', {width: 16, height: 16}) }}Pobierz XML</a>
+        </template>
+    </td>
     <td data-label="Data wystawienia" class="tabular-nums whitespace-nowrap">{{ invoice.issueDate|pl_date }}</td>
     <td class="card-title-cell">
         <a href="{{ path('app_invoice_show', {id: invoice.id}) }}" class="text-tekst hover:text-zielen-600">{{ invoice.number }}</a>

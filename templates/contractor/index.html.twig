@@ -38,7 +38,7 @@
         {% else %}
             {% set amounts = is_granted('AMOUNTS_VIEW') %}
             <div class="table-wrap">
-                <table class="table table-cards" data-controller="table-nav" data-action="keydown@window->table-nav#keydown">
+                <table class="table table-cards" data-controller="table-nav context-menu" data-action="keydown@window->table-nav#keydown">
                     <thead>
                         <tr>
                             <th>Nazwa</th><th>NIP</th><th>Miejscowość</th>
@@ -51,6 +51,14 @@
                             {% set t = totals[contractor.id] ?? null %}
                             <tr data-table-nav-target="row" data-href="{{ path('app_contractor_show', {id: contractor.id}) }}" data-action="click->table-nav#click">
                                 <td class="card-title-cell">
+                                    <template data-context-menu>
+                                        {% import '_partials/context_menu.html.twig' as cm %}
+                                        {% if is_granted('INVOICE_VIEW') %}{{ cm.link(path('app_contractor_show', {id: contractor.id, zakladka: 'faktury'}), 'Faktury', 'receipt-text') }}{% endif %}
+                                        {{ cm.link(path('app_contractor_show', {id: contractor.id, zakladka: 'zakupy'}), 'Zakupy', 'shopping-cart') }}
+                                        {{ cm.link(path('app_contractor_show', {id: contractor.id, zakladka: 'umowy'}), 'Umowy', 'file-signature') }}
+                                        {% if is_granted('CONTRACT_EDIT') %}{{ cm.link(path('app_contract_new', {kontrahent: contractor.id}), 'Nowa umowa', 'plus') }}{% endif %}
+                                        {% if is_granted('CONTRACTOR_EDIT') %}{{ cm.separator() }}{{ cm.link(path('app_contractor_edit', {id: contractor.id}), 'Edytuj dane', 'pencil') }}{% endif %}
+                                    </template>
                                     <a href="{{ path('app_contractor_show', {id: contractor.id}) }}" class="text-tekst hover:text-zielen-600">{{ contractor.displayName }}</a>
                                     {% if contractor.shortName %}<span class="block text-xs text-antracyt-500 font-normal">{{ contractor.name }}</span>{% endif %}
                                     {% if not contractor.active %}<twig:Badge tone="neutral">nieaktywny</twig:Badge>{% endif %}

@@ -40,7 +40,7 @@
                 actionUrl="{{ is_granted('PRODUCT_EDIT') ? path('app_product_new') : null }}" />
         {% else %}
             <div class="table-wrap">
-                <table class="table table-cards" data-controller="table-nav" data-action="keydown@window->table-nav#keydown">
+                <table class="table table-cards" data-controller="table-nav context-menu" data-action="keydown@window->table-nav#keydown">
                     <thead>
                         <tr>
                             {{ m.sort_th('Nazwa', 'nazwa', sort) }}
@@ -56,6 +56,14 @@
                             {% set cycle = cycles[product.id] ?? null %}
                             <tr data-table-nav-target="row" data-href="{{ url }}" data-action="click->table-nav#click" class="{{ product.active ? '' : 'opacity-60' }}">
                                 <td class="card-title-cell">
+                                    <template data-context-menu>
+                                        {% import '_partials/context_menu.html.twig' as cm %}
+                                        {% if cycle and cycle.predictedDate and not cycle.status.manual and is_granted('ORDER_MARK') %}{{ cm.post(path('app_order_mark', {id: cycle.id}), 'Oznacz jako zamówione', 'order', 'check') }}{% endif %}
+                                        {{ cm.link(path('app_product_suppliers', {id: product.id}), 'Dostawcy') }}
+                                        {{ cm.link(path('app_product_links', {id: product.id}), 'Linki', 'link') }}
+                                        {% if is_granted('ORDER_VIEW') %}{{ cm.link(path('app_product_order', {id: product.id}), 'Zamówienie – ustawienia') }}{% endif %}
+                                        {% if is_granted('PRODUCT_EDIT') %}{{ cm.separator() }}{{ cm.link(path('app_product_edit', {id: product.id}), 'Edytuj towar', 'pencil') }}{% endif %}
+                                    </template>
                                     <a href="{{ url }}" class="text-tekst hover:text-zielen-600">{{ product.name }}</a>
                                     {% if product.catalogNumber or product.internalCode %}<span class="block text-xs text-antracyt-500">{{ [product.internalCode, product.catalogNumber]|filter(v => v)|join(' · ') }}</span>{% endif %}
                                 </td>

@@ -383,6 +383,17 @@ final class InvoiceController extends AbstractController
             return $this->render('_partials/refresh.stream.html.twig');
         }
 
+        // Akcja z menu pod prawym przyciskiem na liście – wracamy na tę samą listę (z filtrami).
+        if ('lista' === $request->query->get('z')) {
+            $referer = (string) $request->headers->get('referer');
+            $query = (string) parse_url($referer, \PHP_URL_QUERY);
+            $url = $this->generateUrl('app_invoice_index');
+
+            $sameList = parse_url($referer, \PHP_URL_HOST) === $request->getHost() && '/faktury' === parse_url($referer, \PHP_URL_PATH);
+
+            return $this->redirect($sameList && '' !== $query ? $url.'?'.$query : $url, Response::HTTP_SEE_OTHER);
+        }
+
         return $this->redirectToRoute('app_invoice_show', ['id' => $invoice->getId()], Response::HTTP_SEE_OTHER);
     }
 

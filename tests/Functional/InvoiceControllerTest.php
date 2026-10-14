@@ -86,6 +86,24 @@ final class InvoiceControllerTest extends FunctionalTestCase
         self::assertSame(['read', 'paid', 'status'], $actions);
     }
 
+    public function testContextMenuActionReturnsToTheSameList(): void
+    {
+        $invoice = InvoiceFactory::createOne(['number' => 'FV/MENU/1']);
+        $this->loginAs(UserFactory::owner());
+
+        $crawler = $this->client->request('GET', '/faktury?rodzaj=kosztowe&szukaj=MENU');
+        self::assertSelectorExists('table[data-controller~="context-menu"]');
+        $template = $crawler->filter(\sprintf('#invoice-row-%d template[data-context-menu]', $invoice->getId()));
+        self::assertStringContainsString('Oznacz jako opłaconą', $template->html());
+        $token = $crawler->filter(\sprintf('#invoice-row-%d template form[action$="/oplacona?z=lista"] input[name=_token]', $invoice->getId()))->attr('value');
+
+        $this->client->request('POST', \sprintf('/faktury/%d/oplacona?z=lista', $invoice->getId()), ['_token' => $token], [], ['HTTP_REFERER' => 'http://localhost/faktury?rodzaj=kosztowe&szukaj=MENU']);
+        self::assertResponseRedirects('/faktury?rodzaj=kosztowe&szukaj=MENU');
+
+        $this->client->request('POST', \sprintf('/faktury/%d/nieoplacona?z=lista', $invoice->getId()), ['_token' => $token], [], ['HTTP_REFERER' => 'https://obca-strona.example/faktury?x=1']);
+        self::assertResponseRedirects('/faktury', null, 'Obcy adres w nagłówku Referer nie przekierowuje poza aplikację');
+    }
+
     public function testPreviewActionRespondsWithTurboStream(): void
     {
         $invoice = InvoiceFactory::createOne();

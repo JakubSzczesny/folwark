@@ -1,6 +1,6 @@
 {% import '_partials/macros.html.twig' as m %}
 <div class="table-wrap">
-    <table class="table table-cards" data-controller="table-nav" data-action="keydown@window->table-nav#keydown">
+    <table class="table table-cards" data-controller="table-nav context-menu" data-action="keydown@window->table-nav#keydown">
         <thead>
             <tr>
                 <th>Numer</th>
@@ -12,7 +12,14 @@
             {% for contract in contracts %}
                 {% set p = progress[contract.id] ?? null %}
                 <tr data-table-nav-target="row" data-href="{{ path('app_contract_show', {id: contract.id}) }}" data-action="click->table-nav#click">
-                    <td class="card-title-cell"><a href="{{ path('app_contract_show', {id: contract.id}) }}" class="text-tekst hover:text-zielen-600">{{ contract.number }}</a></td>
+                    <td class="card-title-cell">
+                        <template data-context-menu>
+                            {% import '_partials/context_menu.html.twig' as cm %}
+                            {% if is_granted('CONTRACT_EDIT') %}{{ cm.link(path('app_contract_edit', {id: contract.id}), 'Edytuj umowę', 'pencil') }}{% endif %}
+                            {% if is_granted('CONTRACTOR_VIEW') %}{{ cm.link(path('app_contractor_show', {id: contract.contractor.id}), 'Kontrahent: ' ~ contract.contractor.displayName, 'users') }}{% endif %}
+                        </template>
+                        <a href="{{ path('app_contract_show', {id: contract.id}) }}" class="text-tekst hover:text-zielen-600">{{ contract.number }}</a>
+                    </td>
                     {% if show_contractor|default(true) %}<td data-label="Kontrahent">{{ contract.contractor.displayName }}</td>{% endif %}
                     <td data-label="Przedmiot">{{ contract.subject }}</td>
                     <td data-label="Rodzaj">{{ contract.kind.label }}</td>

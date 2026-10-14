@@ -89,7 +89,8 @@ export default class extends Controller {
             return;
         }
         row.classList.remove('is-unread');
-        if (frame.getAttribute('src') === row.dataset.previewUrl) {
+        // Ramka trzyma adres pełny, wiersz względny – porównujemy po rozwinięciu.
+        if (frame.src && new URL(frame.src, window.location.href).href === new URL(row.dataset.previewUrl, window.location.href).href) {
             frame.reload();
         } else {
             frame.src = row.dataset.previewUrl;

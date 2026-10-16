@@ -91,13 +91,13 @@ const CONFIG = {{ config|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or con
     /* Formularz banku po każdej zmianie pola wysyła zapytanie AJAX (PrimeFaces) – czekamy, aż się skończy. */
     async function idle() {
         const page = unsafeWindow;
-        for (let i = 0; i < 50; i++) {
+        for (let i = 0; i < 200; i++) {
             const queueEmpty = !page.PrimeFaces?.ajax?.Queue || page.PrimeFaces.ajax.Queue.isEmpty();
             const jqueryIdle = !page.jQuery || page.jQuery.active === 0;
             if (queueEmpty && jqueryIdle) {
                 return;
             }
-            await sleep(100);
+            await sleep(25);
         }
     }
 
@@ -121,24 +121,25 @@ const CONFIG = {{ config|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or con
         return result;
     }
 
-    async function type(key, value) {
+    /* Wpisuje wartość i wyzwala zdarzenia jak przy pisaniu; nie czeka na odpowiedź banku. */
+    function put(key, value) {
         const element = field(key);
         if (!element || element.disabled || element.readOnly) {
             return false;
         }
         const $ = unsafeWindow.jQuery;
         if ($) {
-            $(element).trigger('focus').val(value).trigger('input').trigger('keyup').trigger('change').trigger('blur');
+            $(element).val(value).trigger('input').trigger('keyup').trigger('change').trigger('blur');
         } else {
-            element.focus();
             element.value = value;
             for (const name of ['input', 'keyup', 'change', 'blur']) {
                 element.dispatchEvent(new Event(name, { bubbles: true }));
             }
         }
-        await idle();
         return true;
     }
+
+    const same = (element, value) => element.value.replace(/[\s-]/g, '') === value.replace(/[\s-]/g, '');
 
     async function fill(transfer) {
         const name = lines(transfer.recipient, 2, CONFIG.nameWidth);
@@ -158,24 +159,41 @@ const CONFIG = {{ config|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or con
             ['title4', title[3] || ''],
         ];
 
+        /* Rachunek osobno: bank po nim przebudowuje część formularza (nazwa, adres). */
         const missing = [];
-        for (const [key, value] of values) {
-            const typed = await type(key, value);
-            if (!typed && CONFIG.required.includes(key)) {
+        const [[accountKey, accountValue], ...rest] = values;
+        if (!put(accountKey, accountValue)) {
+            missing.push(accountKey);
+        }
+        await idle();
+
+        /* Pozostałe pola jedną serią, bez czekania – zapytania banku idą w kolejce w tle. */
+        for (const [key, value] of rest) {
+            const element = field(key);
+            if (element && same(element, value)) {
+                continue;
+            }
+            if (!put(key, value) && CONFIG.required.includes(key)) {
                 missing.push(key);
             }
         }
 
-        /* Bank po wpisaniu rachunku potrafi przeładować część formularza – sprawdzamy i poprawiamy raz jeszcze. */
-        for (const [key, value] of values) {
-            const element = field(key);
-            if (element && value && element.value.replace(/\s/g, '') !== value.replace(/\s/g, '') && key !== 'amount' && key !== 'postalCode') {
-                await type(key, value);
-            }
-        }
+        repair(values);
 
         return missing;
     }
+
+    /* Gdy bank przerobi kolejkę, wpisujemy jeszcze raz pola, które jego odpowiedź wyczyściła. */
+    async function repair(values) {
+        await idle();
+        for (const [key, value] of values) {
+            const element = field(key);
+            if (element && value && key !== 'amount' && !same(element, value)) {
+                put(key, value);
+            }
+        }
+    }
+
     function panel(item) {
         document.getElementById('folwark-bspay')?.remove();
         if (!item) {
@@ -272,11 +290,11 @@ const CONFIG = {{ config|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or con
             /* Formularz bankowości dociąga się chwilę po załadowaniu strony. */
             let tries = 0;
             const wait = setInterval(() => {
-                if (isTransferForm() || ++tries > 20) {
+                if (isTransferForm() || ++tries > 70) {
                     clearInterval(wait);
                     start();
                 }
-            }, 500);
+            }, 150);
         }
     }
 

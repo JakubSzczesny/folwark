@@ -11,6 +11,7 @@
 // @grant        GM_deleteValue
 // @grant        GM_addValueChangeListener
 // @grant        unsafeWindow
+// @grant        window.focus
 // @run-at       document-idle
 // @noframes
 // @updateURL    {{ script_url }}
@@ -24,7 +25,8 @@ const CONFIG = {{ config|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or con
 
     /* Przelew czeka w schowku skryptu najwyżej 15 minut; potem trzeba go wysłać z Folwarku ponownie. */
     const TTL = 15 * 60 * 1000;
-    const BANK_ALIVE = 10 * 1000;
+    /* Karty w tle przeglądarka budzi nawet raz na minutę – znacznik „bank otwarty” musi to przetrwać. */
+    const BANK_ALIVE = 90 * 1000;
 
     const pending = () => {
         const item = GM_getValue('pending', null);
@@ -69,7 +71,6 @@ const CONFIG = {{ config|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or con
             }
 
             GM_setValue('pending', { transfer, createdAt: Date.now(), filledAt: null });
-
         });
 
         /* Folwark sprawdza ten znacznik, żeby nie otwierać drugiej karty banku (bank wylogowuje przy kilku oknach). */
@@ -275,11 +276,17 @@ const CONFIG = {{ config|json_encode(constant('JSON_UNESCAPED_SLASHES') b-or con
         const beat = () => GM_setValue('bankAlive', Date.now());
         beat();
         setInterval(beat, 3000);
+        document.addEventListener('visibilitychange', beat);
         window.addEventListener('beforeunload', () => GM_setValue('bankAlive', 0));
 
+        /* Nowy przelew z Folwarku: pokazujemy okienko i wysuwamy kartę banku na wierzch. */
         GM_addValueChangeListener('pending', (name, before, after, remote) => {
             if (remote) {
-                panel(pending());
+                const item = pending();
+                panel(item);
+                if (item) {
+                    window.focus();
+                }
             }
         });
 

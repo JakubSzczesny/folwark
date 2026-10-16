@@ -59,7 +59,7 @@ class KsefSynchronizer
 
     public function isConfigured(): bool
     {
-        return null !== $this->identity->nip();
+        return null !== $this->identity->nip() && $this->client->isConfigured();
     }
 
     /**

@@ -12,6 +12,7 @@ use App\Entity\User;
 use App\Enum\InvoiceKind;
 use App\Enum\NotificationPriority;
 use App\Enum\NotificationType;
+use App\Ksef\KsefSynchronizer;
 use App\Notification\DeadlineSource;
 use App\Notification\Notifier;
 use App\Repository\InvoiceRepository;
@@ -36,6 +37,7 @@ final class InvoiceDeadlines implements DeadlineSource, AttentionSource, MenuBad
         private readonly Settings $settings,
         private readonly UrlGeneratorInterface $urls,
         private readonly AuthorizationCheckerInterface $auth,
+        private readonly KsefSynchronizer $synchronizer,
     ) {
     }
 
@@ -86,7 +88,7 @@ final class InvoiceDeadlines implements DeadlineSource, AttentionSource, MenuBad
         }
 
         $last = $this->syncs->findLastFinished();
-        if (null !== $last && $last->isFailed()) {
+        if (null !== $last && $last->isFailed() && $this->synchronizer->isConfigured()) {
             $items[] = new AttentionItem(-1000, 'danger', 'KSeF', 'Błąd synchronizacji KSeF', $this->urls->generate('app_settings_ksef'), $last->getError(), $this->auth->isGranted(Permission::INVOICE_MANAGE)
                 ? [AttentionAction::post('Synchronizuj teraz', $this->urls->generate('app_invoice_sync', ['z' => 'pulpit']), 'invoice', 'refresh-cw')]
                 : []);

@@ -88,6 +88,11 @@ class FakeKsefClient implements KsefClient, ResetInterface
         return $invoices[$ksefNumber]['xml'];
     }
 
+    public function isConfigured(): bool
+    {
+        return true;
+    }
+
     public function testConnection(): string
     {
         return \sprintf('Symulator KSeF: %d faktur dostępnych w %s.', \count($this->invoices()), $this->directory);

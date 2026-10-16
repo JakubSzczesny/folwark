@@ -30,4 +30,9 @@ interface KsefClient
      * @throws KsefException
      */
     public function testConnection(): string;
+
+    /**
+     * Czy klient ma czym się uwierzytelnić (token) – bez tego synchronizacji w ogóle nie zaczynamy.
+     */
+    public function isConfigured(): bool;
 }

@@ -2,7 +2,7 @@
     <div class="flex items-center justify-between gap-2 px-4 py-2 border-b border-szary-200">
         <span class="font-semibold text-sm">Powiadomienia</span>
         {% if unread > 0 %}
-            <form method="post" action="{{ path('app_notification_read_all') }}">
+            <form method="post" action="{{ path('app_notification_read_all') }}" data-turbo-frame="notification-bell">
                 <input type="hidden" name="_token" value="{{ csrf_token('notifications') }}">
                 <button type="submit" class="text-sm text-zielen-600 hover:text-zielen-700 font-semibold">Oznacz wszystkie jako przeczytane</button>
             </form>

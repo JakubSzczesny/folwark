@@ -64,4 +64,12 @@ final class NotificationTest extends FunctionalTestCase
         $this->client->request('GET', '/powiadomienia/dzwonek');
         self::assertSelectorNotExists('.dot-new');
     }
+
+    public function testBellLinksLeaveTheDropdown(): void
+    {
+        $this->loginAs(UserFactory::owner());
+        $crawler = $this->client->request('GET', '/');
+
+        self::assertSame('_top', $crawler->filter('turbo-frame#notification-bell')->attr('target'), 'Kliknięcie powiadomienia ma przejść na stronę, a nie ładować jej w dzwonku');
+    }
 }

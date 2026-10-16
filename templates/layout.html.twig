@@ -81,7 +81,7 @@
                     {% if unread > 0 %}<span class="count absolute top-1 right-0">{{ unread }}</span>{% endif %}
                 </button>
                 <div data-dropdown-target="menu" class="dropdown right-0 w-[min(380px,calc(100vw-1.5rem))]" hidden>
-                    <turbo-frame id="notification-bell" src="{{ path('app_notification_bell') }}" loading="lazy">
+                    <turbo-frame id="notification-bell" src="{{ path('app_notification_bell') }}" loading="lazy" target="_top">
                         <p class="flex items-center gap-2 px-4 py-6 text-sm text-antracyt-500"><span class="spinner text-zielen-600" aria-hidden="true"></span> Wczytywanie…</p>
                     </turbo-frame>
                 </div>

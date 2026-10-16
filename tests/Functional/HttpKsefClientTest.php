@@ -10,6 +10,7 @@ use App\Farm\FarmContext;
 use App\Ksef\Dto\MetadataQuery;
 use App\Ksef\Http\HttpKsefClient;
 use App\Ksef\Http\KsefTokenEncryptor;
+use App\Ksef\KsefException;
 use App\Ksef\KsefIdentity;
 use App\Ksef\KsefRateLimitException;
 use App\Ksef\SubjectType;
@@ -115,6 +116,30 @@ final class HttpKsefClientTest extends KernelTestCase
         } catch (KsefRateLimitException $e) {
             self::assertSame(120, $e->retryAfterSeconds);
         }
+    }
+
+    public function testUnavailableKsefGivesReadableMessage(): void
+    {
+        $client = $this->client([
+            new MockResponse('<html><head><title>503 Service Unavailable</title></head><body><h1>503</h1></body></html>', ['http_code' => 503]),
+        ]);
+
+        try {
+            $client->testConnection();
+            self::fail('Oczekiwano wyjątku KSeF.');
+        } catch (KsefException $e) {
+            self::assertStringContainsString('chwilowo niedostępny', $e->getMessage());
+            self::assertStringNotContainsString('<', $e->getMessage());
+        }
+    }
+
+    public function testNotConfiguredWithoutToken(): void
+    {
+        $client = $this->client([]);
+        self::assertTrue($client->isConfigured());
+
+        static::getContainer()->get(Settings::class)->set(SettingKey::KSEF_TOKEN, null);
+        self::assertFalse($client->isConfigured());
     }
 
     /**

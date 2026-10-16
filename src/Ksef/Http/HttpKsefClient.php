@@ -83,6 +83,11 @@ final class HttpKsefClient implements KsefClient
         return $response->getContent();
     }
 
+    public function isConfigured(): bool
+    {
+        return null !== $this->settings->string(SettingKey::KSEF_TOKEN);
+    }
+
     public function testConnection(): string
     {
         $this->forgetTokens();
@@ -280,6 +285,10 @@ final class HttpKsefClient implements KsefClient
             throw new KsefRateLimitException(max(1, $retryAfter));
         }
 
+        if (\in_array($status, [502, 503, 504], true)) {
+            throw new KsefException(\sprintf('KSeF jest chwilowo niedostępny (błąd %d). Spróbujemy ponownie przy następnej synchronizacji.', $status));
+        }
+
         throw new KsefException(\sprintf('KSeF zwrócił błąd %d: %s', $status, $this->errorMessage($response)));
     }
 
@@ -288,7 +297,9 @@ final class HttpKsefClient implements KsefClient
         try {
             $data = $response->toArray(false);
         } catch (\Throwable) {
-            return mb_substr($response->getContent(false), 0, 300);
+            $text = trim((string) preg_replace('/\s+/', ' ', strip_tags($response->getContent(false))));
+
+            return '' !== $text ? mb_substr($text, 0, 300) : 'brak opisu błędu';
         }
 
         $details = $data['exception']['exceptionDetailList'] ?? [];

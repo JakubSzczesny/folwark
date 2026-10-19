@@ -35,7 +35,7 @@ Konta demonstracyjne (hasło `folwark-demo`): `wlasciciel@folwark.test`, `pracow
 
 ## Instalacja na serwerze
 
-Opis dla Debiana 12 / Ubuntu 24.04, aplikacja w `/srv/folwark`, użytkownik `www-data`.
+Opis dla Debiana 13 / Raspberry Pi OS (Trixie) / Ubuntu 24.04, aplikacja w `/srv/folwark`, użytkownik `www-data`.
 
 1. Pakiety: `nginx`, `mariadb-server`, `php8.4-fpm` z rozszerzeniami jak wyżej, `composer`, `git`.
 2. Baza i użytkownik:
@@ -46,7 +46,7 @@ Opis dla Debiana 12 / Ubuntu 24.04, aplikacja w `/srv/folwark`, użytkownik `www
    ```
 3. Kod i konfiguracja:
    ```bash
-   git clone <adres-repozytorium> /srv/folwark && cd /srv/folwark
+   git clone https://github.com/JakubSzczesny/folwark.git /srv/folwark && cd /srv/folwark   # jako root – tak działa też automatyczna aktualizacja
    cp .env .env.local   # APP_ENV=prod, APP_SECRET, DATABASE_URL, ENCRYPTION_KEY, KSEF_CLIENT=http, MAILER_DSN, MAILER_FROM, DEFAULT_URI=https://folwark.local
    composer install --no-dev --optimize-autoloader
    php bin/console doctrine:migrations:migrate --no-interaction
@@ -66,16 +66,27 @@ Opis dla Debiana 12 / Ubuntu 24.04, aplikacja w `/srv/folwark`, użytkownik `www
 | `folwark-worker` | zadania w tle: synchronizacja KSeF, pobieranie XML, przeliczanie zamówień, e-maile |
 | `folwark-scheduler` | harmonogram: KSeF co 5 min, zamówienia 5:30, terminy 6:00, dzienny skrót 6:05 |
 | `folwark-backup.timer` | kopia zapasowa codziennie o 2:30 |
+| `folwark-update.timer` | aktualizacja z GitHuba codziennie o 3:15 (gdy są nowe zmiany) |
 
 ```bash
 cp deploy/systemd/folwark-* /etc/systemd/system/
 systemctl daemon-reload
-systemctl enable --now folwark-worker folwark-scheduler folwark-backup.timer
+systemctl enable --now folwark-worker folwark-scheduler folwark-backup.timer folwark-update.timer
 ```
 
 Obie usługi kończą pracę co godzinę (`--time-limit=3600`) i są od razu uruchamiane ponownie – tak samo po błędzie. Awaria KSeF nie blokuje pracy ręcznej; nieudane zadania lądują w kolejce `failed` (`php bin/console messenger:failed:show`).
 
 ### Aktualizacja
+
+Automatycznie: `folwark-update.timer` codziennie o 3:15 uruchamia `deploy/update.sh`. Gdy na gałęzi `main` w repozytorium jest coś nowego, skrypt:
+1. robi kopię zapasową do `/var/backups/folwark/przed-aktualizacja` (5 ostatnich); bez udanej kopii nie aktualizuje,
+2. zatrzymuje `folwark-worker` i `folwark-scheduler`,
+3. pobiera kod (tylko przewinięcie – przy lokalnych zmianach albo przepisanej historii pomija aktualizację), instaluje zależności, buduje style i zasoby; błąd na tym etapie cofa kod do poprzedniej wersji,
+4. wykonuje migracje, czyści cache, przeładowuje PHP-FPM i uruchamia usługi.
+
+Błąd migracji zatrzymuje aktualizację z wypisaną instrukcją powrotu (kod + odtworzenie z kopii sprzed aktualizacji). Wszystko widać w `journalctl -u folwark-update`. Aktualizacja od razu: `systemctl start folwark-update`. Inną gałąź (np. osobną „produkcyjną”, do której trafiają tylko sprawdzone zmiany) ustawia się w `Environment=UPDATE_BRANCH=` w `/etc/systemd/system/folwark-update.service`. Nowe pakiety systemowe czy rozszerzenia PHP trzeba doinstalować ręcznie.
+
+Ręcznie:
 
 ```bash
 cd /srv/folwark

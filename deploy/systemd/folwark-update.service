@@ -1,0 +1,12 @@
+[Unit]
+Description=Folwark – aktualizacja z repozytorium git (kopia, pull, migracje, restart usług)
+After=network-online.target mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+Environment=APP_DIR=/srv/folwark
+Environment=UPDATE_BRANCH=main
+ExecStart=/srv/folwark/deploy/update.sh
+TimeoutStartSec=30min

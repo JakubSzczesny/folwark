@@ -38,7 +38,8 @@ if [ "$(date +%d)" = "01" ]; then
     cp "$target" "$monthly/folwark-$(date +%Y-%m).tar"
 fi
 
-ls -1t "$daily"/folwark-*.tar 2>/dev/null | tail -n +"$((KEEP_DAILY + 1))" | xargs -r rm -f
-ls -1t "$monthly"/folwark-*.tar 2>/dev/null | tail -n +"$((KEEP_MONTHLY + 1))" | xargs -r rm -f
+# "|| true": pusty katalog (np. monthly przed 1. dniem miesiąca) to nie błąd mimo pipefail.
+{ ls -1t "$daily"/folwark-*.tar 2>/dev/null || true; } | tail -n +"$((KEEP_DAILY + 1))" | xargs -r rm -f
+{ ls -1t "$monthly"/folwark-*.tar 2>/dev/null || true; } | tail -n +"$((KEEP_MONTHLY + 1))" | xargs -r rm -f
 
 echo "Kopia zapisana: $target ($(du -h "$target" | cut -f1))"

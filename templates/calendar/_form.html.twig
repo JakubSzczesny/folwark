@@ -1,0 +1,49 @@
+{# Formularz wydarzenia – w oknie i na osobnej stronie. #}
+{{ form_start(form, {action: app.request.requestUri, attr: modal ? {'data-turbo-frame': 'modal'} : {}}) }}
+    <div class="grid gap-x-4 sm:grid-cols-[1fr_200px]">
+        {{ form_row(form.title) }}
+        {{ form_row(form.category) }}
+    </div>
+    <div class="grid gap-x-4 grid-cols-2 sm:grid-cols-4">
+        {{ form_row(form.startDate) }}
+        {{ form_row(form.startTime) }}
+        {{ form_row(form.endDate) }}
+        {{ form_row(form.endTime) }}
+    </div>
+    {{ form_row(form.location) }}
+    {{ form_row(form.description) }}
+    <div class="grid gap-x-4 sm:grid-cols-3">
+        {{ form_row(form.recurrence) }}
+        {{ form_row(form.recurrenceUntil) }}
+        {{ form_row(form.reminderDays) }}
+    </div>
+    {% if form.participants|length > 0 %}
+        <fieldset class="field">
+            <legend class="label">Uczestnicy</legend>
+            <div class="grid gap-x-4 gap-y-1 sm:grid-cols-2">
+                {% for participant in form.participants %}
+                    <label class="inline-flex items-center gap-2 cursor-pointer text-sm" style="min-height:32px">
+                        {{ form_widget(participant, {attr: {class: 'checkbox'}}) }} {{ participant.vars.label }}
+                    </label>
+                {% endfor %}
+            </div>
+            <p class="help">Uczestnicy dostają przypomnienie i powiadomienie o dopisaniu do wydarzenia.</p>
+        </fieldset>
+    {% else %}
+        {% do form.participants.setRendered %}
+    {% endif %}
+    {% if event.id is null or event.createdBy is null or event.isCreatedBy(app.user) %}
+        {{ form_row(form.private) }}
+    {% else %}
+        {% do form.private.setRendered %}
+    {% endif %}
+    {{ form_rest(form) }}
+    <div class="flex flex-wrap gap-2">
+        <button type="submit" class="btn btn-primary">{{ event.id ? 'Zapisz' : 'Dodaj' }}</button>
+        {% if modal %}
+            <button type="button" class="btn btn-ghost" data-action="modal#close">Anuluj</button>
+        {% else %}
+            <a href="{{ path('app_calendar_index') }}" class="btn btn-ghost">Anuluj</a>
+        {% endif %}
+    </div>
+{{ form_end(form) }}

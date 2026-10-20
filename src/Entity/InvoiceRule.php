@@ -14,7 +14,7 @@ use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
 
 /**
- * Reguła automatyczna: faktury kosztowe od danego NIP od razu jako „tylko koszt”.
+ * Reguła automatyczna: faktury zakupowe od danego NIP od razu jako „tylko koszt”.
  */
 #[ORM\Entity(repositoryClass: InvoiceRuleRepository::class)]
 #[ORM\UniqueConstraint(columns: ['farm_id', 'contractor_nip'])]

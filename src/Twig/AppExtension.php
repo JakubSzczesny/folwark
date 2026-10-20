@@ -9,6 +9,7 @@ use App\Entity\FarmMembership;
 use App\Entity\User;
 use App\Enum\UserRole;
 use App\Farm\FarmContext;
+use App\Module\Modules;
 use App\Repository\FarmMembershipRepository;
 use App\Ui\Navigation;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -27,6 +28,7 @@ final class AppExtension
         private readonly FarmMembershipRepository $membershipRepository,
         private readonly Security $security,
         private readonly UrlGeneratorInterface $urls,
+        private readonly Modules $modules,
     ) {
     }
 
@@ -82,12 +84,28 @@ final class AppExtension
         return $this->memberships ??= $this->membershipRepository->findForUser($user);
     }
 
+    #[AsTwigFunction('module_enabled')]
+    public function moduleEnabled(string $key): bool
+    {
+        return $this->modules->isEnabled($key);
+    }
+
+    #[AsTwigFunction('module_label')]
+    public function moduleLabel(string $key): string
+    {
+        return Modules::label($key);
+    }
+
     /**
-     * Pozwala szablonom pokazywać akcje modułów, które mogą jeszcze nie istnieć.
+     * Pozwala szablonom pokazywać akcje modułów, które mogą jeszcze nie istnieć albo są wyłączone.
      */
     #[AsTwigFunction('route_exists')]
     public function routeExists(string $name): bool
     {
+        if (null !== $this->modules->disabledModuleOfRoute($name)) {
+            return false;
+        }
+
         try {
             $this->urls->generate($name, ['id' => 0]);
 

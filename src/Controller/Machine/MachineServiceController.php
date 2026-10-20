@@ -60,7 +60,7 @@ final class MachineServiceController extends AbstractController
     }
 
     /**
-     * Opcje listy faktur do wpisu: faktury kosztowe wykonawcy z ±14 dni od daty serwisu.
+     * Opcje listy faktur do wpisu: faktury zakupowe wykonawcy z ±14 dni od daty serwisu.
      */
     #[Route('/serwis/faktury', name: 'app_machine_service_invoices', methods: ['GET'])]
     #[IsGranted(Permission::INVOICE_VIEW)]

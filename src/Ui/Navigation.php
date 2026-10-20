@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Ui;
 
 use App\Entity\User;
+use App\Module\Modules;
 use App\Security\Permission;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\DependencyInjection\Attribute\AutowireIterator;
@@ -14,7 +15,8 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 final class Navigation
 {
     /**
-     * key, label, route, icon, permission, children, section-start.
+     * key, label, route, icon, permission, children, section-start; module – klucz modułu
+     * (App\Module\Modules), gdy inny niż key.
      */
     private const array MENU = [
         ['key' => 'dashboard', 'label' => 'Pulpit', 'route' => 'app_dashboard', 'icon' => 'layout-dashboard', 'permission' => null],
@@ -24,10 +26,11 @@ final class Navigation
         ]],
         ['key' => 'orders', 'label' => 'Zamówienia', 'route' => 'app_order_index', 'icon' => 'shopping-cart', 'permission' => Permission::ORDER_VIEW],
         ['key' => 'machines', 'label' => 'Maszyny', 'route' => 'app_machine_index', 'icon' => 'tractor', 'permission' => Permission::MACHINE_VIEW],
+        ['key' => 'calendar', 'label' => 'Kalendarz', 'route' => 'app_calendar_index', 'icon' => 'calendar', 'permission' => Permission::CALENDAR_VIEW],
         ['key' => 'warehouse', 'label' => 'Magazyn', 'route' => null, 'icon' => 'warehouse', 'permission' => null, 'children' => [
             ['key' => 'products', 'label' => 'Towary', 'route' => 'app_product_index', 'permission' => Permission::PRODUCT_VIEW],
             ['key' => 'documents', 'label' => 'Dokumenty', 'route' => 'app_document_index', 'permission' => Permission::DOCUMENT_VIEW],
-            ['key' => 'stock', 'label' => 'Stany', 'route' => 'app_stock_index', 'permission' => Permission::DOCUMENT_VIEW],
+            ['key' => 'stock', 'label' => 'Stany', 'route' => 'app_stock_index', 'permission' => Permission::DOCUMENT_VIEW, 'module' => 'documents'],
         ]],
         ['key' => 'analytics', 'label' => 'Analizy', 'route' => 'app_analytics_index', 'icon' => 'chart-column', 'permission' => Permission::ANALYTICS_VIEW],
         ['key' => 'reports', 'label' => 'Zestawienia', 'route' => 'app_report_index', 'icon' => 'file-spreadsheet', 'permission' => Permission::EXPORT],
@@ -37,7 +40,7 @@ final class Navigation
     ];
 
     /** Skróty w dolnym pasku na telefonie; gdy rola nie ma dostępu do któregoś, wchodzą kolejne z listy. */
-    private const array MOBILE = ['dashboard', 'invoices', 'machines', 'orders', 'contractors', 'products', 'weighbridge'];
+    private const array MOBILE = ['dashboard', 'invoices', 'machines', 'orders', 'calendar', 'contractors', 'products', 'weighbridge'];
 
     /** @var list<array<string, mixed>>|null */
     private ?array $cache = null;
@@ -48,6 +51,7 @@ final class Navigation
     public function __construct(
         private readonly Security $security,
         private readonly UrlGeneratorInterface $urls,
+        private readonly Modules $modules,
         #[AutowireIterator(MenuBadgeProvider::class)]
         private readonly iterable $badgeProviders,
     ) {
@@ -109,6 +113,10 @@ final class Navigation
             if (null !== $definition['permission'] && !$this->security->isGranted($definition['permission'])) {
                 continue;
             }
+            $module = $definition['module'] ?? $definition['key'];
+            if (!$this->modules->isEnabled($module)) {
+                continue;
+            }
 
             $children = $this->build($definition['children'] ?? [], $badges);
             $url = null !== $definition['route'] ? $this->url($definition['route']) : null;
@@ -119,6 +127,7 @@ final class Navigation
 
             $items[] = [
                 'key' => $definition['key'],
+                'module' => Modules::exists($module) ? $module : null,
                 'label' => $definition['label'],
                 'icon' => $definition['icon'] ?? null,
                 'route' => $definition['route'],

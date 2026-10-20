@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Notification;
 
 use App\Farm\FarmContext;
+use App\Module\Modules;
 use App\Repository\NotificationPreferenceRepository;
 use App\Repository\NotificationRepository;
 use App\Settings\SettingKey;
@@ -23,6 +24,7 @@ class DailyDigestMailer
         private readonly MailerInterface $mailer,
         private readonly EntityManagerInterface $em,
         private readonly FarmContext $context,
+        private readonly Modules $modules,
         #[Autowire('%env(MAILER_FROM)%')]
         private readonly string $from,
     ) {
@@ -33,7 +35,7 @@ class DailyDigestMailer
      */
     public function send(): int
     {
-        if (!$this->settings->bool(SettingKey::NOTIFY_DIGEST_EMAIL)) {
+        if (!$this->settings->bool(SettingKey::NOTIFY_DIGEST_EMAIL) || !$this->modules->isEnabled('notifications')) {
             return 0;
         }
 

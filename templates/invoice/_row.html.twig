@@ -51,5 +51,7 @@
     <td data-label="Status" class="whitespace-nowrap">
         <twig:Badge tone="{{ invoice.status.tone }}">{{ invoice.status.label }}</twig:Badge>
         {% if invoice.paid %}<twig:Badge tone="positive">Opłacona</twig:Badge>{% endif %}
+        {% set unassigned = unassigned_counts is defined ? (unassigned_counts[invoice.id] ?? 0) : invoice.countUnassignedItems %}
+        {% if unassigned > 0 %}<twig:Badge tone="warning" title="{{ unassigned }} {{ unassigned|plural('pozycja nie ma', 'pozycje nie mają', 'pozycji nie ma') }} przypisanego towaru z kartoteki">{{ ux_icon('lucide:package-x', {width: 14, height: 14}) }}Bez towaru: {{ unassigned }}</twig:Badge>{% endif %}
     </td>
 </tr>

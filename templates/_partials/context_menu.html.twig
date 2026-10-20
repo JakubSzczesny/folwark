@@ -18,3 +18,14 @@
 {% macro separator() %}
     <hr>
 {% endmacro %}
+
+{# Pozycja menu bocznego: wyłączenie modułu (tylko z uprawnieniem SETTINGS). #}
+{% macro module(key) %}
+    <template data-context-menu>
+        <form method="post" action="{{ path('app_settings_module_toggle', {key: key, state: 'wylacz'}) }}" data-turbo-confirm="Wyłączyć moduł „{{ module_label(key) }}”? Dane zostaną – moduł można z powrotem włączyć w Ustawienia → Moduły.">
+            <input type="hidden" name="_token" value="{{ csrf_token('modules') }}">
+            <button type="submit" class="dropdown-item" role="menuitem">{{ ux_icon('lucide:eye-off', {width: 16, height: 16}) }}Wyłącz moduł „{{ module_label(key) }}”</button>
+        </form>
+        <a href="{{ path('app_settings_modules') }}" class="dropdown-item" role="menuitem">{{ ux_icon('lucide:settings', {width: 16, height: 16}) }}Ustawienia modułów</a>
+    </template>
+{% endmacro %}

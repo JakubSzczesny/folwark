@@ -210,6 +210,26 @@ class Invoice implements \Stringable, FarmScoped
         return InvoiceKind::Cost === $this->kind;
     }
 
+    /**
+     * Czy pozycje tej faktury przypisuje się do towarów: zakupowa, nie „tylko koszt” i nie pominięta.
+     */
+    public function expectsGoods(): bool
+    {
+        return $this->isCost() && !\in_array($this->status, InvoiceStatus::withoutGoods(), true);
+    }
+
+    /**
+     * Pozycje bez towaru z kartoteki (i nie oznaczone „pomiń”) – faktura wymaga jeszcze przypisania.
+     */
+    public function countUnassignedItems(): int
+    {
+        if (!$this->expectsGoods()) {
+            return 0;
+        }
+
+        return \count($this->items->filter(static fn (InvoiceItem $item): bool => $item->isUnassigned()));
+    }
+
     public function isKindOverridden(): bool
     {
         return $this->kindOverridden;

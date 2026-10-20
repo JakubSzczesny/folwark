@@ -14,7 +14,10 @@ use Symfony\Component\HttpFoundation\Request;
  */
 final class InvoiceFilter
 {
-    public const array TABS = ['kosztowe' => InvoiceKind::Cost, 'przychodowe' => InvoiceKind::Income, 'wszystkie' => null];
+    public const array TABS = ['zakupowe' => InvoiceKind::Cost, 'sprzedazowe' => InvoiceKind::Income, 'wszystkie' => null];
+
+    /** Dawne nazwy zakładek – stare linki i zapamiętane filtry dalej działają. */
+    private const array TAB_ALIASES = ['kosztowe' => 'zakupowe', 'przychodowe' => 'sprzedazowe'];
 
     public const array PERIODS = [
         'ten-miesiac' => 'Ten miesiąc',
@@ -24,7 +27,7 @@ final class InvoiceFilter
         'wszystko' => 'Wszystko',
     ];
 
-    public string $tab = 'kosztowe';
+    public string $tab = 'zakupowe';
     public string $period = 'wszystko';
     public ?\DateTimeImmutable $from = null;
     public ?\DateTimeImmutable $to = null;
@@ -32,6 +35,8 @@ final class InvoiceFilter
     public ?InvoiceStatus $status = null;
     public ?PaymentStatus $payment = null;
     public ?int $costCategoryId = null;
+    /** Tylko faktury, na których któraś pozycja nie ma towaru z kartoteki. */
+    public bool $unassigned = false;
     public ?string $amountFrom = null;
     public ?string $amountTo = null;
     public ?string $text = null;
@@ -42,7 +47,9 @@ final class InvoiceFilter
     {
         $query = $request->query;
         $filter = new self();
-        $filter->tab = \array_key_exists($tab = $query->getString('rodzaj'), self::TABS) ? $tab : 'kosztowe';
+        $tab = $query->getString('rodzaj');
+        $tab = self::TAB_ALIASES[$tab] ?? $tab;
+        $filter->tab = \array_key_exists($tab, self::TABS) ? $tab : 'zakupowe';
         $filter->period = \array_key_exists($period = $query->getString('okres'), self::PERIODS) ? $period : 'wszystko';
         $filter->from = self::date($query->getString('od'));
         $filter->to = self::date($query->getString('do'));
@@ -50,6 +57,7 @@ final class InvoiceFilter
         $filter->status = InvoiceStatus::tryFrom($query->getString('status'));
         $filter->payment = PaymentStatus::tryFrom($query->getString('platnosc'));
         $filter->costCategoryId = $query->getInt('kategoria') ?: null;
+        $filter->unassigned = $query->getBoolean('bez_towaru');
         $filter->amountFrom = self::amount($query->getString('kwota_od'));
         $filter->amountTo = self::amount($query->getString('kwota_do'));
         $filter->text = '' !== ($text = trim($query->getString('szukaj'))) ? $text : null;
@@ -94,6 +102,7 @@ final class InvoiceFilter
             'status' => $this->status?->value,
             'platnosc' => $this->payment?->value,
             'kategoria' => $this->costCategoryId,
+            'bez_towaru' => $this->unassigned ? 1 : null,
             'kwota_od' => $this->amountFrom,
             'kwota_do' => $this->amountTo,
             'szukaj' => $this->text,

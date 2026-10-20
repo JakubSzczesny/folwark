@@ -44,7 +44,7 @@ final class ContractorAutocompleteField extends AbstractType
                 ->setParameter('recent', $recent)
                 ->orderBy('recentRank')
                 ->addOrderBy('contractor.name'),
-            'security' => Permission::CONTRACTOR_VIEW,
+            'security' => Permission::CONTRACTOR_LOOKUP,
             'preload' => 'focus',
             'max_results' => 20,
             'no_results_found_text' => 'Brak wyników',

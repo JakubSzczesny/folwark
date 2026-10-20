@@ -6,13 +6,15 @@ namespace App\Security;
 
 use App\Entity\User;
 use App\Farm\FarmContext;
+use App\Module\Modules;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\Authorization\Voter\Vote;
 use Symfony\Component\Security\Core\Authorization\Voter\Voter;
 use Symfony\Component\Security\Core\Role\RoleHierarchyInterface;
 
 /**
- * Uprawnienia wynikają z roli użytkownika w bieżącym gospodarstwie.
+ * Uprawnienia wynikają z roli użytkownika w bieżącym gospodarstwie. Uprawnienia wyłączonego
+ * modułu nie przysługują nikomu.
  *
  * @extends Voter<string, mixed>
  */
@@ -21,6 +23,7 @@ final class PermissionVoter extends Voter
     public function __construct(
         private readonly RoleHierarchyInterface $roleHierarchy,
         private readonly FarmContext $farmContext,
+        private readonly Modules $modules,
     ) {
     }
 
@@ -34,6 +37,10 @@ final class PermissionVoter extends Voter
         $user = $token->getUser();
         $role = $this->farmContext->getRole();
         if (!$user instanceof User || !$user->isActive() || null === $role) {
+            return false;
+        }
+
+        if ($this->modules->isPermissionDisabled($attribute)) {
             return false;
         }
 

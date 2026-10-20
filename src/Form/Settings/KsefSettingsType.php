@@ -75,7 +75,7 @@ final class KsefSettingsType extends AbstractType
                 'help' => 'Zakres pierwszej synchronizacji (historia potrzebna do przewidywania zamówień).',
             ])
             ->add(SettingsForm::field(SettingKey::KSEF_AUTO_FETCH_XML), CheckboxType::class, [
-                'label' => 'Automatycznie pobieraj pełny XML nowych faktur kosztowych',
+                'label' => 'Automatycznie pobieraj pełny XML nowych faktur zakupowych',
                 'required' => false,
                 'help' => 'Bez XML nie ma pozycji faktury, a więc przewidywania zamówień na poziomie towaru.',
             ])

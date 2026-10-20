@@ -41,7 +41,7 @@ final class DashboardData
                 'key' => 'new',
                 'label' => 'Nowe faktury',
                 'value' => (string) $this->invoices->countNew(),
-                'detail' => $this->auth->isGranted(Permission::AMOUNTS_VIEW) ? 'kosztowe w tym miesiącu: '.number_format(end($grossCost) ?: 0, 2, ',', "\u{00A0}").' zł brutto' : null,
+                'detail' => $this->auth->isGranted(Permission::AMOUNTS_VIEW) ? 'zakupowe w tym miesiącu: '.number_format(end($grossCost) ?: 0, 2, ',', "\u{00A0}").' zł brutto' : null,
                 'trend' => null,
                 'series' => array_values($grossCost),
                 'route' => 'app_invoice_index',
@@ -65,8 +65,8 @@ final class DashboardData
             ];
         }
 
-        if ($this->auth->isGranted(Permission::AMOUNTS_VIEW)) {
-            foreach ([[InvoiceKind::Cost, 'Koszty', 'kosztowe'], [InvoiceKind::Income, 'Przychody', 'przychodowe']] as [$kind, $label, $tab]) {
+        if ($this->auth->isGranted(Permission::AMOUNTS_VIEW) && $this->auth->isGranted(Permission::INVOICE_VIEW)) {
+            foreach ([[InvoiceKind::Cost, 'Koszty', 'zakupowe'], [InvoiceKind::Income, 'Przychody', 'sprzedazowe']] as [$kind, $label, $tab]) {
                 $series = $this->statistics->lastTwelveMonths($kind, $today);
                 $values = array_values($series);
                 $current = $values[\count($values) - 1] ?? 0.0;

@@ -104,6 +104,7 @@ final class MachineTest extends FunctionalTestCase
 
         $crawler = $this->client->followRedirect();
         self::assertSelectorTextContains('main', 'Filtr oleju silnika');
+        self::assertSelectorExists(\sprintf('aside[data-controller="context-menu"] template[data-context-menu] a[href="/maszyny/%d/informacje/kategoria/%d"]', $machine->getId(), $subcategory->getId()), 'Kategoria ma menu pod prawym przyciskiem');
         self::assertSelectorTextContains('main', 'nr RE504836');
         self::assertSelectorExists('a[href="https://sklep.example.pl/re504836"]');
         $thumbnail = $crawler->filter('img[src*="/informacje/zalacznik/"]')->attr('src');

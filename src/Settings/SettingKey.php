@@ -43,6 +43,9 @@ final class SettingKey
     public const string BSPAY_TITLE = 'bspay.title';
     public const string BSPAY_SPLIT_PAYMENT = 'bspay.split_payment';
 
+    /** Klucze wyłączonych modułów (App\Module\Modules). */
+    public const string MODULES_DISABLED = 'modules.disabled';
+
     public const array DEFAULTS = [
         self::KSEF_TOKEN => null,
         self::KSEF_NIP => null,
@@ -75,6 +78,7 @@ final class SettingKey
         self::BSPAY_BANK_URL => 'https://i24.bsbydgoszcz.pl/',
         self::BSPAY_TITLE => 'Faktura {numer}',
         self::BSPAY_SPLIT_PAYMENT => true,
+        self::MODULES_DISABLED => [],
     ];
 
     /** Klucze zapisywane przez system, a nie przez użytkownika; ich zmian nie logujemy. */

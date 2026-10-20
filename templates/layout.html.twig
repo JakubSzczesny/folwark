@@ -25,19 +25,22 @@
             </button>
         </div>
 
-        <nav class="flex-1 overflow-y-auto px-2 pb-4 space-y-0.5">
+        {% set can_toggle_modules = is_granted('SETTINGS') %}
+        {% import '_partials/context_menu.html.twig' as cm %}
+        <nav class="flex-1 overflow-y-auto px-2 pb-4 space-y-0.5" {% if can_toggle_modules %}data-controller="context-menu"{% endif %}>
             {% for item in menu %}
                 {% if item.separator %}<hr class="my-3 border-antracyt-700">{% endif %}
                 {% set item_active = active_menu == item.key or item.children|filter(c => c.key == active_menu)|length > 0 %}
-                <a href="{{ item.url }}" class="sidebar-link {{ item_active ? 'is-active' }}" title="{{ item.label }}" {% if item_active %}aria-current="page"{% endif %}>
+                <a href="{{ item.url }}" class="sidebar-link {{ item_active ? 'is-active' }}" title="{{ item.label }}" {% if item_active %}aria-current="page"{% endif %} {% if can_toggle_modules %}data-table-nav-target="row" data-href="{{ item.url }}"{% endif %}>
                     <span class="shrink-0">{{ ux_icon('lucide:' ~ item.icon) }}</span>
                     <span class="sidebar-label flex-1">{{ item.label }}</span>
                     {% if item.badge > 0 %}<span class="count sidebar-badge-text">{{ item.badge }}</span>{% endif %}
+                    {% if can_toggle_modules and item.module %}{{ cm.module(item.module) }}{% endif %}
                 </a>
                 {% if item.children|length > 0 and (item.route is not null or item.children|length > 1) %}
                     <div class="sidebar-sub space-y-0.5">
                         {% for child in item.children %}
-                            <a href="{{ child.url }}" class="sidebar-sublink {{ active_menu == child.key ? 'is-active' }}">{{ child.label }}</a>
+                            <a href="{{ child.url }}" class="sidebar-sublink {{ active_menu == child.key ? 'is-active' }}" {% if can_toggle_modules %}data-table-nav-target="row" data-href="{{ child.url }}"{% endif %}>{{ child.label }}{% if can_toggle_modules and child.module %}{{ cm.module(child.module) }}{% endif %}</a>
                         {% endfor %}
                     </div>
                 {% endif %}
@@ -75,6 +78,7 @@
             {{ include('_partials/farm_switcher.html.twig') }}
 
             {% set unread = menu|filter(i => i.key == 'notifications')|first.badge|default(0) %}
+            {% if module_enabled('notifications') %}
             <div class="relative" data-controller="dropdown" data-action="keydown@window->dropdown#hideOnEscape">
                 <button type="button" class="btn btn-ghost btn-icon relative" data-dropdown-target="button" data-action="dropdown#toggle" aria-haspopup="true" aria-expanded="false" aria-label="Powiadomienia{% if unread > 0 %}, nieprzeczytane: {{ unread }}{% endif %}">
                     {{ ux_icon('lucide:bell') }}
@@ -86,6 +90,7 @@
                     </turbo-frame>
                 </div>
             </div>
+            {% endif %}
 
             {{ include('_partials/user_menu.html.twig') }}
         </header>

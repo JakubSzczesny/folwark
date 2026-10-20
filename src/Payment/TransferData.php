@@ -11,7 +11,7 @@ use App\Settings\SettingKey;
 use App\Settings\Settings;
 
 /**
- * Dane przelewu za fakturę kosztową – do okna „Dane do przelewu” i dla dodatku BS Pay,
+ * Dane przelewu za fakturę zakupową – do okna „Dane do przelewu” i dla dodatku BS Pay,
  * który wkleja je do formularza przelewu w bankowości internetowej.
  */
 final class TransferData

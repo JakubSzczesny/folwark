@@ -75,16 +75,16 @@ final class Reports
             }
         }
 
-        $kindLabel = match ($kind) {
-            InvoiceKind::Cost => 'kosztowe',
-            InvoiceKind::Income => 'przychodowe',
-            default => 'wszystkie',
+        [$kindLabel, $kindSlug] = match ($kind) {
+            InvoiceKind::Cost => ['zakupowe', 'zakupowe'],
+            InvoiceKind::Income => ['sprzedażowe', 'sprzedazowe'],
+            default => ['wszystkie', 'wszystkie'],
         };
 
         return new Report(
             'Faktury '.$kindLabel,
             self::period($from, $to),
-            \sprintf('faktury-%s-%s-%s', $kindLabel, $from->format('Y-m-d'), $to->format('Y-m-d')),
+            \sprintf('faktury-%s-%s-%s', $kindSlug, $from->format('Y-m-d'), $to->format('Y-m-d')),
             [
                 ['label' => 'Data wystawienia', 'type' => 'date'],
                 ['label' => 'Numer', 'width' => 22],
@@ -120,7 +120,7 @@ final class Reports
     }
 
     /**
-     * Olej napędowy z faktur kosztowych: litry i kwoty per faktura. Pozycje przypisane do towaru
+     * Olej napędowy z faktur zakupowych: litry i kwoty per faktura. Pozycje przypisane do towaru
      * „olej napędowy” albo – nieprzypisane – rozpoznane po nazwie.
      */
     public function diesel(\DateTimeImmutable $from, \DateTimeImmutable $to): Report
@@ -206,7 +206,7 @@ final class Reports
             ->getQuery()
             ->getSingleScalarResult();
         if ($withoutItems > 0) {
-            $notes[] = \sprintf('Uwaga: %d %s z okresu bez pobranych pozycji (XML) – nie są uwzględnione. Pobierz pozycje na fakturze.', $withoutItems, FormatExtension::plural($withoutItems, 'faktura kosztowa', 'faktury kosztowe', 'faktur kosztowych'));
+            $notes[] = \sprintf('Uwaga: %d %s z okresu bez pobranych pozycji (XML) – nie są uwzględnione. Pobierz pozycje na fakturze.', $withoutItems, FormatExtension::plural($withoutItems, 'faktura zakupowa', 'faktury zakupowe', 'faktur zakupowych'));
         }
         if ($unknownUnits > 0) {
             $notes[] = \sprintf('Uwaga: %d %s bez ilości w litrach – sprawdź przelicznik jednostek.', $unknownUnits, FormatExtension::plural($unknownUnits, 'pozycja', 'pozycje', 'pozycji'));
@@ -280,7 +280,7 @@ final class Reports
             ],
             $rows,
             ['Razem', null, null, null, null, round($total, 2), null],
-            ['Pozycje faktur kosztowych przypisane do towarów („Przypisz towary”).'],
+            ['Pozycje faktur zakupowych przypisane do towarów („Przypisz towary”).'],
         );
     }
 

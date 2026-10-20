@@ -24,7 +24,7 @@ enum ContractKind: string
     }
 
     /**
-     * Rodzaj umowy pasujący do faktury: przychodowa – sprzedaż, kosztowa – zakup.
+     * Rodzaj umowy pasujący do faktury: sprzedażowa – sprzedaż, zakupowa – zakup.
      */
     public static function forInvoice(InvoiceKind $kind): self
     {

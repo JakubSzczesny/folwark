@@ -14,6 +14,8 @@ final class Permission
     public const string ANALYTICS_VIEW = 'ANALYTICS_VIEW';
     public const string CONTRACTOR_VIEW = 'CONTRACTOR_VIEW';
     public const string CONTRACTOR_EDIT = 'CONTRACTOR_EDIT';
+    /** Wybór kontrahenta w polach formularzy i filtrach – działa także przy wyłączonym module kontrahentów. */
+    public const string CONTRACTOR_LOOKUP = 'CONTRACTOR_LOOKUP';
     public const string CONTRACT_VIEW = 'CONTRACT_VIEW';
     public const string CONTRACT_EDIT = 'CONTRACT_EDIT';
     public const string MACHINE_VIEW = 'MACHINE_VIEW';
@@ -24,8 +26,15 @@ final class Permission
     public const string ORDER_MANAGE = 'ORDER_MANAGE';
     public const string PRODUCT_VIEW = 'PRODUCT_VIEW';
     public const string PRODUCT_EDIT = 'PRODUCT_EDIT';
+    /** Wybór towaru w polach formularzy (np. przypisanie pozycji faktury) – także przy wyłączonym module towarów. */
+    public const string PRODUCT_LOOKUP = 'PRODUCT_LOOKUP';
     public const string DOCUMENT_VIEW = 'DOCUMENT_VIEW';
     public const string DOCUMENT_EDIT = 'DOCUMENT_EDIT';
+    public const string CALENDAR_VIEW = 'CALENDAR_VIEW';
+    /** Dodawanie wydarzeń oraz edycja i usuwanie własnych. */
+    public const string CALENDAR_EDIT = 'CALENDAR_EDIT';
+    /** Edycja i usuwanie wydarzeń innych osób (poza ich prywatnymi). */
+    public const string CALENDAR_MANAGE = 'CALENDAR_MANAGE';
     public const string EXPORT = 'EXPORT';
     public const string SETTINGS = 'SETTINGS';
 
@@ -40,6 +49,7 @@ final class Permission
         self::ANALYTICS_VIEW => UserRole::Owner,
         self::CONTRACTOR_VIEW => UserRole::Accountant,
         self::CONTRACTOR_EDIT => UserRole::Owner,
+        self::CONTRACTOR_LOOKUP => UserRole::Accountant,
         self::CONTRACT_VIEW => UserRole::Accountant,
         self::CONTRACT_EDIT => UserRole::Owner,
         self::MACHINE_VIEW => UserRole::Worker,
@@ -50,8 +60,12 @@ final class Permission
         self::ORDER_MANAGE => UserRole::Owner,
         self::PRODUCT_VIEW => null,
         self::PRODUCT_EDIT => UserRole::Worker,
+        self::PRODUCT_LOOKUP => null,
         self::DOCUMENT_VIEW => UserRole::Accountant,
         self::DOCUMENT_EDIT => UserRole::Owner,
+        self::CALENDAR_VIEW => null,
+        self::CALENDAR_EDIT => null,
+        self::CALENDAR_MANAGE => UserRole::Owner,
         self::EXPORT => UserRole::Accountant,
         self::SETTINGS => UserRole::Owner,
     ];

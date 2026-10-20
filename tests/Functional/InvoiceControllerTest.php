@@ -6,6 +6,7 @@ namespace App\Tests\Functional;
 
 use App\Entity\AuditLog;
 use App\Entity\Invoice;
+use App\Entity\InvoiceItem;
 use App\Enum\InvoiceKind;
 use App\Enum\InvoiceStatus;
 use App\Enum\PaymentStatus;
@@ -40,20 +41,57 @@ final class InvoiceControllerTest extends FunctionalTestCase
 
         $this->loginAs(UserFactory::owner());
 
-        $this->client->request('GET', '/faktury?rodzaj=kosztowe');
+        $this->client->request('GET', '/faktury?rodzaj=zakupowe');
         self::assertSelectorCount(2, 'tbody tr');
         self::assertSelectorTextContains('tfoot', '2 faktury');
         self::assertSelectorTextContains('tfoot', '2 460,00');
 
-        $this->client->request('GET', '/faktury?rodzaj=przychodowe');
+        $this->client->request('GET', '/faktury?rodzaj=sprzedazowe');
         self::assertSelectorCount(1, 'tbody tr');
 
-        $this->client->request('GET', '/faktury?rodzaj=kosztowe&okres=ten-rok&kontrahent='.$contractor->getId());
+        $this->client->request('GET', '/faktury?rodzaj=zakupowe&okres=ten-rok&kontrahent='.$contractor->getId());
         self::assertSelectorCount(1, 'tbody tr');
         self::assertSelectorTextContains('tbody', 'K/1');
 
         $this->client->request('GET', '/faktury');
-        self::assertResponseRedirects('/faktury?rodzaj=kosztowe&okres=ten-rok&kontrahent='.$contractor->getId(), null, 'Filtry są zapamiętywane per użytkownik');
+        self::assertResponseRedirects('/faktury?rodzaj=zakupowe&okres=ten-rok&kontrahent='.$contractor->getId(), null, 'Filtry są zapamiętywane per użytkownik');
+    }
+
+    public function testOldTabNamesStillWork(): void
+    {
+        InvoiceFactory::createOne(['number' => 'P/9', 'kind' => InvoiceKind::Income]);
+        $this->loginAs(UserFactory::owner());
+
+        $this->client->request('GET', '/faktury?rodzaj=przychodowe');
+        self::assertSelectorTextContains('.tab-active', 'Sprzedażowe');
+        self::assertSelectorTextContains('tbody', 'P/9');
+    }
+
+    public function testInvoicesWithItemsWithoutProductAreMarked(): void
+    {
+        $em = $this->service(EntityManagerInterface::class);
+        $missing = InvoiceFactory::createOne(['number' => 'BRAK/1']);
+        $missing->addItem($item = new InvoiceItem($missing, 1, 'Nawóz NPK'));
+        $missing->addItem($skipped = (new InvoiceItem($missing, 2, 'Transport'))->setSkipped(true));
+        $costOnly = InvoiceFactory::createOne(['number' => 'KOSZT/1', 'status' => InvoiceStatus::CostOnly]);
+        $costOnly->addItem($other = new InvoiceItem($costOnly, 1, 'Energia'));
+        InvoiceFactory::createOne(['number' => 'BEZ-XML/1']);
+        $em->persist($item);
+        $em->persist($skipped);
+        $em->persist($other);
+        $em->flush();
+
+        $this->loginAs(UserFactory::owner());
+        $this->client->request('GET', '/faktury?rodzaj=zakupowe');
+        self::assertSelectorTextContains('#invoice-row-'.$missing->getId(), 'Bez towaru: 1');
+        self::assertSelectorTextNotContains('#invoice-row-'.$costOnly->getId(), 'Bez towaru', '„Tylko koszt” nie wymaga towarów');
+
+        $this->client->request('GET', '/faktury?rodzaj=zakupowe&bez_towaru=1');
+        self::assertSelectorCount(1, 'tbody tr');
+        self::assertSelectorTextContains('tbody', 'BRAK/1');
+
+        $this->client->request('GET', '/faktury/'.$missing->getId());
+        self::assertSelectorTextContains('main', 'bez przypisanego towaru');
     }
 
     public function testPreviewMarksAsReadAndActionsWork(): void
@@ -91,14 +129,14 @@ final class InvoiceControllerTest extends FunctionalTestCase
         $invoice = InvoiceFactory::createOne(['number' => 'FV/MENU/1']);
         $this->loginAs(UserFactory::owner());
 
-        $crawler = $this->client->request('GET', '/faktury?rodzaj=kosztowe&szukaj=MENU');
+        $crawler = $this->client->request('GET', '/faktury?rodzaj=zakupowe&szukaj=MENU');
         self::assertSelectorExists('table[data-controller~="context-menu"]');
         $template = $crawler->filter(\sprintf('#invoice-row-%d template[data-context-menu]', $invoice->getId()));
         self::assertStringContainsString('Oznacz jako opłaconą', $template->html());
         $token = $crawler->filter(\sprintf('#invoice-row-%d template form[action$="/oplacona?z=lista"] input[name=_token]', $invoice->getId()))->attr('value');
 
-        $this->client->request('POST', \sprintf('/faktury/%d/oplacona?z=lista', $invoice->getId()), ['_token' => $token], [], ['HTTP_REFERER' => 'http://localhost/faktury?rodzaj=kosztowe&szukaj=MENU']);
-        self::assertResponseRedirects('/faktury?rodzaj=kosztowe&szukaj=MENU');
+        $this->client->request('POST', \sprintf('/faktury/%d/oplacona?z=lista', $invoice->getId()), ['_token' => $token], [], ['HTTP_REFERER' => 'http://localhost/faktury?rodzaj=zakupowe&szukaj=MENU']);
+        self::assertResponseRedirects('/faktury?rodzaj=zakupowe&szukaj=MENU');
 
         $this->client->request('POST', \sprintf('/faktury/%d/nieoplacona?z=lista', $invoice->getId()), ['_token' => $token], [], ['HTTP_REFERER' => 'https://obca-strona.example/faktury?x=1']);
         self::assertResponseRedirects('/faktury', null, 'Obcy adres w nagłówku Referer nie przekierowuje poza aplikację');
@@ -144,7 +182,7 @@ final class InvoiceControllerTest extends FunctionalTestCase
         InvoiceFactory::createMany(3);
         $this->loginAs(UserFactory::accountant());
 
-        $this->client->request('GET', '/faktury/eksport?rodzaj=kosztowe');
+        $this->client->request('GET', '/faktury/eksport?rodzaj=zakupowe');
 
         self::assertResponseIsSuccessful();
         self::assertResponseHeaderSame('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

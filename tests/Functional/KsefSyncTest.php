@@ -44,17 +44,17 @@ final class KsefSyncTest extends FunctionalTestCase
         self::assertSame(InvoiceStatus::New, $invoice->getStatus());
         self::assertSame(self::SUPPLIER_NIP, $invoice->getContractor()?->getNip());
         self::assertSame('PETROMEX Sp. z o.o.', $invoice->getContractor()->getName());
-        self::assertTrue($invoice->hasXml(), 'XML nowych kosztowych pobiera się automatycznie');
+        self::assertTrue($invoice->hasXml(), 'XML nowych zakupowych pobiera się automatycznie');
         self::assertCount(1, $invoice->getItems());
         self::assertSame('ul. Paliwowa 12', $invoice->getContractor()->getStreet());
         self::assertSame('2026-05-18', $invoice->getPaymentDue()?->format('Y-m-d'));
 
         $notifications = $this->em->getRepository(Notification::class)->findBy(['user' => $owner, 'type' => NotificationType::NewInvoices]);
         self::assertCount(1, $notifications);
-        self::assertSame('1 nowa faktura kosztowa', $notifications[0]->getTitle());
+        self::assertSame('1 nowa faktura zakupowa', $notifications[0]->getTitle());
 
         $this->loginAs($owner);
-        $this->client->request('GET', '/faktury?rodzaj=kosztowe');
+        $this->client->request('GET', '/faktury?rodzaj=zakupowe');
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('tbody', 'PET/1/2026');
         self::assertSelectorTextContains('tbody', 'PETROMEX Sp. z o.o.');
@@ -137,7 +137,7 @@ final class KsefSyncTest extends FunctionalTestCase
         $income = $this->em->getRepository(Invoice::class)->findOneBy(['number' => 'FV/1/2026']);
         self::assertSame(InvoiceKind::Income, $income?->getKind());
         self::assertSame('1131000001', $income->getContractor()?->getNip());
-        self::assertFalse($income->hasXml(), 'XML przychodowych pobiera się na żądanie');
+        self::assertFalse($income->hasXml(), 'XML sprzedażowych pobiera się na żądanie');
 
         $energy = $this->em->getRepository(Invoice::class)->findOneBy(['number' => 'ENE/1/2026']);
         self::assertSame(InvoiceStatus::CostOnly, $energy?->getStatus());

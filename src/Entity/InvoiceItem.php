@@ -162,6 +162,14 @@ class InvoiceItem
         return $this->product;
     }
 
+    /**
+     * Pozycja bieżąca (nie stan przed korektą) bez towaru i bez „pomiń”.
+     */
+    public function isUnassigned(): bool
+    {
+        return null === $this->product && !$this->skipped && !$this->beforeCorrection;
+    }
+
     public function getQuantityInProductUnit(): ?string
     {
         return $this->quantityInProductUnit;

@@ -28,6 +28,7 @@ final class DashboardWidgets
         'tiles' => ['label' => 'Kafelki', 'description' => 'Nowe faktury, zamówienia, koszty i przychody z wykresem 12 miesięcy.', 'permission' => null],
         'invoices' => ['label' => 'Ostatnie faktury', 'description' => '5 najnowszych faktur.', 'permission' => Permission::INVOICE_VIEW],
         'orders' => ['label' => 'Najbliższe zamówienia', 'description' => 'Co i kiedy trzeba będzie zamówić.', 'permission' => Permission::ORDER_VIEW],
+        'calendar' => ['label' => 'Kalendarz', 'description' => 'Wydarzenia i terminy na najbliższe 2 tygodnie.', 'permission' => Permission::CALENDAR_VIEW],
         'chart' => ['label' => 'Koszty i przychody', 'description' => 'Wykres słupkowy z 12 miesięcy.', 'permission' => Permission::AMOUNTS_VIEW],
     ];
 

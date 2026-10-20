@@ -1,0 +1,166 @@
+{% extends 'layout.html.twig' %}
+{% import '_partials/context_menu.html.twig' as cm %}
+
+{% block title %}Kalendarz{% endblock %}
+{% block active_menu %}calendar{% endblock %}
+
+{% macro entry_menu(entry, day) %}
+    {% import '_partials/context_menu.html.twig' as cm %}
+    {% if entry.editable %}
+        <template data-context-menu>
+            {{ cm.link(path('app_calendar_event', {id: entry.eventId, dzien: day|date('Y-m-d')}), 'Szczegóły…', 'calendar', 'modal') }}
+            {{ cm.link(path('app_calendar_edit', {id: entry.eventId}), 'Edytuj…', 'pencil', 'modal') }}
+            {{ cm.link(path('app_calendar_duplicate', {id: entry.eventId, dzien: day|date('Y-m-d')}), 'Duplikuj…', 'copy', 'modal') }}
+            {{ cm.separator() }}
+            {{ cm.post(path('app_calendar_delete', {id: entry.eventId, miesiac: day|date('Y-m')}), entry.recurring ? 'Usuń całą serię' : 'Usuń', 'calendar', 'trash-2', entry.recurring ? 'Usunąć wszystkie powtórzenia „' ~ entry.title ~ '”?' : 'Usunąć wydarzenie „' ~ entry.title ~ '”?') }}
+        </template>
+    {% elseif entry.eventId %}
+        <template data-context-menu>
+            {{ cm.link(path('app_calendar_event', {id: entry.eventId, dzien: day|date('Y-m-d')}), 'Szczegóły…', 'calendar', 'modal') }}
+            {% if is_granted('CALENDAR_EDIT') %}{{ cm.link(path('app_calendar_duplicate', {id: entry.eventId, dzien: day|date('Y-m-d')}), 'Duplikuj…', 'copy', 'modal') }}{% endif %}
+        </template>
+    {% endif %}
+{% endmacro %}
+
+{% macro chip(entry, day, compact = false) %}
+    {% set href = entry.eventId ? path('app_calendar_event', {id: entry.eventId, dzien: day|date('Y-m-d')}) : entry.url %}
+    <a href="{{ href }}" class="cal-chip cal-{{ entry.tone }} {{ entry.start < day ? 'is-continued' }}"
+       {% if entry.eventId %}data-turbo-frame="modal"{% endif %}
+       data-table-nav-target="row" data-href="{{ href }}"
+       {% if entry.editable %}draggable="true" data-calendar-target="event" data-event-id="{{ entry.eventId }}" data-day="{{ day|date('Y-m-d') }}" data-action="dragstart->calendar#dragStart dragend->calendar#dragEnd"{% endif %}
+       title="{{ entry.title }}{{ entry.time ? ' · ' ~ entry.time }}{{ entry.detail ? ' · ' ~ entry.detail }}{{ entry.isSystem ? ' (' ~ entry.category ~ ')' }}">
+        {% if entry.time and not compact and entry.start|date('Ymd') == day|date('Ymd') %}<span class="cal-chip-time">{{ entry.time|split('–')|first }}</span>{% endif %}
+        <span class="truncate">{{ entry.title }}</span>
+        {% if entry.recurring %}<span class="sr-only">(powtarzane)</span>{{ ux_icon('lucide:repeat', {width: 12, height: 12, class: 'shrink-0 opacity-70', 'aria-hidden': 'true'}) }}{% endif %}
+        {% if entry.private %}<span class="sr-only">(prywatne)</span>{{ ux_icon('lucide:lock', {width: 12, height: 12, class: 'shrink-0 opacity-70', 'aria-hidden': 'true'}) }}{% endif %}
+        {{ _self.entry_menu(entry, day) }}
+    </a>
+{% endmacro %}
+
+{% block content %}
+    {% set can_edit = is_granted('CALENDAR_EDIT') %}
+    {% set query = {kategoria: filters.category ? filters.category.value : null, moje: filters.mine ? 1 : null, terminy: filters.deadlines ? null : 0} %}
+    {% set prev = month|date_modify('-1 month') %}
+    {% set next = month|date_modify('+1 month') %}
+
+    <twig:PageHeader title="Kalendarz" subtitle="{{ month|pl_month|capitalize }}">
+        <div class="flex items-center gap-1">
+            <a href="{{ path('app_calendar_index', query|merge({miesiac: prev|date('Y-m')})|filter(v => v is not null)) }}" class="btn btn-ghost btn-icon" aria-label="Poprzedni miesiąc" title="Poprzedni miesiąc">{{ ux_icon('lucide:chevron-left') }}</a>
+            <a href="{{ path('app_calendar_index', query|filter(v => v is not null)) }}" class="btn btn-secondary">Dziś</a>
+            <a href="{{ path('app_calendar_index', query|merge({miesiac: next|date('Y-m')})|filter(v => v is not null)) }}" class="btn btn-ghost btn-icon" aria-label="Następny miesiąc" title="Następny miesiąc">{{ ux_icon('lucide:chevron-right') }}</a>
+        </div>
+        {% if can_edit %}
+            <a href="{{ path('app_calendar_new', {dzien: (month|date('Y-m') == today|date('Y-m') ? today : month)|date('Y-m-d')}) }}" class="btn btn-primary" data-turbo-frame="modal">{{ ux_icon('lucide:plus') }} Wydarzenie</a>
+        {% endif %}
+    </twig:PageHeader>
+
+    <form method="get" class="filter-bar" data-controller="autosubmit" data-turbo-action="replace">
+        <input type="hidden" name="miesiac" value="{{ month|date('Y-m') }}">
+        <div class="field">
+            <label class="label" for="f-category">Kategoria</label>
+            <select id="f-category" name="kategoria" class="select" data-action="autosubmit#submit">
+                <option value="">Wszystkie</option>
+                {% for category in categories %}
+                    <option value="{{ category.value }}" {{ filters.category == category ? 'selected' }}>{{ category.label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <label class="inline-flex items-center gap-2 cursor-pointer self-end" style="min-height:40px">
+            <input type="checkbox" class="checkbox" name="moje" value="1" {{ filters.mine ? 'checked' }} data-action="autosubmit#submit">
+            Tylko moje
+        </label>
+        <label class="inline-flex items-center gap-2 cursor-pointer self-end" style="min-height:40px" title="Płatności faktur, umowy, terminy maszyn i zamówień – z modułów, do których masz dostęp">
+            <input type="hidden" name="terminy" value="0">
+            <input type="checkbox" class="checkbox" name="terminy" value="1" {{ filters.deadlines ? 'checked' }} data-action="autosubmit#submit">
+            Terminy z modułów
+        </label>
+    </form>
+
+    <div data-controller="context-menu calendar" data-calendar-url-value="{{ path('app_calendar_move', {id: 0}) }}" data-calendar-token-value="{{ csrf_token('calendar') }}">
+        {# Siatka miesiąca – od tabletu w górę. #}
+        <div class="card calendar-grid hidden md:grid" role="grid" aria-label="{{ month|pl_month }}">
+            {% for name in ['Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb', 'Nd'] %}
+                <div class="calendar-head" role="columnheader">{{ name }}</div>
+            {% endfor %}
+            {% for week in weeks %}
+                {% for day in week %}
+                    {% set key = day|date('Y-m-d') %}
+                    {% set entries = days[key] ?? [] %}
+                    <div class="calendar-day {{ day|date('m') != month|date('m') ? 'is-other' }} {{ key == today|date('Y-m-d') ? 'is-today' }} {{ day|date('N') >= 6 ? 'is-weekend' }}"
+                         role="gridcell" data-date="{{ key }}"
+                         {% if can_edit %}data-table-nav-target="row" data-calendar-target="day" data-action="dragover->calendar#dragOver dragleave->calendar#dragLeave drop->calendar#drop"{% endif %}>
+                        {% if can_edit %}
+                            <template data-context-menu>
+                                {{ cm.link(path('app_calendar_new', {dzien: key}), 'Nowe wydarzenie ' ~ day|date('d.m') ~ '…', 'plus', 'modal') }}
+                            </template>
+                        {% endif %}
+                        <div class="flex items-center justify-between gap-1 mb-1">
+                            {% if can_edit %}
+                                <a href="{{ path('app_calendar_new', {dzien: key}) }}" data-turbo-frame="modal" class="calendar-daynum" title="Dodaj wydarzenie {{ day|date('d.m.Y') }}" aria-label="{{ day|date('j') }} – dodaj wydarzenie">{{ day|date('j') }}</a>
+                            {% else %}
+                                <span class="calendar-daynum">{{ day|date('j') }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="space-y-0.5">
+                            {% for entry in entries %}
+                                {{ _self.chip(entry, day) }}
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% endfor %}
+            {% endfor %}
+        </div>
+
+        {# Lista dni z wydarzeniami – na telefonie. #}
+        <div class="md:hidden space-y-3">
+            {% set any = days|keys|filter(k => k starts with month|date('Y-m'))|length > 0 %}
+            {% for week in weeks %}
+                {% for day in week|filter(d => d|date('m') == month|date('m')) %}
+                    {% set key = day|date('Y-m-d') %}
+                    {% if days[key] is defined %}
+                        <section class="card">
+                            <div class="card-header">
+                                <h2 class="card-title {{ key == today|date('Y-m-d') ? 'text-zielen-700' }}">{{ ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota', 'Niedziela'][day|date('N') - 1] }}, {{ day|date('j') }} {{ ['stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca', 'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia'][day|date('n') - 1] }}{{ key == today|date('Y-m-d') ? ' – dziś' }}</h2>
+                                {% if can_edit %}<a href="{{ path('app_calendar_new', {dzien: key}) }}" data-turbo-frame="modal" class="btn btn-ghost btn-icon btn-sm" aria-label="Dodaj wydarzenie tego dnia">{{ ux_icon('lucide:plus') }}</a>{% endif %}
+                            </div>
+                            <ul class="divide-y divide-szary-200">
+                                {% for entry in days[key] %}
+                                    {% set href = entry.eventId ? path('app_calendar_event', {id: entry.eventId, dzien: key}) : entry.url %}
+                                    <li>
+                                        <a href="{{ href }}" {% if entry.eventId %}data-turbo-frame="modal"{% endif %} class="flex items-start gap-3 px-4 py-3 text-tekst hover:bg-szary-100 hover:text-tekst" data-table-nav-target="row" data-href="{{ href }}">
+                                            <span class="cal-dot cal-{{ entry.tone }} mt-1.5" aria-hidden="true"></span>
+                                            <span class="flex-1 min-w-0">
+                                                <span class="block font-semibold text-sm">{{ entry.title }}</span>
+                                                <span class="block text-xs text-antracyt-500">{{ entry.time ?? (entry.isMultiDay ? entry.start|pl_date ~ ' – ' ~ entry.end|pl_date : 'cały dzień') }}{{ entry.detail ? ' · ' ~ entry.detail }}{{ entry.isSystem ? ' · ' ~ entry.category }}</span>
+                                            </span>
+                                            {% if entry.private %}{{ ux_icon('lucide:lock', {width: 14, height: 14, class: 'text-antracyt-500 mt-1'}) }}{% endif %}
+                                            {{ _self.entry_menu(entry, day) }}
+                                        </a>
+                                    </li>
+                                {% endfor %}
+                            </ul>
+                        </section>
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+            {% if not any %}
+                <div class="card">
+                    <twig:EmptyState text="W tym miesiącu nic nie zaplanowano."
+                        actionLabel="{{ can_edit ? 'Dodaj wydarzenie' : null }}"
+                        actionUrl="{{ can_edit ? path('app_calendar_new', {dzien: month|date('Y-m-d')}) : null }}"
+                        data-turbo-frame="modal" />
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-antracyt-500" aria-label="Legenda">
+        {% for category in categories %}
+            <span class="inline-flex items-center gap-1.5"><span class="cal-dot cal-{{ category.value }}" aria-hidden="true"></span>{{ category.label }}</span>
+        {% endfor %}
+        {% if source_labels is not empty %}
+            <span class="inline-flex items-center gap-1.5"><span class="cal-dot cal-deadline" aria-hidden="true"></span>Terminy: {{ source_labels|join(', ')|lower }}</span>
+        {% endif %}
+        {% if can_edit %}<span class="hidden md:inline">Kliknij numer dnia, aby dodać wydarzenie; przeciągnij wydarzenie na inny dzień, aby je przenieść.</span>{% endif %}
+    </div>
+{% endblock %}

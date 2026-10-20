@@ -33,6 +33,16 @@ enum InvoiceStatus: string
         };
     }
 
+    /**
+     * Statusy, przy których pozycji nie przypisuje się do towarów.
+     *
+     * @return list<self>
+     */
+    public static function withoutGoods(): array
+    {
+        return [self::CostOnly, self::Skipped];
+    }
+
     public function isProcessed(): bool
     {
         return \in_array($this, [self::GoodsAssigned, self::CostOnly, self::Skipped], true);

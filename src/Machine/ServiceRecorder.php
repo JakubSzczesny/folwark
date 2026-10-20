@@ -99,7 +99,7 @@ final class ServiceRecorder
     }
 
     /**
-     * Faktury kosztowe wykonawcy z ±14 dni od daty serwisu, najbliższe terminowo na górze.
+     * Faktury zakupowe wykonawcy z ±14 dni od daty serwisu, najbliższe terminowo na górze.
      *
      * @return list<Invoice>
      */

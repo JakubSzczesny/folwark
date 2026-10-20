@@ -9,7 +9,7 @@ use App\Ksef\Dto\InvoiceMetadata;
 use App\Ksef\SubjectType;
 
 /**
- * Kosztowa: gospodarstwo jest nabywcą. Przychodowa: gospodarstwo jest sprzedawcą/dostawcą
+ * Zakupowa: gospodarstwo jest nabywcą. Sprzedażowa: gospodarstwo jest sprzedawcą/dostawcą
  * (w FA_RR dostawcą-rolnikiem jest Podmiot1, więc reguła jest ta sama).
  */
 final class InvoiceClassifier
@@ -29,7 +29,7 @@ final class InvoiceClassifier
     }
 
     /**
-     * Druga strona faktury: dla kosztowej sprzedawca, dla przychodowej nabywca.
+     * Druga strona faktury: dla zakupowej sprzedawca, dla sprzedażowej nabywca.
      *
      * @return array{nip: ?string, name: ?string, identifier: ?string}
      */

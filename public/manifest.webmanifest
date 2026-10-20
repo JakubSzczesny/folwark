@@ -1,6 +1,6 @@
 {
-  "name": "Folwark",
-  "short_name": "Folwark",
+  "name": "Folwark FMS",
+  "short_name": "Folwark FMS",
   "description": "System zarządzania gospodarstwem rolnym",
   "start_url": "/",
   "scope": "/",

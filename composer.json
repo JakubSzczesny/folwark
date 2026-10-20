@@ -1,6 +1,6 @@
 {
     "name": "folwark/folwark",
-    "description": "Folwark – system zarządzania gospodarstwem rolnym",
+    "description": "Folwark FMS – system zarządzania gospodarstwem rolnym",
     "type": "project",
     "license": "proprietary",
     "minimum-stability": "stable",

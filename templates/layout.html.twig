@@ -14,7 +14,7 @@
         <div class="flex items-center justify-between gap-2 px-3" style="height: 56px">
             <a href="{{ path('app_dashboard') }}" class="sidebar-logo flex items-center gap-2 text-white hover:text-white font-semibold min-w-0">
                 <twig:Logo size="32" />
-                <span class="sidebar-label truncate">Folwark</span>
+                <span class="sidebar-label truncate">Folwark FMS</span>
             </a>
             <button type="button" class="sidebar-toggle rounded-ui p-2 text-antracyt-300 hover:text-white hover:bg-antracyt-700 hidden lg:inline-flex" data-action="sidebar#toggleCollapsed" title="Zwiń / rozwiń menu" aria-label="Zwiń lub rozwiń menu">
                 <span class="icon-collapse">{{ ux_icon('lucide:panel-left-close') }}</span>
@@ -117,7 +117,7 @@
     <header class="app-topbar">
         <a href="{{ path('app_farm_index') }}" class="flex items-center gap-2 font-semibold text-tekst hover:text-tekst">
             <twig:Logo size="32" />
-            <span>Folwark</span>
+            <span>Folwark FMS</span>
         </a>
         <span class="flex-1"></span>
         {% if user_memberships() is not empty %}{{ include('_partials/farm_switcher.html.twig') }}{% endif %}

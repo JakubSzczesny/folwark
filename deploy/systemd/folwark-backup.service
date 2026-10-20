@@ -1,5 +1,5 @@
 [Unit]
-Description=Folwark – kopia zapasowa bazy i plików
+Description=Folwark FMS – kopia zapasowa bazy i plików
 After=mariadb.service
 
 [Service]

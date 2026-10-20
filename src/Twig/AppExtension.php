@@ -63,7 +63,7 @@ final class AppExtension
     #[AsTwigFunction('farm_name')]
     public function farmName(): string
     {
-        return $this->farmContext->getFarm()?->getName() ?? 'Folwark';
+        return $this->farmContext->getFarm()?->getName() ?? 'Folwark FMS';
     }
 
     /**

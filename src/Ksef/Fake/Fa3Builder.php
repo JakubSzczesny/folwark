@@ -130,7 +130,7 @@ final class Fa3Builder
         $code->setAttribute('wersjaSchemy', '1-0E');
         $this->append($header, 'WariantFormularza', '3');
         $this->append($header, 'DataWytworzeniaFa', $this->issueDate->format('Y-m-d').'T10:00:00Z');
-        $this->append($header, 'SystemInfo', 'Folwark – symulator KSeF');
+        $this->append($header, 'SystemInfo', 'Folwark FMS – symulator KSeF');
 
         $seller = $this->append($root, 'Podmiot1');
         $sellerId = $this->append($seller, 'DaneIdentyfikacyjne');

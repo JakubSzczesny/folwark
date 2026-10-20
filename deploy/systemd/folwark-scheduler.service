@@ -1,5 +1,5 @@
 [Unit]
-Description=Folwark – harmonogram (KSeF co 5 min, zamówienia 5:30, terminy 6:00, skrót e-mail 6:05)
+Description=Folwark FMS – harmonogram (KSeF co 5 min, zamówienia 5:30, terminy 6:00, skrót e-mail 6:05)
 After=network-online.target mariadb.service
 Wants=network-online.target
 

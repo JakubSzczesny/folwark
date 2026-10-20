@@ -1,5 +1,5 @@
 [Unit]
-Description=Folwark – aktualizacja z repozytorium git (kopia, pull, migracje, restart usług)
+Description=Folwark FMS – aktualizacja z repozytorium git (kopia, pull, migracje, restart usług)
 After=network-online.target mariadb.service
 Wants=network-online.target
 

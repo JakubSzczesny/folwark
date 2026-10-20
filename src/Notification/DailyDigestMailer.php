@@ -13,6 +13,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
 use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\Mailer\MailerInterface;
+use Symfony\Component\Mime\Address;
 
 class DailyDigestMailer
 {
@@ -46,9 +47,9 @@ class DailyDigestMailer
             }
 
             $this->mailer->send((new TemplatedEmail())
-                ->from($this->from)
+                ->from(new Address($this->from, 'Folwark FMS'))
                 ->to($user->getEmail())
-                ->subject(\sprintf('Folwark – podsumowanie dnia (%d)', \count($items)))
+                ->subject(\sprintf('Folwark FMS – podsumowanie dnia (%d)', \count($items)))
                 ->htmlTemplate('email/digest.html.twig')
                 ->context(['user' => $user, 'items' => $items, 'farm' => $this->context->getFarm()?->getName()]));
 

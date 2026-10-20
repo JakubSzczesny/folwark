@@ -1,5 +1,5 @@
 [Unit]
-Description=Folwark – zadania w tle (synchronizacja KSeF, pobieranie XML, przeliczanie zamówień, e-maile)
+Description=Folwark FMS – zadania w tle (synchronizacja KSeF, pobieranie XML, przeliczanie zamówień, e-maile)
 After=network-online.target mariadb.service
 Wants=network-online.target
 

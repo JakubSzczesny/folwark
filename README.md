@@ -1,4 +1,4 @@
-# Folwark
+# Folwark FMS
 
 System zarządzania gospodarstwem rolnym: faktury z KSeF, kontrahenci i umowy, maszyny, przewidywanie zamówień, magazyn, analizy i zestawienia.
 

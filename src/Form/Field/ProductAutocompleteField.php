@@ -31,7 +31,7 @@ final class ProductAutocompleteField extends AbstractType
             'query_builder' => static fn (EntityRepository $repository): QueryBuilder => $repository->createQueryBuilder('product')
                 ->where('product.active = true')
                 ->orderBy('product.name'),
-            'security' => Permission::PRODUCT_VIEW,
+            'security' => Permission::PRODUCT_LOOKUP,
             'preload' => 'focus',
             'max_results' => 30,
             'no_results_found_text' => 'Brak takiego towaru',

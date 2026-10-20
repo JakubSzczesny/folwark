@@ -24,8 +24,8 @@ final class NotificationTest extends FunctionalTestCase
         $this->useFarm();
 
         $notifier = $this->service(Notifier::class);
-        $created = $notifier->notify(NotificationType::NewInvoices, NotificationPriority::Info, '3 nowe faktury kosztowe', dedupKey: 'sync:1');
-        $again = $notifier->notify(NotificationType::NewInvoices, NotificationPriority::Info, '3 nowe faktury kosztowe', dedupKey: 'sync:1');
+        $created = $notifier->notify(NotificationType::NewInvoices, NotificationPriority::Info, '3 nowe faktury zakupowe', dedupKey: 'sync:1');
+        $again = $notifier->notify(NotificationType::NewInvoices, NotificationPriority::Info, '3 nowe faktury zakupowe', dedupKey: 'sync:1');
 
         self::assertSame(2, $created, 'Właściciel i księgowa tego gospodarstwa – nie właściciel innego');
         self::assertSame(0, $again);

@@ -9,7 +9,7 @@
         <section class="card">
             <div class="card-header"><h2 class="card-title">Per towar {{ year }}</h2></div>
             {% if products is empty %}
-                <p class="px-4 py-6 text-sm text-antracyt-500">Brak faktur przychodowych z pozycjami w {{ year }}.</p>
+                <p class="px-4 py-6 text-sm text-antracyt-500">Brak faktur sprzedażowych z pozycjami w {{ year }}.</p>
             {% else %}
                 <div class="table-wrap">
                     <table class="table table-cards">
@@ -32,7 +32,7 @@
         <section class="card">
             <div class="card-header"><h2 class="card-title">Per odbiorca {{ year }}</h2></div>
             {% if customers is empty %}
-                <p class="px-4 py-6 text-sm text-antracyt-500">Brak faktur przychodowych w {{ year }}.</p>
+                <p class="px-4 py-6 text-sm text-antracyt-500">Brak faktur sprzedażowych w {{ year }}.</p>
             {% else %}
                 {% if chart %}<div class="px-4 pt-4" style="height: {{ 60 + 32 * min(customers|length, 8) }}px">{{ render_chart(chart) }}</div>{% endif %}
                 <div class="table-wrap">

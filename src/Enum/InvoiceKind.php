@@ -12,16 +12,16 @@ enum InvoiceKind: string
     public function label(): string
     {
         return match ($this) {
-            self::Cost => 'Kosztowa',
-            self::Income => 'Przychodowa',
+            self::Cost => 'Zakupowa',
+            self::Income => 'Sprzedażowa',
         };
     }
 
     public function plural(): string
     {
         return match ($this) {
-            self::Cost => 'Kosztowe',
-            self::Income => 'Przychodowe',
+            self::Cost => 'Zakupowe',
+            self::Income => 'Sprzedażowe',
         };
     }
 

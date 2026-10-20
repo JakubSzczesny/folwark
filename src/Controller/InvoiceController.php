@@ -25,6 +25,7 @@ use App\Repository\AuditLogRepository;
 use App\Repository\ContractorRepository;
 use App\Repository\ContractRepository;
 use App\Repository\CostCategoryRepository;
+use App\Repository\InvoiceItemRepository;
 use App\Repository\InvoiceRepository;
 use App\Repository\KsefSyncRepository;
 use App\Repository\SavedFilterRepository;
@@ -66,6 +67,7 @@ final class InvoiceController extends AbstractController
         CostCategoryRepository $categories,
         ContractorRepository $contractors,
         KsefSyncRepository $syncs,
+        InvoiceItemRepository $items,
     ): Response {
         if ($redirect = $listFilters->restore($request, self::LIST_KEY)) {
             return $redirect;
@@ -78,9 +80,10 @@ final class InvoiceController extends AbstractController
             'filter' => $filter,
             'pager' => $pager,
             'sums' => $this->invoices->sums($filter),
+            'unassigned_counts' => $items->countUnassigned(array_map(static fn (Invoice $i): int => (int) $i->getId(), $pager->items)),
             'new_counts' => [
-                'kosztowe' => $this->invoices->countNew(InvoiceKind::Cost),
-                'przychodowe' => $this->invoices->countNew(InvoiceKind::Income),
+                'zakupowe' => $this->invoices->countNew(InvoiceKind::Cost),
+                'sprzedazowe' => $this->invoices->countNew(InvoiceKind::Income),
             ],
             'categories' => $categories->findActive(),
             'selected_contractor' => null !== $filter->contractorId ? $contractors->find($filter->contractorId) : null,

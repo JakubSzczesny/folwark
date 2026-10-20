@@ -5,13 +5,17 @@ declare(strict_types=1);
 namespace App\Twig\Components;
 
 use App\Analytics\InvoiceStatistics;
+use App\Calendar\CalendarEntry;
+use App\Calendar\CalendarFeed;
 use App\Controller\DashboardController;
 use App\Dashboard\AttentionList;
 use App\Dashboard\DashboardData;
 use App\Dashboard\DashboardWidgets;
 use App\Entity\Invoice;
 use App\Entity\OrderCycle;
+use App\Entity\User;
 use App\Enum\InvoiceKind;
+use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\UX\Chartjs\Builder\ChartBuilderInterface;
 use Symfony\UX\Chartjs\Model\Chart;
 use Symfony\UX\LiveComponent\Attribute\AsLiveComponent;
@@ -37,6 +41,8 @@ final class Dashboard
         private readonly DashboardWidgets $widgets,
         private readonly InvoiceStatistics $statistics,
         private readonly ChartBuilderInterface $charts,
+        private readonly CalendarFeed $calendar,
+        private readonly Security $security,
     ) {
     }
 
@@ -90,6 +96,17 @@ final class Dashboard
     public function getUpcomingOrders(): array
     {
         return $this->data->upcomingOrders();
+    }
+
+    /**
+     * @return list<CalendarEntry> najbliższe 14 dni, najwyżej 8 pozycji
+     */
+    public function getUpcomingEvents(): array
+    {
+        $today = new \DateTimeImmutable('today');
+        $user = $this->security->getUser();
+
+        return \array_slice($this->calendar->entries($today, $today->modify('+14 days'), $user instanceof User ? $user : null), 0, 8);
     }
 
     public function getChart(): Chart

@@ -11,7 +11,7 @@ use App\Enum\InvoiceStatus;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Przychody z faktur przychodowych: per towar (z przypisanych pozycji) i per odbiorca.
+ * Przychody z faktur sprzedażowych: per towar (z przypisanych pozycji) i per odbiorca.
  */
 final class IncomeAnalysis
 {

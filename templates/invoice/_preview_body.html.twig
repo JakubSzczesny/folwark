@@ -7,6 +7,7 @@
     <div>
         <div class="flex flex-wrap items-center gap-2 mb-1">
             <twig:Badge tone="{{ invoice.status.tone }}">{{ invoice.status.label }}</twig:Badge>
+            {% set unassigned = invoice.countUnassignedItems %}{% if unassigned > 0 %}<twig:Badge tone="warning" title="{{ unassigned }} {{ unassigned|plural('pozycja nie ma', 'pozycje nie mają', 'pozycji nie ma') }} przypisanego towaru z kartoteki">{{ ux_icon('lucide:package-x', {width: 14, height: 14}) }}Bez towaru: {{ unassigned }}</twig:Badge>{% endif %}
             <twig:Badge tone="neutral">{{ invoice.kind.label }}</twig:Badge>
             {% if invoice.type.value != 'invoice' %}<twig:Badge tone="info">{{ invoice.type.label }}</twig:Badge>{% endif %}
             <twig:Badge tone="{{ invoice.payment.tone }}">{{ invoice.payment.label }}</twig:Badge>

@@ -257,10 +257,10 @@ class KsefSynchronizer
         $income = \count($invoices) - $cost;
         $parts = [];
         if ($cost > 0) {
-            $parts[] = \sprintf('%d %s %s', $cost, FormatExtension::plural($cost, 'nowa', 'nowe', 'nowych'), FormatExtension::plural($cost, 'faktura kosztowa', 'faktury kosztowe', 'faktur kosztowych'));
+            $parts[] = \sprintf('%d %s %s', $cost, FormatExtension::plural($cost, 'nowa', 'nowe', 'nowych'), FormatExtension::plural($cost, 'faktura zakupowa', 'faktury zakupowe', 'faktur zakupowych'));
         }
         if ($income > 0) {
-            $parts[] = \sprintf('%d %s %s', $income, FormatExtension::plural($income, 'nowa', 'nowe', 'nowych'), FormatExtension::plural($income, 'faktura przychodowa', 'faktury przychodowe', 'faktur przychodowych'));
+            $parts[] = \sprintf('%d %s %s', $income, FormatExtension::plural($income, 'nowa', 'nowe', 'nowych'), FormatExtension::plural($income, 'faktura sprzedażowa', 'faktury sprzedażowe', 'faktur sprzedażowych'));
         }
 
         $this->notifier->notify(
@@ -270,7 +270,7 @@ class KsefSynchronizer
             null,
             1 === \count($invoices)
                 ? $this->urls->generate('app_invoice_show', ['id' => $invoices[0]->getId()])
-                : $this->urls->generate('app_invoice_index', ['rodzaj' => $cost > 0 ? 'kosztowe' : 'przychodowe', 'status' => 'new']),
+                : $this->urls->generate('app_invoice_index', ['rodzaj' => $cost > 0 ? 'zakupowe' : 'sprzedazowe', 'status' => 'new']),
             'ksef-sync:'.$sync->getId(),
         );
     }

@@ -1,0 +1,43 @@
+{# Szczegóły wydarzenia – w oknie i na osobnej stronie. occurrence: data wybranego terminu. #}
+{% set can_edit = is_granted('CALENDAR_EVENT_EDIT', event) %}
+{% set span = event.spanDays %}
+<div class="flex flex-wrap items-center gap-2 mb-3">
+    <span class="badge cal-badge cal-{{ event.category.value }}">{{ event.category.label }}</span>
+    {% if event.recurring %}<twig:Badge tone="info">{{ ux_icon('lucide:repeat', {width: 12, height: 12}) }}{{ event.recurrence.label }}{{ event.recurrenceUntil ? ' do ' ~ event.recurrenceUntil|pl_date }}</twig:Badge>{% endif %}
+    {% if event.private %}<twig:Badge tone="neutral">{{ ux_icon('lucide:lock', {width: 12, height: 12}) }}Prywatne</twig:Badge>{% endif %}
+</div>
+
+<dl class="dl">
+    <dt>Kiedy</dt>
+    <dd>
+        {{ ['poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota', 'niedziela'][occurrence|date('N') - 1] }}, {{ occurrence|pl_date }}
+        {%- if span > 0 %} – {{ occurrence|date_modify('+' ~ span ~ ' days')|pl_date }}{% endif %}
+        {{- event.timeLabel ? ', ' ~ event.timeLabel : ' (cały dzień)' }}
+        {% if event.recurring and occurrence != event.startDate %}<span class="block text-xs text-antracyt-500">Pierwszy termin: {{ event.startDate|pl_date }}</span>{% endif %}
+    </dd>
+    {% if event.location %}<dt>Miejsce</dt><dd>{{ event.location }}</dd>{% endif %}
+    {% if event.participants is not empty %}<dt>Uczestnicy</dt><dd>{{ event.participants|map(u => u.fullName)|join(', ') }}</dd>{% endif %}
+    <dt>Przypomnienie</dt>
+    <dd>{{ event.reminderDays is null ? 'brak' : (event.reminderDays == 0 ? 'w dniu wydarzenia' : event.reminderDays ~ ' ' ~ event.reminderDays|plural('dzień', 'dni', 'dni') ~ ' wcześniej') }}</dd>
+    <dt>Dodał(a)</dt><dd>{{ event.createdBy ? event.createdBy.fullName : '—' }} · {{ event.createdAt|pl_datetime }}</dd>
+</dl>
+
+{% if event.description %}
+    <div class="mt-4 whitespace-pre-line text-sm">{{ event.description }}</div>
+{% endif %}
+
+<div class="mt-6 flex flex-wrap gap-2">
+    {% if can_edit %}
+        <a href="{{ path('app_calendar_edit', {id: event.id}) }}" class="btn btn-primary" data-turbo-frame="modal">{{ ux_icon('lucide:pencil') }} Edytuj</a>
+    {% endif %}
+    {% if is_granted('CALENDAR_EDIT') %}
+        <a href="{{ path('app_calendar_duplicate', {id: event.id, dzien: occurrence|date('Y-m-d')}) }}" class="btn btn-secondary" data-turbo-frame="modal">{{ ux_icon('lucide:copy') }} Duplikuj</a>
+    {% endif %}
+    {% if can_edit %}
+        <form method="post" action="{{ path('app_calendar_delete', {id: event.id, miesiac: occurrence|date('Y-m')}) }}" class="ml-auto" data-turbo-frame="_top"
+              data-turbo-confirm="{{ event.recurring ? 'Usunąć wszystkie powtórzenia „' ~ event.title ~ '”?' : 'Usunąć wydarzenie „' ~ event.title ~ '”?' }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('calendar') }}">
+            <button type="submit" class="btn btn-ghost text-danger">{{ ux_icon('lucide:trash-2') }} {{ event.recurring ? 'Usuń serię' : 'Usuń' }}</button>
+        </form>
+    {% endif %}
+</div>

@@ -9,6 +9,7 @@ use App\Entity\User;
 use App\Enum\NotificationPriority;
 use App\Enum\NotificationType;
 use App\Farm\FarmContext;
+use App\Module\Modules;
 use App\Repository\FarmMembershipRepository;
 use App\Repository\NotificationPreferenceRepository;
 use App\Repository\NotificationRepository;
@@ -22,6 +23,7 @@ class Notifier
         private readonly FarmContext $context,
         private readonly NotificationRepository $notifications,
         private readonly NotificationPreferenceRepository $preferences,
+        private readonly Modules $modules,
     ) {
     }
 
@@ -45,6 +47,10 @@ class Notifier
         $farm = $this->context->getFarm();
         if (null === $farm) {
             throw new \LogicException('Powiadomienia tworzy się w kontekście gospodarstwa.');
+        }
+
+        if (!$this->modules->isEnabled('notifications') || !$this->modules->isEnabled($type->module())) {
+            return 0;
         }
 
         $recipients ??= $this->memberships->findActiveUsers($farm, $type->defaultRecipients());

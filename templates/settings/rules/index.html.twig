@@ -4,7 +4,7 @@
 {% block active_menu %}settings{% endblock %}
 
 {% block content %}
-    <twig:PageHeader title="Reguły faktur" subtitle="Faktury kosztowe od wybranych dostawców od razu jako „tylko koszt” – np. energia, ubezpieczenia." back="{{ path('app_settings') }}">
+    <twig:PageHeader title="Reguły faktur" subtitle="Faktury zakupowe od wybranych dostawców od razu jako „tylko koszt” – np. energia, ubezpieczenia." back="{{ path('app_settings') }}">
         <a href="{{ path('app_settings_rule_new') }}" class="btn btn-primary">{{ ux_icon('lucide:plus') }} Dodaj regułę</a>
     </twig:PageHeader>
 

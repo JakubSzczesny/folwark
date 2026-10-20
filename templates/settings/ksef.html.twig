@@ -64,8 +64,8 @@
             <section class="card card-body">
                 <h2 class="card-title mb-2">Postęp pobierania</h2>
                 <dl class="dl mb-4">
-                    <dt>Faktury kosztowe</dt><dd>{{ cursors.Subject2 is defined ? 'do ' ~ date(cursors.Subject2)|pl_datetime : 'jeszcze nie pobierano' }}</dd>
-                    <dt>Faktury przychodowe</dt><dd>{{ cursors.Subject1 is defined ? 'do ' ~ date(cursors.Subject1)|pl_datetime : 'jeszcze nie pobierano' }}</dd>
+                    <dt>Faktury zakupowe</dt><dd>{{ cursors.Subject2 is defined ? 'do ' ~ date(cursors.Subject2)|pl_datetime : 'jeszcze nie pobierano' }}</dd>
+                    <dt>Faktury sprzedażowe</dt><dd>{{ cursors.Subject1 is defined ? 'do ' ~ date(cursors.Subject1)|pl_datetime : 'jeszcze nie pobierano' }}</dd>
                 </dl>
                 <form method="post" action="{{ path('app_settings_ksef_reset') }}" data-turbo-confirm="Pobrać metadane ponownie od daty początkowej? Faktury już zapisane nie zostaną zdublowane.">
                     <input type="hidden" name="_token" value="{{ csrf_token('ksef-settings') }}">

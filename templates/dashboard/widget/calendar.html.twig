@@ -1,0 +1,30 @@
+{% set events = this.upcomingEvents %}
+<section class="card h-full">
+    <div class="card-header">
+        <h2 class="card-title">Kalendarz – najbliższe 2 tygodnie</h2>
+        <a href="{{ path('app_calendar_index') }}" class="text-sm">Kalendarz</a>
+    </div>
+    {% if events is empty %}
+        <p class="px-4 py-6 text-sm text-antracyt-500">W najbliższych dwóch tygodniach nic nie zaplanowano.</p>
+    {% else %}
+        <ul class="divide-y divide-szary-200">
+            {% for entry in events %}
+                {% set href = entry.eventId ? path('app_calendar_event', {id: entry.eventId, dzien: entry.start|date('Y-m-d')}) : entry.url %}
+                <li>
+                    <a href="{{ href }}" {% if entry.eventId %}data-turbo-frame="modal"{% endif %} class="flex items-center gap-3 px-4 py-3 text-tekst hover:bg-szary-100 hover:text-tekst">
+                        <span class="cal-dot cal-{{ entry.tone }}" aria-hidden="true"></span>
+                        <span class="flex-1 min-w-0">
+                            <span class="block truncate text-sm font-semibold">{{ entry.title }}</span>
+                            {% if entry.detail or entry.isSystem %}<span class="block truncate text-xs text-antracyt-500">{{ entry.isSystem ? entry.category }}{{ entry.isSystem and entry.detail ? ' · ' }}{{ entry.detail }}</span>{% endif %}
+                        </span>
+                        <span class="text-sm whitespace-nowrap text-right tabular-nums">
+                            {% set days = days_left(entry.start) %}
+                            {{ days == 0 ? 'dziś' : (days == 1 ? 'jutro' : entry.start|date('d.m')) }}
+                            {% if entry.time %}<span class="block text-xs text-antracyt-500">{{ entry.time }}</span>{% endif %}
+                        </span>
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</section>

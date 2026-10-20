@@ -84,7 +84,7 @@
             </div>
         {% endif %}
         <div class="grid gap-6 xl:grid-cols-2">
-            {% for group in [{title: 'Kosztowe', items: cost_invoices}, {title: 'Przychodowe', items: income_invoices}] %}
+            {% for group in [{title: 'Zakupowe', items: cost_invoices}, {title: 'Sprzedażowe', items: income_invoices}] %}
                 <section class="card">
                     <div class="card-header">
                         <h2 class="card-title">{{ group.title }} {{ year }}</h2>

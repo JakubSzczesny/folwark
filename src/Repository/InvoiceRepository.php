@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Entity\Contractor;
 use App\Entity\Invoice;
+use App\Entity\InvoiceItem;
 use App\Enum\InvoiceKind;
 use App\Enum\InvoiceStatus;
 use App\Enum\PaymentStatus;
@@ -139,7 +140,7 @@ class InvoiceRepository extends ServiceEntityRepository
     }
 
     /**
-     * Nieopłacone faktury kosztowe z terminem płatności do podanego dnia (także po terminie).
+     * Nieopłacone faktury zakupowe z terminem płatności do podanego dnia (także po terminie).
      *
      * @return list<Invoice>
      */
@@ -309,6 +310,12 @@ class InvoiceRepository extends ServiceEntityRepository
         }
         if (null !== $filter->costCategoryId) {
             $qb->andWhere('i.costCategory = :category')->setParameter('category', $filter->costCategoryId);
+        }
+        if ($filter->unassigned) {
+            $qb->andWhere('i.kind = :costKind AND i.status NOT IN (:withoutGoods)')
+                ->andWhere(\sprintf('EXISTS (SELECT 1 FROM %s it WHERE it.invoice = i AND %s)', InvoiceItem::class, InvoiceItemRepository::UNASSIGNED))
+                ->setParameter('costKind', InvoiceKind::Cost)
+                ->setParameter('withoutGoods', InvoiceStatus::withoutGoods());
         }
         if (null !== $filter->amountFrom) {
             $qb->andWhere('i.gross >= :amountFrom')->setParameter('amountFrom', $filter->amountFrom);

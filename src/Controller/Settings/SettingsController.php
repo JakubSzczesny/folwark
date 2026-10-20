@@ -32,6 +32,7 @@ final class SettingsController extends AbstractController
     private const array SECTIONS = [
         ['route' => 'app_settings_farm', 'title' => 'Gospodarstwo', 'text' => 'Nazwa i NIP gospodarstwa.'],
         ['route' => 'app_settings_members', 'title' => 'Członkowie gospodarstwa', 'text' => 'Kto ma dostęp i z jaką rolą.'],
+        ['route' => 'app_settings_modules', 'title' => 'Moduły', 'text' => 'Włączanie i wyłączanie modułów z menu (bez usuwania danych).'],
         ['route' => 'app_settings_ksef', 'title' => 'KSeF', 'text' => 'Token, środowisko, synchronizacja faktur, Biała lista VAT.'],
         ['route' => 'app_settings_orders', 'title' => 'Zamówienia', 'text' => 'Wyprzedzenie przypomnień, progi przewidywania.'],
         ['route' => 'app_settings_notifications', 'title' => 'Powiadomienia', 'text' => 'Progi dni, dzienny skrót e-mail.'],

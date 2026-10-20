@@ -1,0 +1,31 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Moduły · Ustawienia{% endblock %}
+{% block active_menu %}settings{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="Moduły" subtitle="Wyłączony moduł znika z menu, wyszukiwarki i pulpitu, a jego ekrany są niedostępne. Dane zostają – po ponownym włączeniu wszystko wraca." back="{{ path('app_settings') }}" />
+    <div class="card card-body max-w-2xl">
+        <form method="post">
+            <input type="hidden" name="_token" value="{{ csrf_token('modules') }}">
+            <ul class="divide-y divide-szary-200 mb-4">
+                {% for module in modules %}
+                    <li class="py-3 {{ module.child ? 'pl-8' }}">
+                        <label class="flex items-start gap-3 cursor-pointer">
+                            <input type="checkbox" class="checkbox mt-0.5 shrink-0" name="enabled[]" value="{{ module.key }}" {{ module.enabled ? 'checked' }}>
+                            <span class="min-w-0">
+                                <span class="block font-semibold">{{ module.label }}</span>
+                                <span class="block text-sm text-antracyt-500">{{ module.description }}</span>
+                                {% if module.child and not module.parentEnabled %}
+                                    <span class="block text-sm text-warning">Wyłączony razem z modułem nadrzędnym.</span>
+                                {% endif %}
+                            </span>
+                        </label>
+                    </li>
+                {% endfor %}
+            </ul>
+            <p class="help mb-4">Pulpit i Ustawienia są zawsze włączone. Moduł można też wyłączyć prawym przyciskiem myszy na jego pozycji w menu.</p>
+            <button type="submit" class="btn btn-primary">Zapisz</button>
+        </form>
+    </div>
+{% endblock %}

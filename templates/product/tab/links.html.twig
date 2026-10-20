@@ -5,9 +5,22 @@
             <li data-id="{{ node.id }}">
                 <div class="flex items-center">
                     {% if can_edit %}<span class="drag-handle cursor-grab text-antracyt-300 hover:text-antracyt-500 px-0.5" title="Przeciągnij, aby zmienić kolejność">{{ ux_icon('lucide:grip-vertical', {width: 14, height: 14}) }}</span>{% endif %}
-                    <a href="{{ path('app_product_links', {id: product.id, kategoria: node.id, wszystkie: show_all ? 1 : null}) }}" class="tree-item flex-1 min-w-0 {{ selected and selected.id == node.id ? 'is-active' }}">
+                    {% set url = path('app_product_links', {id: product.id, kategoria: node.id, wszystkie: show_all ? 1 : null}) %}
+                    <a href="{{ url }}" class="tree-item flex-1 min-w-0 {{ selected and selected.id == node.id ? 'is-active' }}" data-table-nav-target="row" data-href="{{ url }}">
                         <span class="truncate flex-1">{{ node.category.name }}</span>
                         {% if node.total %}<span class="text-xs text-antracyt-500 tabular-nums">{{ node.total }}</span>{% endif %}
+                        {% if can_edit %}
+                            <template data-context-menu>
+                                {% import '_partials/context_menu.html.twig' as cm %}
+                                {{ cm.link(path('app_product_link_new', {id: product.id, kategoria: node.id}), 'Dodaj link…', 'link', 'modal') }}
+                                {{ cm.link(path('app_product_link_category_new', {id: product.id, rodzic: node.id}), 'Podkategoria…', 'folder-plus', 'modal') }}
+                                {{ cm.link(path('app_product_link_category_edit', {id: product.id, category: node.id}), 'Zmień nazwę…', 'pencil', 'modal') }}
+                                {% if node.total == 0 and node.children is empty %}
+                                    {{ cm.separator() }}
+                                    {{ cm.post(path('app_product_link_category_delete', {id: product.id, category: node.id}), 'Usuń kategorię', 'product-link', 'trash-2', 'Usunąć kategorię „' ~ node.category.name ~ '”?') }}
+                                {% endif %}
+                            </template>
+                        {% endif %}
                     </a>
                 </div>
                 {% if node.children|filter(n => n.visible) is not empty %}
@@ -22,7 +35,7 @@
 {% set selected = tree.selected %}
 
 <div class="grid gap-6 lg:grid-cols-[280px_1fr]">
-    <aside class="card card-body self-start">
+    <aside class="card card-body self-start" data-controller="context-menu">
         <div class="flex items-center justify-between gap-2 mb-2">
             <h2 class="card-title">Kategorie</h2>
             {% if can_edit %}

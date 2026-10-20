@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\DataFixtures;
 
+use App\Entity\CalendarEvent;
 use App\Entity\Contract;
 use App\Entity\CostCategory;
 use App\Entity\CostCenter;
@@ -27,6 +28,8 @@ use App\Entity\ServiceType;
 use App\Entity\Unit;
 use App\Entity\User;
 use App\Entity\Warehouse;
+use App\Enum\CalendarCategory;
+use App\Enum\CalendarRecurrence;
 use App\Enum\ContractKind;
 use App\Enum\CostCenterType;
 use App\Enum\InvoiceKind;
@@ -107,6 +110,42 @@ final class AppFixtures extends Fixture
         $manager->flush();
 
         $this->runner->within($farm, fn (Farm $farm) => $this->loadMainFarm($manager, $users['owner']));
+        $this->runner->within($farm, fn (Farm $farm) => $this->loadCalendar($manager, $users));
+    }
+
+    /**
+     * Kilka wydarzeń w kalendarzu wokół dzisiejszej daty: jednorazowe, wielodniowe, powtarzane i prywatne.
+     *
+     * @param array<string, User> $users
+     */
+    private function loadCalendar(ObjectManager $manager, array $users): void
+    {
+        $monday = new \DateTimeImmutable('monday this week');
+        $events = [
+            (new CalendarEvent($users['owner'], new \DateTimeImmutable('+2 days')))
+                ->setTitle('Siew pszenicy ozimej')->setCategory(CalendarCategory::Field)
+                ->setEndDate(new \DateTimeImmutable('+4 days'))->setLocation('Pole za stodołą (12 ha)')
+                ->addParticipant($users['worker'])->setReminderDays(1),
+            (new CalendarEvent($users['owner'], $monday))
+                ->setTitle('Odbiór mleka – kontrola jakości')->setCategory(CalendarCategory::Animals)
+                ->setStartTime(new \DateTimeImmutable('07:00'))->setRecurrence(CalendarRecurrence::Weekly),
+            (new CalendarEvent($users['worker'], new \DateTimeImmutable('+6 days')))
+                ->setTitle('Wymiana oleju w ciągniku')->setCategory(CalendarCategory::Machines)
+                ->setStartTime(new \DateTimeImmutable('09:00'))->setEndTime(new \DateTimeImmutable('11:00')),
+            (new CalendarEvent($users['accountant'], (new \DateTimeImmutable('first day of this month'))->modify('+24 days')))
+                ->setTitle('Deklaracja VAT')->setCategory(CalendarCategory::Finance)
+                ->setRecurrence(CalendarRecurrence::Monthly)->setReminderDays(2),
+            (new CalendarEvent($users['owner'], new \DateTimeImmutable('+9 days')))
+                ->setTitle('Spotkanie w ODR – dopłaty')->setCategory(CalendarCategory::Meeting)
+                ->setStartTime(new \DateTimeImmutable('10:00'))->setLocation('ODR Minikowo'),
+            (new CalendarEvent($users['owner'], new \DateTimeImmutable('+1 day')))
+                ->setTitle('Dentysta')->setCategory(CalendarCategory::Other)
+                ->setStartTime(new \DateTimeImmutable('16:30'))->setPrivate(true),
+        ];
+        foreach ($events as $event) {
+            $manager->persist($event);
+        }
+        $manager->flush();
     }
 
     private function loadMainFarm(ObjectManager $manager, User $owner): void

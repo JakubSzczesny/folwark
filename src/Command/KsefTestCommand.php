@@ -68,7 +68,7 @@ final class KsefTestCommand
                             $failed = true;
                             $io->error('Synchronizacja: '.$result->getError());
                         } else {
-                            $io->success(\sprintf('Synchronizacja: %d nowych faktur (kosztowych: %d).', $result->getNewCount(), $result->getNewCostCount()));
+                            $io->success(\sprintf('Synchronizacja: %d nowych faktur (zakupowych: %d).', $result->getNewCount(), $result->getNewCostCount()));
                         }
                     }
                     $invoice = null !== $xml ? $this->invoices->find($xml) : null;

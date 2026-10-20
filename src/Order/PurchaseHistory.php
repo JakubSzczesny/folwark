@@ -14,7 +14,7 @@ use App\Enum\InvoiceType;
 use Doctrine\ORM\EntityManagerInterface;
 
 /**
- * Zakupy z faktur kosztowych jako dane do przewidywania: per towar (z pozycji) albo per dostawca (z samych kwot).
+ * Zakupy z faktur zakupowych jako dane do przewidywania: per towar (z pozycji) albo per dostawca (z samych kwot).
  */
 final class PurchaseHistory
 {

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Farm;
 
 use App\Entity\AuditLog;
+use App\Entity\CalendarEvent;
 use App\Entity\Contract;
 use App\Entity\ContractAttachment;
 use App\Entity\Contractor;
@@ -53,8 +54,8 @@ final class FarmWiper
 {
     /**
      * Kolejność ma znaczenie: najpierw dane odwołujące się do słowników, na końcu słowniki.
-     * Pozycje faktur, rachunki i historia kontrahentów, historia tary i części z serwisu
-     * usuwają się kaskadowo z rodzicami.
+     * Pozycje faktur, rachunki i historia kontrahentów, historia tary, części z serwisu
+     * i uczestnicy wydarzeń usuwają się kaskadowo z rodzicami.
      *
      * @var list<class-string<FarmScoped>>
      */
@@ -62,6 +63,7 @@ final class FarmWiper
         Notification::class,
         SavedFilter::class,
         RecentChoice::class,
+        CalendarEvent::class,
         InvoiceRule::class,
         KsefSync::class,
         OrderCycle::class,

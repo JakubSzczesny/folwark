@@ -31,7 +31,7 @@
                         <td>
                             {{ item.name }}
                             {% if item.beforeCorrection %}<twig:Badge tone="neutral">stan przed korektą</twig:Badge>{% endif %}
-                            {% if item.product is defined and item.product %}<span class="block text-xs text-zielen-700">→ {{ item.product.name }}{% if item.quantityInProductUnit is not null %} ({{ item.quantityInProductUnit|qty }} {{ item.product.baseUnit.symbol }}){% endif %}</span>{% elseif item.skipped %}<span class="block text-xs">pominięta</span>{% endif %}
+                            {% if item.product is defined and item.product %}<span class="block text-xs text-zielen-700">→ {{ item.product.name }}{% if item.quantityInProductUnit is not null %} ({{ item.quantityInProductUnit|qty }} {{ item.product.baseUnit.symbol }}){% endif %}</span>{% elseif item.skipped %}<span class="block text-xs">pominięta</span>{% elseif invoice.expectsGoods and item.unassigned %}<span class="block text-xs text-warning">{{ ux_icon('lucide:package-x', {width: 14, height: 14, class: 'inline'}) }} bez przypisanego towaru</span>{% endif %}
                             {% set alert = price_alerts[item.id] ?? null %}
                             {% if alert %}<span class="block text-xs text-danger" title="Mediana z 12 miesięcy: {{ alert.median|amount(alert.median < 10 ? 4 : 2) }} zł/{{ item.product.unitSymbol }}">{{ ux_icon('lucide:trending-up', {width: 14, height: 14, class: 'inline'}) }} cena {{ alert.price|amount(alert.price < 10 ? 4 : 2) }} zł/{{ item.product.unitSymbol }} – o {{ (alert.percent * 100)|percent }} powyżej mediany</span>{% endif %}
                         </td>

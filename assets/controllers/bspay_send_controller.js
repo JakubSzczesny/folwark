@@ -22,8 +22,15 @@ export default class extends Controller {
             return;
         }
 
-        const response = await fetch(this.urlValue, { headers: { Accept: 'application/json' } });
-        const json = await response.text();
+        const button = event.currentTarget;
+        button.classList.add('is-loading');
+        let json;
+        try {
+            const response = await fetch(this.urlValue, { headers: { Accept: 'application/json' } });
+            json = await response.text();
+        } finally {
+            button.classList.remove('is-loading');
+        }
         document.documentElement.dataset.bspayTransfer = json;
         document.dispatchEvent(new CustomEvent('bspay:transfer', { detail: json }));
     }

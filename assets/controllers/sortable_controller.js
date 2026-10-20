@@ -21,13 +21,23 @@ export default class extends Controller {
         this.sortables.forEach((sortable) => sortable.destroy());
     }
 
-    save(list) {
+    async save(list) {
         const ids = [...list.children].map((item) => item.dataset.id).filter(Boolean);
 
-        fetch(this.urlValue, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': this.tokenValue },
-            body: JSON.stringify({ parent: list.dataset.parent || null, ids }),
-        });
+        document.dispatchEvent(new CustomEvent('app:busy', { detail: { busy: true, label: 'Zapisywanie kolejności…' } }));
+        try {
+            const response = await fetch(this.urlValue, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': this.tokenValue },
+                body: JSON.stringify({ parent: list.dataset.parent || null, ids }),
+            });
+            if (!response.ok) {
+                window.alert('Nie udało się zapisać kolejności.');
+            }
+        } catch {
+            window.alert('Nie udało się zapisać kolejności – sprawdź połączenie.');
+        } finally {
+            document.dispatchEvent(new CustomEvent('app:busy', { detail: { busy: false } }));
+        }
     }
 }

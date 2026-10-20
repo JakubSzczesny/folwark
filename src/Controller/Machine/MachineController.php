@@ -19,6 +19,7 @@ use App\Settings\Settings;
 use App\Storage\Thumbnails;
 use App\Ui\ListFilters;
 use App\Ui\Pager;
+use App\Ui\QueryParam;
 use App\Ui\Sort;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -126,7 +127,7 @@ final class MachineController extends AbstractController
     {
         $rows = $costs->rows($machine);
         $totals = MachineCosts::yearlyTotals($rows);
-        $year = $request->query->getInt('rok') ?: (array_key_first($totals) ?? (int) date('Y'));
+        $year = QueryParam::id($request->query, 'rok') ?? (array_key_first($totals) ?? (int) date('Y'));
 
         return $this->renderTab($machine, 'costs', [
             'totals' => $totals,

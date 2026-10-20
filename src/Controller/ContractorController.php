@@ -22,6 +22,7 @@ use App\Repository\OrderCycleRepository;
 use App\Security\Permission;
 use App\Ui\ListFilters;
 use App\Ui\Pager;
+use App\Ui\QueryParam;
 use App\WhiteList\WhiteListException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -103,7 +104,7 @@ final class ContractorController extends AbstractController
     ): Response {
         $tab = \in_array($tab = $request->query->getString('zakladka', 'faktury'), self::TABS, true) ? $tab : 'faktury';
         $years = $invoices->yearsForContractor($contractor);
-        $year = $request->query->getInt('rok') ?: ($years[0] ?? (int) date('Y'));
+        $year = QueryParam::id($request->query, 'rok') ?? ($years[0] ?? (int) date('Y'));
 
         $context = ['contractor' => $contractor, 'tab' => $tab, 'year' => $year, 'years' => $years];
 

@@ -57,6 +57,17 @@ final class InvoiceControllerTest extends FunctionalTestCase
         self::assertResponseRedirects('/faktury?rodzaj=zakupowe&okres=ten-rok&kontrahent='.$contractor->getId(), null, 'Filtry są zapamiętywane per użytkownik');
     }
 
+    public function testEmptyFilterFieldsFromFormAreIgnored(): void
+    {
+        InvoiceFactory::createOne(['number' => 'K/7']);
+        $this->loginAs(UserFactory::owner());
+
+        $this->client->request('GET', '/faktury?rodzaj=zakupowe&okres=wszystko&kontrahent=&status=read&platnosc=&kategoria=&kwota_od=&kwota_do=&szukaj=');
+        self::assertResponseIsSuccessful('Puste pola wyboru z formularza filtrów nie dają błędu 400');
+        $this->client->request('GET', '/umowy?kontrahent=&rodzaj=');
+        self::assertResponseIsSuccessful();
+    }
+
     public function testOldTabNamesStillWork(): void
     {
         InvoiceFactory::createOne(['number' => 'P/9', 'kind' => InvoiceKind::Income]);

@@ -1,8 +1,8 @@
 import { Controller } from '@hotwired/stimulus';
 
 /*
- * Okno podglądu na środku ekranu z rozmytym tłem. Otwiera się, gdy ramka "preview" załaduje treść;
- * zamyka przyciskiem, klawiszem Esc albo kliknięciem w tło.
+ * Okno podglądu na środku ekranu z rozmytym tłem. Otwiera się od razu z kropkami ładowania, gdy ramka
+ * "preview" zaczyna wczytywać treść; zamyka przyciskiem, klawiszem Esc albo kliknięciem w tło.
  */
 export default class extends Controller {
     static targets = ['panel', 'frame'];
@@ -13,11 +13,19 @@ export default class extends Controller {
                 this.open();
             }
         };
+        this.onFetch = (event) => {
+            if (event.target === this.frameTarget && this.panelTarget.hidden) {
+                this.frameTarget.innerHTML = '<div class="flex items-center justify-center p-12" role="status" aria-label="Wczytywanie"><span class="dots dots-lg" aria-hidden="true"><span></span><span></span><span></span></span></div>';
+                this.open();
+            }
+        };
         document.addEventListener('turbo:frame-load', this.onLoad);
+        this.frameTarget.addEventListener('turbo:before-fetch-request', this.onFetch);
     }
 
     disconnect() {
         document.removeEventListener('turbo:frame-load', this.onLoad);
+        this.frameTarget.removeEventListener('turbo:before-fetch-request', this.onFetch);
         document.documentElement.classList.remove('has-overlay');
     }
 

@@ -149,12 +149,12 @@ final class FarmTest extends FunctionalTestCase
         $crawler = $this->client->request('GET', '/ustawienia/czlonkowie');
         $this->client->submit($crawler->filter('form[action$="/rola"]')->form(['role' => UserRole::Worker->value]));
         $this->client->followRedirect();
-        self::assertSelectorTextContains('.alert-danger', 'co najmniej jednego właściciela');
+        self::assertSelectorTextContains('.toast-danger', 'co najmniej jednego właściciela');
 
         $crawler = $this->client->request('GET', '/ustawienia/czlonkowie');
         $this->client->submit($crawler->filter('form[action$="/usun"]')->form());
         $this->client->followRedirect();
-        self::assertSelectorTextContains('.alert-danger', 'jedynego właściciela');
+        self::assertSelectorTextContains('.toast-danger', 'jedynego właściciela');
     }
 
     public function testWorkerCannotManageMembers(): void
@@ -178,7 +178,7 @@ final class FarmTest extends FunctionalTestCase
         $crawler = $this->client->request('GET', '/ustawienia/strefa-niebezpieczna');
         $this->client->submit($crawler->filter('form[action$="/wyczysc"]')->form(['confirm' => 'zła nazwa']));
         $this->client->followRedirect();
-        self::assertSelectorTextContains('.alert-danger', 'nic nie zostało usunięte');
+        self::assertSelectorTextContains('.toast-danger', 'nic nie zostało usunięte');
 
         $crawler = $this->client->request('GET', '/ustawienia/strefa-niebezpieczna');
         $this->client->submit($crawler->filter('form[action$="/wyczysc"]')->form(['confirm' => FarmFactory::TEST_NAME]));
@@ -236,7 +236,7 @@ final class FarmTest extends FunctionalTestCase
         self::assertSelectorTextContains('main', 'symulator');
         $this->client->submitForm('Zapisz', ['ksef_settings[ksef__environment]' => 'prod']);
         $this->client->followRedirect();
-        self::assertSelectorTextContains('.alert-warning', 'Zmieniono środowisko');
+        self::assertSelectorTextContains('.toast-warning', 'Zmieniono środowisko');
 
         $this->useFarm();
         $this->service(Settings::class)->reset();

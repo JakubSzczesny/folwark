@@ -21,6 +21,7 @@ use App\Settings\Settings;
 use App\Storage\FileStorage;
 use App\Ui\ListFilters;
 use App\Ui\Pager;
+use App\Ui\QueryParam;
 use App\Ui\RecentChoices;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -51,7 +52,7 @@ final class ContractController extends AbstractController
         }
 
         $filters = [
-            'contractor' => $request->query->getInt('kontrahent') ?: null,
+            'contractor' => QueryParam::id($request->query, 'kontrahent'),
             'kind' => ContractKind::tryFrom($request->query->getString('rodzaj')),
             'status' => ContractStatus::tryFrom($request->query->getString('status')),
             'expiring' => $request->query->getBoolean('wygasajace'),
@@ -77,7 +78,7 @@ final class ContractController extends AbstractController
     public function new(Request $request, ContractorRepository $contractors, RecentChoices $recent): Response
     {
         $contract = new Contract();
-        if ($id = $request->query->getInt('kontrahent')) {
+        if ($id = QueryParam::id($request->query, 'kontrahent')) {
             $contract->setContractor($contractors->find($id));
         }
 

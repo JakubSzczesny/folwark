@@ -408,6 +408,77 @@
     .alert-warning { @apply bg-ostrzezenie-tlo border-ostrzezenie-tlo text-ostrzezenie-tekst; }
     .alert-danger { @apply bg-blad-tlo border-blad-tlo text-blad; }
 
+    /* Komunikaty po akcji: pasek wysuwany od góry nad treścią (nie przesuwa strony), znika sam. */
+    .toast-stack {
+        position: fixed;
+        top: 8px;
+        left: 50%;
+        z-index: 80;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        width: min(560px, calc(100vw - 32px));
+        transform: translateX(-50%);
+        pointer-events: none;
+    }
+
+    .toast {
+        @apply relative flex items-start gap-3 overflow-hidden rounded-ui border bg-white px-4 py-3 text-sm font-semibold text-tekst;
+        box-shadow: 0 12px 32px rgb(36 40 44 / 0.18);
+        pointer-events: auto;
+        opacity: 0;
+        transform: translateY(-140%);
+        transition: transform 260ms cubic-bezier(0.2, 0.8, 0.2, 1), opacity 200ms;
+    }
+
+    .toast.is-visible {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    .toast-icon {
+        @apply shrink-0;
+        margin-top: -1px;
+    }
+
+    .toast-close {
+        @apply shrink-0 -my-1 -mr-2 rounded-ui p-1 text-antracyt-500 hover:bg-szary-100 hover:text-tekst cursor-pointer;
+    }
+
+    /* Pasek odliczania do zniknięcia; zatrzymuje się po najechaniu. */
+    .toast-timer {
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        height: 3px;
+        width: 100%;
+        background: currentColor;
+        opacity: 0.35;
+        transform-origin: left;
+        animation: toast-timer var(--toast-duration, 4500ms) linear forwards;
+    }
+
+    .toast.is-paused .toast-timer {
+        animation-play-state: paused;
+    }
+
+    @keyframes toast-timer {
+        to { transform: scaleX(0); }
+    }
+
+    .toast-success { @apply border-zielen-600; border-left-width: 4px; }
+    .toast-success .toast-icon, .toast-success .toast-timer { @apply text-zielen-600; }
+    .toast-warning { @apply border-ostrzezenie; border-left-width: 4px; }
+    .toast-warning .toast-icon, .toast-warning .toast-timer { @apply text-ostrzezenie; }
+    .toast-danger { @apply border-blad; border-left-width: 4px; }
+    .toast-danger .toast-icon, .toast-danger .toast-timer { @apply text-blad; }
+    .toast-info { @apply border-antracyt-500; border-left-width: 4px; }
+    .toast-info .toast-icon, .toast-info .toast-timer { @apply text-antracyt-500; }
+
+    @media (prefers-reduced-motion: reduce) {
+        .toast { transform: none; }
+    }
+
     /* Układ: menu boczne 240 px (zwinięte 64 px), poniżej 1024 px wysuwane */
     .app-sidebar {
         @apply fixed inset-y-0 left-0 z-50 flex flex-col bg-antracyt-900 text-white -translate-x-full;
@@ -881,9 +952,89 @@ body .ts-dropdown .spinner::after {
     display: none;
 }
 
-/* Wskaźniki ładowania: kręcące się kółko na przyciskach, w ramkach i polach */
+/*
+ * Wskaźniki ładowania. Kółko – zapis i akcje (przyciski, przenoszenie, kolejność).
+ * Kropki – wczytywanie treści (okna, podgląd, listy po zmianie filtrów, wyniki, podpowiedzi w polach).
+ */
 @keyframes spin {
     to { transform: rotate(360deg); }
+}
+
+@keyframes dot-pulse {
+    0%, 80%, 100% { opacity: 0.25; transform: scale(0.7); }
+    40% { opacity: 1; transform: scale(1); }
+}
+
+/* Trzy kropki z jednego elementu (pseudo-elementy ramek, pól i filtrów): środkowa kropka + dwie z cienia. */
+@keyframes dot-wave {
+    0%, 100% { background: var(--dot-off); box-shadow: -12px 0 0 var(--dot-on), 12px 0 0 var(--dot-off); }
+    33% { background: var(--dot-on); box-shadow: -12px 0 0 var(--dot-off), 12px 0 0 var(--dot-off); }
+    66% { background: var(--dot-off); box-shadow: -12px 0 0 var(--dot-off), 12px 0 0 var(--dot-on); }
+}
+
+:root {
+    --dot-on: var(--color-zielen-600);
+    --dot-off: color-mix(in srgb, var(--color-zielen-600) 25%, transparent);
+}
+
+.dots {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--color-zielen-600);
+}
+
+.dots > span {
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: currentColor;
+    animation: dot-pulse 1.1s ease-in-out infinite;
+}
+
+.dots > span:nth-child(2) { animation-delay: 0.15s; }
+.dots > span:nth-child(3) { animation-delay: 0.3s; }
+
+.dots-lg {
+    gap: 6px;
+}
+
+.dots-lg > span {
+    width: 10px;
+    height: 10px;
+}
+
+/* Okienko „Zapisywanie…” na dole ekranu – gdy zapis nie ma własnego przycisku (menu pod prawym przyciskiem, przeciąganie). */
+.save-indicator {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    z-index: 90;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-radius: 9999px;
+    background: var(--color-antracyt-900);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 8px 24px rgb(36 40 44 / 0.25);
+    transform: translate(-50%, 0);
+    transition: opacity 150ms, transform 150ms;
+}
+
+.save-indicator[hidden] {
+    display: inline-flex !important;
+    opacity: 0;
+    transform: translate(-50%, 12px);
+    pointer-events: none;
+}
+
+@media (max-width: 1023px) {
+    .save-indicator {
+        bottom: 84px;
+    }
 }
 
 .spinner {
@@ -946,35 +1097,72 @@ turbo-frame[busy]:not(#notification-bell):not(:has([role=status]))::after {
     position: absolute;
     top: 48px;
     left: 50%;
-    width: 28px;
-    height: 28px;
-    margin-left: -14px;
-    border: 3px solid var(--color-zielen-600);
-    border-right-color: transparent;
+    width: 8px;
+    height: 8px;
+    margin-left: -4px;
     border-radius: 9999px;
-    animation: spin 0.7s linear infinite;
+    animation: dot-wave 0.9s linear infinite;
     z-index: 5;
 }
 
 .field.is-loading > .label::after {
     content: '';
     display: inline-block;
-    width: 12px;
-    height: 12px;
-    margin-left: 8px;
-    vertical-align: -1px;
+    width: 6px;
+    height: 6px;
+    margin-left: 22px;
+    vertical-align: 1px;
+    border-radius: 9999px;
+    animation: dot-wave 0.9s linear infinite;
+    --dot-on: var(--color-zielen-600);
+}
+
+/* Lista odświeża się po zmianie filtrów: kropki na końcu paska filtrów i przygaszone wyniki. */
+.filter-bar.is-refreshing::after {
+    content: '';
+    align-self: center;
+    width: 8px;
+    height: 8px;
+    margin: 0 18px;
+    border-radius: 9999px;
+    animation: dot-wave 0.9s linear infinite;
+}
+
+main:has(.filter-bar.is-refreshing) .card,
+main:has(.filter-bar.is-refreshing) .calendar-grid {
+    opacity: 0.55;
+    transition: opacity 150ms;
+}
+
+.calendar-day.is-saving {
+    position: relative;
+}
+
+.calendar-day.is-saving::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 16px;
+    height: 16px;
     border: 2px solid var(--color-zielen-600);
     border-right-color: transparent;
     border-radius: 9999px;
     animation: spin 0.7s linear infinite;
 }
 
-.search-spinner {
+.search-spinner.dots {
     display: none;
+    gap: 3px;
 }
 
-.is-loading .search-spinner {
-    display: inline-block;
+.search-spinner.dots > span {
+    width: 4px;
+    height: 4px;
+}
+
+.is-loading .search-spinner.dots {
+    display: inline-flex;
 }
 
 .is-loading .search-icon {
@@ -982,7 +1170,8 @@ turbo-frame[busy]:not(#notification-bell):not(:has([role=status]))::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .spinner, .btn.is-loading::before, turbo-frame[busy]::after, .field.is-loading > .label::after {
+    .spinner, .btn.is-loading::before, turbo-frame[busy]::after, .field.is-loading > .label::after,
+    .dots > span, .filter-bar.is-refreshing::after, .calendar-day.is-saving::after {
         animation-duration: 2s;
     }
 }

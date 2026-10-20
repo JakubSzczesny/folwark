@@ -8,7 +8,7 @@
     {% if attention.items is empty %}
         <p class="px-4 py-6 text-sm text-antracyt-500">Nic nie wymaga teraz uwagi.</p>
     {% else %}
-        <ul class="divide-y divide-szary-200" data-controller="context-menu">
+        <ul class="divide-y divide-szary-200" data-controller="context-menu" data-loading="action(showAttentionPage)|addClass(opacity-50)">
             {% for item in attention.items %}
                 <li>
                     <a href="{{ item.url }}" class="attention-row flex items-center gap-3 px-4 py-3 text-tekst hover:bg-szary-100 hover:text-tekst" data-table-nav-target="row" data-href="{{ item.url }}">
@@ -39,7 +39,8 @@
             <nav class="flex items-center justify-between gap-2 border-t border-szary-200 px-4 py-2 text-sm" aria-label="Strony listy „Wymaga uwagi”">
                 <button type="button" class="btn btn-ghost btn-sm" {{ attention.page <= 1 ? 'disabled' }}
                         data-action="live#action" data-live-action-param="showAttentionPage" data-live-page-param="{{ attention.page - 1 }}">{{ ux_icon('lucide:chevron-left') }} Poprzednie</button>
-                <span class="text-antracyt-500 tabular-nums">{{ attention.page }} / {{ attention.pages }}</span>
+                <span class="text-antracyt-500 tabular-nums" data-loading="action(showAttentionPage)|hide">{{ attention.page }} / {{ attention.pages }}</span>
+                <twig:Dots data-loading="action(showAttentionPage)|show" />
                 <button type="button" class="btn btn-ghost btn-sm" {{ attention.page >= attention.pages ? 'disabled' }}
                         data-action="live#action" data-live-action-param="showAttentionPage" data-live-page-param="{{ attention.page + 1 }}">Następne {{ ux_icon('lucide:chevron-right') }}</button>
             </nav>

@@ -1,8 +1,22 @@
-{% for type, messages in app.flashes %}
-    {% for message in messages %}
-        <div class="alert alert-{{ type == 'error' ? 'danger' : type }} mb-4" role="status">{{ message }}</div>
-    {% endfor %}
-{% endfor %}
+{# Komunikaty po akcji (sukces, błąd, ostrzeżenie) – pasek wysuwany od góry nad treścią, znika sam. #}
+{% set flashes = app.flashes %}
+{% if flashes is not empty %}
+    <div class="toast-stack" data-controller="toasts" aria-live="polite">
+        {% for type, messages in flashes %}
+            {% set tone = {error: 'danger', danger: 'danger', warning: 'warning', success: 'success'}[type] ?? 'info' %}
+            {% set icon = {danger: 'circle-x', warning: 'triangle-alert', success: 'circle-check'}[tone] ?? 'info' %}
+            {% for message in messages %}
+                <div class="toast toast-{{ tone }}" role="{{ tone == 'danger' ? 'alert' : 'status' }}" data-toasts-target="toast"
+                     data-action="mouseenter->toasts#pause mouseleave->toasts#resume focusin->toasts#pause focusout->toasts#resume">
+                    <span class="toast-icon" aria-hidden="true">{{ ux_icon('lucide:' ~ icon, {width: 20, height: 20}) }}</span>
+                    <span class="flex-1 min-w-0">{{ message }}</span>
+                    <button type="button" class="toast-close" data-action="toasts#close" aria-label="Zamknij komunikat">{{ ux_icon('lucide:x', {width: 16, height: 16}) }}</button>
+                    <span class="toast-timer" aria-hidden="true"></span>
+                </div>
+            {% endfor %}
+        {% endfor %}
+    </div>
+{% endif %}
 {% if is_granted('SETTINGS') %}
     {% set stalled = stalled_jobs() %}
     {% if stalled > 0 %}

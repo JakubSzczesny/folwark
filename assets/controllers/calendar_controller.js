@@ -48,14 +48,21 @@ export default class extends Controller {
             return;
         }
 
-        const response = await fetch(this.urlValue.replace('/0/', `/${dragged.id}/`), {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': this.tokenValue },
-            body: JSON.stringify({ from: dragged.from, to: day.dataset.date }),
-        });
-        if (!response.ok) {
-            window.alert('Nie udało się przenieść wydarzenia.');
+        day.classList.add('is-saving');
+        document.dispatchEvent(new CustomEvent('app:busy', { detail: { busy: true, label: 'Przenoszenie wydarzenia…' } }));
+        try {
+            const response = await fetch(this.urlValue.replace('/0/', `/${dragged.id}/`), {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': this.tokenValue },
+                body: JSON.stringify({ from: dragged.from, to: day.dataset.date }),
+            });
+            if (!response.ok) {
+                window.alert('Nie udało się przenieść wydarzenia.');
+            }
+        } catch {
+            window.alert('Nie udało się przenieść wydarzenia – sprawdź połączenie.');
         }
+        // Kółko i „Zapisywanie…” znikają po odświeżeniu strony (turbo:load).
         Turbo.visit(window.location.href, { action: 'replace' });
     }
 }

@@ -37,7 +37,7 @@ final class ModuleTest extends FunctionalTestCase
         $this->client->request('GET', '/kontrahenci/'.$contractor->getId());
         self::assertResponseRedirects('/');
         $this->client->followRedirect();
-        self::assertSelectorTextContains('.alert', 'Moduł „Kontrahenci” jest wyłączony');
+        self::assertSelectorTextContains('.toast-warning', 'Moduł „Kontrahenci” jest wyłączony');
         $this->client->request('GET', '/umowy');
         self::assertResponseRedirects('/');
         $this->client->request('GET', '/szukaj?q=Petromex');

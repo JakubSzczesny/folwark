@@ -7,6 +7,7 @@ namespace App\Invoice;
 use App\Enum\InvoiceKind;
 use App\Enum\InvoiceStatus;
 use App\Enum\PaymentStatus;
+use App\Ui\QueryParam;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -53,10 +54,10 @@ final class InvoiceFilter
         $filter->period = \array_key_exists($period = $query->getString('okres'), self::PERIODS) ? $period : 'wszystko';
         $filter->from = self::date($query->getString('od'));
         $filter->to = self::date($query->getString('do'));
-        $filter->contractorId = $query->getInt('kontrahent') ?: null;
+        $filter->contractorId = QueryParam::id($query, 'kontrahent');
         $filter->status = InvoiceStatus::tryFrom($query->getString('status'));
         $filter->payment = PaymentStatus::tryFrom($query->getString('platnosc'));
-        $filter->costCategoryId = $query->getInt('kategoria') ?: null;
+        $filter->costCategoryId = QueryParam::id($query, 'kategoria');
         $filter->unassigned = $query->getBoolean('bez_towaru');
         $filter->amountFrom = self::amount($query->getString('kwota_od'));
         $filter->amountTo = self::amount($query->getString('kwota_do'));

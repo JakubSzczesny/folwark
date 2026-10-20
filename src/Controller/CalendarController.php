@@ -14,9 +14,11 @@ use App\Enum\CalendarCategory;
 use App\Enum\UserRole;
 use App\Farm\FarmContext;
 use App\Form\CalendarEventType;
+use App\Repository\ContractorRepository;
 use App\Repository\FarmMembershipRepository;
 use App\Security\CalendarEventVoter;
 use App\Security\Permission;
+use App\Ui\QueryParam;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -76,12 +78,15 @@ final class CalendarController extends AbstractController
 
     #[Route('/nowe', name: 'app_calendar_new', methods: ['GET', 'POST'])]
     #[IsGranted(Permission::CALENDAR_EDIT)]
-    public function new(Request $request, #[CurrentUser] User $user, FarmMembershipRepository $memberships, FarmContext $context): Response
+    public function new(Request $request, #[CurrentUser] User $user, FarmMembershipRepository $memberships, FarmContext $context, ContractorRepository $contractors): Response
     {
         $day = self::day($request->query->getString('dzien')) ?? new \DateTimeImmutable('today');
         $event = new CalendarEvent($user, $day);
         if ($category = CalendarCategory::tryFrom($request->query->getString('kategoria'))) {
             $event->setCategory($category);
+        }
+        if ($contractorId = QueryParam::id($request->query, 'kontrahent')) {
+            $event->setContractor($contractors->find($contractorId));
         }
 
         return $this->handleForm($event, $request, $user, $this->members($memberships, $context), 'Nowe wydarzenie');
@@ -194,6 +199,12 @@ final class CalendarController extends AbstractController
             $added = array_values(array_filter($event->getParticipants()->toArray(), static fn (User $u): bool => !\in_array($u, $before, true)));
             $this->reminders->notifyAdded($event, $added, $user);
             $this->addFlash('success', $isNew ? 'Dodano wydarzenie.' : 'Zapisano wydarzenie.');
+
+            // Dodane z karty kontrahenta – wracamy na jego zakładkę „Kalendarz”.
+            $contractor = $event->getContractor();
+            if (null !== $contractor && $request->query->has('kontrahent') && $this->isGranted(Permission::CONTRACTOR_VIEW)) {
+                return $this->visit($request, $this->generateUrl('app_contractor_show', ['id' => $contractor->getId(), 'zakladka' => 'kalendarz']));
+            }
 
             return $this->visit($request, $this->generateUrl('app_calendar_index', ['miesiac' => $event->getStartDate()?->format('Y-m')]));
         }

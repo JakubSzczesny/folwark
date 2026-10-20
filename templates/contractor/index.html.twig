@@ -56,6 +56,8 @@
                                         {% if is_granted('INVOICE_VIEW') %}{{ cm.link(path('app_contractor_show', {id: contractor.id, zakladka: 'faktury'}), 'Faktury', 'receipt-text') }}{% endif %}
                                         {{ cm.link(path('app_contractor_show', {id: contractor.id, zakladka: 'zakupy'}), 'Zakupy', 'shopping-cart') }}
                                         {{ cm.link(path('app_contractor_show', {id: contractor.id, zakladka: 'umowy'}), 'Umowy', 'file-signature') }}
+                                        {% if is_granted('CALENDAR_VIEW') %}{{ cm.link(path('app_contractor_show', {id: contractor.id, zakladka: 'kalendarz'}), 'Kalendarz', 'calendar') }}{% endif %}
+                                        {% if is_granted('CALENDAR_EDIT') %}{{ cm.link(path('app_calendar_new', {kontrahent: contractor.id}), 'Nowe wydarzenie…', 'plus', 'modal') }}{% endif %}
                                         {% if is_granted('CONTRACT_EDIT') %}{{ cm.link(path('app_contract_new', {kontrahent: contractor.id}), 'Nowa umowa', 'plus') }}{% endif %}
                                         {% if is_granted('CONTRACTOR_EDIT') %}{{ cm.separator() }}{{ cm.link(path('app_contractor_edit', {id: contractor.id}), 'Edytuj dane', 'pencil') }}{% endif %}
                                     </template>

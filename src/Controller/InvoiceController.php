@@ -267,17 +267,6 @@ final class InvoiceController extends AbstractController
         return $this->redirectToRoute('app_invoice_show', ['id' => $invoice->getId()], Response::HTTP_SEE_OTHER);
     }
 
-    #[Route('/{id}/uwagi', name: 'app_invoice_notes', methods: ['POST'])]
-    #[IsGranted(Permission::INVOICE_MANAGE)]
-    public function notes(Invoice $invoice, Request $request): Response
-    {
-        $this->assertToken($request);
-        $notes = trim($request->getPayload()->getString('notes'));
-        $this->actions->saveNotes($invoice, '' === $notes ? null : $notes);
-
-        return $this->redirectToRoute('app_invoice_show', ['id' => $invoice->getId()], Response::HTTP_SEE_OTHER);
-    }
-
     #[Route('/{id}/tylko-koszt', name: 'app_invoice_cost_only', methods: ['GET', 'POST'])]
     #[IsGranted(Permission::INVOICE_MANAGE)]
     public function costOnly(Invoice $invoice, Request $request, RecentChoices $recent): Response

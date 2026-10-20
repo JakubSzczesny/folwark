@@ -90,7 +90,7 @@ final class CalendarFeed
 
     public function entry(CalendarEvent $event, \DateTimeImmutable $start): CalendarEntry
     {
-        $detail = array_filter([$event->getLocation(), $event->getParticipants()->isEmpty() ? null : implode(', ', $event->getParticipants()->map(static fn (User $u): string => $u->getFullName())->toArray())]);
+        $detail = array_filter([$event->getContractor()?->getDisplayName(), $event->getLocation(), $event->getParticipants()->isEmpty() ? null : implode(', ', $event->getParticipants()->map(static fn (User $u): string => $u->getFullName())->toArray())]);
 
         return new CalendarEntry(
             $event->getTitle(),

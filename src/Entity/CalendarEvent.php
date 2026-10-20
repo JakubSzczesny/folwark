@@ -61,6 +61,11 @@ class CalendarEvent implements \Stringable, FarmScoped
     #[Assert\Length(max: 160)]
     private ?string $location = null;
 
+    /** Kontrahent, którego dotyczy wydarzenie (spotkanie, dostawa, odbiór…). */
+    #[ORM\ManyToOne]
+    #[ORM\JoinColumn(onDelete: 'SET NULL')]
+    private ?Contractor $contractor = null;
+
     #[ORM\Column(type: Types::TEXT, nullable: true)]
     private ?string $description = null;
 
@@ -226,6 +231,18 @@ class CalendarEvent implements \Stringable, FarmScoped
         return $this;
     }
 
+    public function getContractor(): ?Contractor
+    {
+        return $this->contractor;
+    }
+
+    public function setContractor(?Contractor $contractor): static
+    {
+        $this->contractor = $contractor;
+
+        return $this;
+    }
+
     public function getDescription(): ?string
     {
         return $this->description;
@@ -358,6 +375,7 @@ class CalendarEvent implements \Stringable, FarmScoped
         $copy->endDate = $this->endDate;
         $copy->endTime = $this->endTime;
         $copy->location = $this->location;
+        $copy->contractor = $this->contractor;
         $copy->description = $this->description;
         $copy->recurrence = $this->recurrence;
         $copy->recurrenceUntil = $this->recurrenceUntil;

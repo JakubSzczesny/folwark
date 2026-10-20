@@ -149,6 +149,7 @@ composer cs      # PHP-CS-Fixer (@Symfony), podgląd zmian
 | 9. Zamówienia – algorytm i ekran | `src/Order/OrderPredictor.php`, `OrderPlanner.php`, `src/Controller/OrderController.php` |
 | 10. Maszyny, informacje, serwis | `src/Machine/`, `src/Tree/`, `src/Controller/Machine/` |
 | Kalendarz – wydarzenia, powtarzanie, przypomnienia, terminy z modułów | `src/Calendar/` (`CalendarFeed`, `CalendarOccurrences`, `CalendarReminders`, `Source/`), `src/Controller/CalendarController.php`, `src/Security/CalendarEventVoter.php`, `templates/calendar/` |
+| Notatki (wpisy z autorem i datą, edycja) przy kontrahentach, maszynach i fakturach | `src/Note/`, `src/Entity/Note.php`, `src/Controller/NoteController.php`, `src/Security/NoteVoter.php`, `templates/_partials/notes.html.twig` |
 | Moduły – wyłączanie bez usuwania danych | `src/Module/` (`Modules`, `ModuleAccessSubscriber`), `src/Controller/Settings/ModuleController.php` (Ustawienia → Moduły, prawy przycisk na pozycji menu) |
 | 11.2 Waga – lista do zrobienia | `src/Controller/WeighbridgeController.php` (11.3 – etap 6) |
 | 12.2 Słowniki | `src/Controller/Admin/` (EasyAdmin, `/ustawienia/slowniki`), dane startowe `src/Setup/StartupData.php` |

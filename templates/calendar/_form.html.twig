@@ -10,7 +10,10 @@
         {{ form_row(form.endDate) }}
         {{ form_row(form.endTime) }}
     </div>
-    {{ form_row(form.location) }}
+    <div class="grid gap-x-4 sm:grid-cols-2">
+        {{ form_row(form.location) }}
+        {{ form_row(form.contractor) }}
+    </div>
     {{ form_row(form.description) }}
     <div class="grid gap-x-4 sm:grid-cols-3">
         {{ form_row(form.recurrence) }}

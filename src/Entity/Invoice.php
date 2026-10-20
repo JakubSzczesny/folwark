@@ -147,9 +147,6 @@ class Invoice implements \Stringable, FarmScoped
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE, nullable: true)]
     private ?\DateTimeImmutable $readAt = null;
 
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
-    private ?string $notes = null;
-
     #[ORM\Column(type: Types::DATETIME_IMMUTABLE)]
     private \DateTimeImmutable $createdAt;
 
@@ -608,18 +605,6 @@ class Invoice implements \Stringable, FarmScoped
         }
 
         return true;
-    }
-
-    public function getNotes(): ?string
-    {
-        return $this->notes;
-    }
-
-    public function setNotes(?string $notes): static
-    {
-        $this->notes = $notes;
-
-        return $this;
     }
 
     public function getCreatedAt(): \DateTimeImmutable

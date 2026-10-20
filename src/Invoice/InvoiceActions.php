@@ -155,13 +155,6 @@ class InvoiceActions
         $this->em->flush();
     }
 
-    public function saveNotes(Invoice $invoice, ?string $notes): void
-    {
-        $invoice->setNotes($notes);
-        $this->audit->log('Invoice', $invoice->getId(), 'notes');
-        $this->em->flush();
-    }
-
     /**
      * @param array<string, mixed> $details
      */

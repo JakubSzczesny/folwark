@@ -1,0 +1,15 @@
+<twig:Modal title="Edycja notatki">
+    <form method="post" action="{{ path('app_note_edit', {id: note.id}) }}" data-turbo-frame="modal">
+        <input type="hidden" name="_token" value="{{ csrf_token('note') }}">
+        <div class="field">
+            <label class="label" for="note-body">Treść</label>
+            <textarea id="note-body" name="body" class="textarea {{ error ? 'is-invalid' }}" rows="6" maxlength="{{ constant('App\\Entity\\Note::MAX_LENGTH') }}" autofocus>{{ app.request.payload.get('body') ?? note.body }}</textarea>
+            {% if error %}<p class="form-error">{{ error }}</p>{% endif %}
+            <p class="help">Dodano {{ note.createdAt|pl_datetime }}{{ note.author ? ' · ' ~ note.author.fullName }}{{ note.editedAt ? ' · edytowano ' ~ note.editedAt|pl_datetime }}</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-primary">Zapisz</button>
+            <button type="button" class="btn btn-ghost" data-action="modal#close">Anuluj</button>
+        </div>
+    </form>
+</twig:Modal>

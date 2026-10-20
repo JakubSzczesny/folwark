@@ -1,0 +1,52 @@
+{# Notatki jak komentarze: formularz na górze, poniżej wpisy od najnowszego. subject: kontrahent, maszyna albo faktura. #}
+{% import '_partials/context_menu.html.twig' as cm %}
+{% set type = notes_type(subject) %}
+{% set notes = notes_for(subject) %}
+{% set can_write = is_granted(constant('App\\Note\\NoteSubjects::TYPES')[type].write) %}
+{% set compact = compact|default(false) %}
+<div class="notes">
+    {% if can_write %}
+        <form method="post" action="{{ path('app_note_add', {type: type, id: subject.id}) }}" class="mb-4" data-turbo-frame="_top">
+            <input type="hidden" name="_token" value="{{ csrf_token('note') }}">
+            <label class="label sr-only" for="note-body-{{ type }}">Nowa notatka</label>
+            <textarea id="note-body-{{ type }}" name="body" class="textarea mb-2" rows="{{ compact ? 2 : 3 }}" maxlength="{{ constant('App\\Entity\\Note::MAX_LENGTH') }}" required placeholder="{{ placeholder|default('Dodaj notatkę…') }}"></textarea>
+            <button type="submit" class="btn btn-primary {{ compact ? 'btn-sm' }}">{{ ux_icon('lucide:plus') }} Dodaj notatkę</button>
+        </form>
+    {% endif %}
+
+    {% if notes is empty %}
+        <p class="text-sm text-antracyt-500">Brak notatek.</p>
+    {% else %}
+        <ul class="space-y-3" data-controller="context-menu">
+            {% for note in notes %}
+                {% set editable = is_granted('NOTE_EDIT', note) %}
+                <li class="note" id="notatka-{{ note.id }}" {% if editable %}data-table-nav-target="row"{% endif %}>
+                    {% if editable %}
+                        <template data-context-menu>
+                            {{ cm.link(path('app_note_edit', {id: note.id}), 'Edytuj…', 'pencil', 'modal') }}
+                            {{ cm.post(path('app_note_delete', {id: note.id}), 'Usuń', 'note', 'trash-2', 'Usunąć tę notatkę?') }}
+                        </template>
+                    {% endif %}
+                    <span class="note-avatar" aria-hidden="true">{{ note.author ? note.author.initials : '?' }}</span>
+                    <div class="flex-1 min-w-0">
+                        <div class="flex flex-wrap items-baseline gap-x-2 text-sm">
+                            <span class="font-semibold">{{ note.author ? note.author.fullName : 'Wcześniejsza notatka' }}</span>
+                            <time class="text-xs text-antracyt-500 tabular-nums" datetime="{{ note.createdAt|date('c') }}">{{ note.createdAt|pl_datetime }}</time>
+                            {% if note.editedAt %}<span class="text-xs text-antracyt-500" title="Edytowano {{ note.editedAt|pl_datetime }}">(edytowano)</span>{% endif %}
+                            {% if editable %}
+                                <span class="ml-auto flex gap-1">
+                                    <a href="{{ path('app_note_edit', {id: note.id}) }}" data-turbo-frame="modal" class="btn btn-ghost btn-icon btn-sm" aria-label="Edytuj notatkę" title="Edytuj">{{ ux_icon('lucide:pencil') }}</a>
+                                    <form method="post" action="{{ path('app_note_delete', {id: note.id}) }}" data-turbo-confirm="Usunąć tę notatkę?" data-turbo-frame="_top">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('note') }}">
+                                        <button type="submit" class="btn btn-ghost btn-icon btn-sm" aria-label="Usuń notatkę" title="Usuń">{{ ux_icon('lucide:trash-2') }}</button>
+                                    </form>
+                                </span>
+                            {% endif %}
+                        </div>
+                        <p class="mt-1 text-sm whitespace-pre-line break-words">{{ note.body }}</p>
+                    </div>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</div>

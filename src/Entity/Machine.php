@@ -100,9 +100,6 @@ class Machine implements \Stringable, FarmScoped
     #[ORM\Column(length: 255, nullable: true)]
     private ?string $photoPath = null;
 
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
-    private ?string $notes = null;
-
     #[ORM\Column]
     private bool $active = true;
 
@@ -418,18 +415,6 @@ class Machine implements \Stringable, FarmScoped
     public function setPhotoPath(?string $photoPath): static
     {
         $this->photoPath = $photoPath;
-
-        return $this;
-    }
-
-    public function getNotes(): ?string
-    {
-        return $this->notes;
-    }
-
-    public function setNotes(?string $notes): static
-    {
-        $this->notes = $notes;
 
         return $this;
     }

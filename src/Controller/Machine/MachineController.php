@@ -21,7 +21,6 @@ use App\Ui\ListFilters;
 use App\Ui\Pager;
 use App\Ui\QueryParam;
 use App\Ui\Sort;
-use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
 use Symfony\Component\HttpFoundation\Request;
@@ -102,22 +101,9 @@ final class MachineController extends AbstractController
         return $this->renderTab($machine, 'service', ['services' => $this->services->findForMachine($machine)]);
     }
 
-    #[Route('/{id}/notatki', name: 'app_machine_notes', requirements: ['id' => '\d+'], methods: ['GET', 'POST'])]
-    public function notes(Machine $machine, Request $request, EntityManagerInterface $em): Response
+    #[Route('/{id}/notatki', name: 'app_machine_notes', requirements: ['id' => '\d+'], methods: ['GET'])]
+    public function notes(Machine $machine): Response
     {
-        if ($request->isMethod('POST')) {
-            $this->denyAccessUnlessGranted(Permission::MACHINE_EDIT);
-            if (!$this->isCsrfTokenValid('machine', $request->getPayload()->getString('_token'))) {
-                throw $this->createAccessDeniedException();
-            }
-            $notes = trim($request->getPayload()->getString('notes'));
-            $machine->setNotes('' === $notes ? null : $notes);
-            $em->flush();
-            $this->addFlash('success', 'Zapisano notatki.');
-
-            return $this->redirectToRoute('app_machine_notes', ['id' => $machine->getId()], Response::HTTP_SEE_OTHER);
-        }
-
         return $this->renderTab($machine, 'notes');
     }
 

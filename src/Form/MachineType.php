@@ -18,7 +18,6 @@ use Symfony\Component\Form\Extension\Core\Type\EnumType;
 use Symfony\Component\Form\Extension\Core\Type\FileType;
 use Symfony\Component\Form\Extension\Core\Type\IntegerType;
 use Symfony\Component\Form\Extension\Core\Type\NumberType;
-use Symfony\Component\Form\Extension\Core\Type\TextareaType;
 use Symfony\Component\Form\Extension\Core\Type\TextType;
 use Symfony\Component\Form\FormBuilderInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
@@ -97,7 +96,6 @@ final class MachineType extends AbstractType
                 'attr' => ['accept' => 'image/*'],
                 'constraints' => [new Assert\Image(maxSize: '20M', mimeTypesMessage: 'Wybierz zdjęcie (JPG, PNG albo WebP).')],
             ])
-            ->add('notes', TextareaType::class, ['label' => 'Notatki', 'required' => false, 'attr' => ['rows' => 4]])
             ->add('active', CheckboxType::class, ['label' => 'Maszyna w użyciu', 'required' => false, 'help' => 'Wycofane nie pokazują się na liście i nie generują przypomnień.']);
 
         if ($machine instanceof Machine && null !== $machine->getPhotoPath()) {

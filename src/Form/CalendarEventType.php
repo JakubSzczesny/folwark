@@ -8,6 +8,7 @@ use App\Entity\CalendarEvent;
 use App\Entity\User;
 use App\Enum\CalendarCategory;
 use App\Enum\CalendarRecurrence;
+use App\Form\Field\ContractorAutocompleteField;
 use Symfony\Bridge\Doctrine\Form\Type\EntityType;
 use Symfony\Component\Form\AbstractType;
 use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
@@ -52,6 +53,7 @@ final class CalendarEventType extends AbstractType
             ->add('endDate', DateType::class, ['label' => 'Do dnia', 'required' => false, 'help' => 'Dla wydarzeń kilkudniowych.'] + $date)
             ->add('endTime', TimeType::class, ['label' => 'Do godziny'] + $time)
             ->add('location', TextType::class, ['label' => 'Miejsce', 'required' => false, 'attr' => ['maxlength' => 160]])
+            ->add('contractor', ContractorAutocompleteField::class, ['label' => 'Kontrahent', 'required' => false, 'help' => 'Wydarzenie pokaże się też na karcie kontrahenta.'])
             ->add('description', TextareaType::class, ['label' => 'Opis', 'required' => false, 'attr' => ['rows' => 3]])
             ->add('recurrence', EnumType::class, [
                 'label' => 'Powtarzanie',

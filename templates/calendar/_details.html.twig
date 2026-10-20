@@ -16,6 +16,10 @@
         {% if event.recurring and occurrence != event.startDate %}<span class="block text-xs text-antracyt-500">Pierwszy termin: {{ event.startDate|pl_date }}</span>{% endif %}
     </dd>
     {% if event.location %}<dt>Miejsce</dt><dd>{{ event.location }}</dd>{% endif %}
+    {% if event.contractor %}
+        <dt>Kontrahent</dt>
+        <dd>{% if is_granted('CONTRACTOR_VIEW') %}<a href="{{ path('app_contractor_show', {id: event.contractor.id, zakladka: 'kalendarz'}) }}" data-turbo-frame="_top">{{ event.contractor.displayName }}</a>{% else %}{{ event.contractor.displayName }}{% endif %}</dd>
+    {% endif %}
     {% if event.participants is not empty %}<dt>Uczestnicy</dt><dd>{{ event.participants|map(u => u.fullName)|join(', ') }}</dd>{% endif %}
     <dt>Przypomnienie</dt>
     <dd>{{ event.reminderDays is null ? 'brak' : (event.reminderDays == 0 ? 'w dniu wydarzenia' : event.reminderDays ~ ' ' ~ event.reminderDays|plural('dzień', 'dni', 'dni') ~ ' wcześniej') }}</dd>

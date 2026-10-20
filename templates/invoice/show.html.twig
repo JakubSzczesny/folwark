@@ -74,22 +74,17 @@
                 </dl>
             </section>
 
+            <section class="card card-body">
+                <h2 class="card-title mb-3">Notatki</h2>
+                {{ include('_partials/notes.html.twig', {subject: invoice, compact: true}) }}
+            </section>
             {% if is_granted('INVOICE_MANAGE') %}
                 <section class="card card-body">
-                    <h2 class="card-title mb-3">Uwagi</h2>
-                    <form method="post" action="{{ path('app_invoice_notes', {id: invoice.id}) }}">
-                        <input type="hidden" name="_token" value="{{ csrf_token('invoice') }}">
-                        <textarea name="notes" class="textarea mb-2" rows="3">{{ invoice.notes }}</textarea>
-                        <button type="submit" class="btn btn-secondary btn-sm">Zapisz uwagi</button>
-                    </form>
-                    <hr class="my-4 border-szary-200">
                     <form method="post" action="{{ path('app_invoice_kind', {id: invoice.id}) }}" data-turbo-confirm="Zmienić klasyfikację faktury na „{{ invoice.kind.opposite.label }}”?">
                         <input type="hidden" name="_token" value="{{ csrf_token('invoice') }}">
                         <button type="submit" class="btn btn-ghost btn-sm">Zmień na: {{ invoice.kind.opposite.label|lower }}</button>
                     </form>
                 </section>
-            {% elseif invoice.notes %}
-                <section class="card card-body"><h2 class="card-title mb-2">Uwagi</h2><p class="text-sm whitespace-pre-line">{{ invoice.notes }}</p></section>
             {% endif %}
 
             <section class="card card-body">

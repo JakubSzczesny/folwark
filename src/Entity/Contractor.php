@@ -72,9 +72,6 @@ class Contractor implements \Stringable, FarmScoped
     #[Assert\Range(min: 0, max: 365)]
     private ?int $deliveryDays = null;
 
-    #[ORM\Column(type: Types::TEXT, nullable: true)]
-    private ?string $notes = null;
-
     #[ORM\Column(length: 12, enumType: DataSource::class)]
     private DataSource $dataSource = DataSource::Manual;
 
@@ -265,18 +262,6 @@ class Contractor implements \Stringable, FarmScoped
     public function setDeliveryDays(?int $deliveryDays): static
     {
         $this->deliveryDays = $deliveryDays;
-
-        return $this;
-    }
-
-    public function getNotes(): ?string
-    {
-        return $this->notes;
-    }
-
-    public function setNotes(?string $notes): static
-    {
-        $this->notes = $notes;
 
         return $this;
     }

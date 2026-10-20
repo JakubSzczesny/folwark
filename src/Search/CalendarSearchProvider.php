@@ -41,6 +41,7 @@ final class CalendarSearchProvider implements SearchProvider
                 $this->urls->generate('app_calendar_event', ['id' => $event->getId()]),
                 implode(' · ', array_filter([
                     FormatExtension::date($event->getStartDate()).($event->isRecurring() ? ' ('.mb_strtolower($event->getRecurrence()->label()).')' : ''),
+                    $event->getContractor()?->getDisplayName(),
                     $event->getLocation(),
                 ])),
             ),

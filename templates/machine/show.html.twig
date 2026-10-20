@@ -73,7 +73,7 @@
         <nav class="tabs" aria-label="Sekcje maszyny">
             <a href="{{ path('app_machine_show', {id: machine.id}) }}" class="tab {{ tab == 'info' ? 'tab-active' }}">Informacje</a>
             <a href="{{ path('app_machine_service', {id: machine.id}) }}" class="tab {{ tab == 'service' ? 'tab-active' }}">Serwis</a>
-            <a href="{{ path('app_machine_notes', {id: machine.id}) }}" class="tab {{ tab == 'notes' ? 'tab-active' }}">Notatki{% if machine.notes %} <span class="dot-new" aria-hidden="true"></span>{% endif %}</a>
+            <a href="{{ path('app_machine_notes', {id: machine.id}) }}" class="tab {{ tab == 'notes' ? 'tab-active' }}">Notatki{% set note_count = notes_count(machine) %}{% if note_count %} <span class="count">{{ note_count }}</span>{% endif %}</a>
             {% if is_granted('AMOUNTS_VIEW') %}
                 <a href="{{ path('app_machine_costs', {id: machine.id}) }}" class="tab {{ tab == 'costs' ? 'tab-active' }}">Koszty</a>
             {% endif %}

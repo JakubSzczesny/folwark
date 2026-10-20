@@ -12,6 +12,9 @@
         {% if is_granted('CONTRACT_EDIT') %}
             <a href="{{ path('app_contract_new', {kontrahent: contractor.id}) }}" class="btn btn-secondary">{{ ux_icon('lucide:plus') }} Umowa</a>
         {% endif %}
+        {% if is_granted('CALENDAR_EDIT') %}
+            <a href="{{ path('app_calendar_new', {kontrahent: contractor.id}) }}" class="btn btn-secondary" data-turbo-frame="modal">{{ ux_icon('lucide:calendar') }} Wydarzenie</a>
+        {% endif %}
     </twig:PageHeader>
 
     <section class="card card-body mb-6">
@@ -67,9 +70,10 @@
     </section>
 
     <nav class="tabs" aria-label="Sekcje kontrahenta">
-        {% set tabs = {faktury: 'Faktury', zakupy: 'Zakupy', umowy: 'Umowy', historia: 'Historia danych', notatki: 'Notatki'} %}
+        {% set note_count = notes_count(contractor) %}
+        {% set tabs = {faktury: 'Faktury', zakupy: 'Zakupy', umowy: 'Umowy', historia: 'Historia danych', kalendarz: 'Kalendarz', notatki: 'Notatki' ~ (note_count ? ' (' ~ note_count ~ ')')} %}
         {% for key, label in tabs %}
-            {% if (key != 'faktury' or is_granted('INVOICE_VIEW')) and (key != 'zakupy' or route_exists('app_product_index')) %}
+            {% if (key != 'faktury' or is_granted('INVOICE_VIEW')) and (key != 'zakupy' or route_exists('app_product_index')) and (key != 'kalendarz' or is_granted('CALENDAR_VIEW')) %}
                 <a href="{{ path('app_contractor_show', {id: contractor.id, zakladka: key}) }}" class="tab {{ tab == key ? 'tab-active' }}">{{ label }}</a>
             {% endif %}
         {% endfor %}
@@ -150,18 +154,44 @@
                 </div>
             {% endif %}
         </div>
+    {% elseif tab == 'kalendarz' and calendar is defined %}
+        <div class="grid gap-6 lg:grid-cols-2">
+            {% for group in [{title: 'Nadchodzące', rows: calendar.upcoming, empty: 'Nic nie zaplanowano.'}, {title: 'Minione', rows: calendar.past, empty: 'Brak wcześniejszych wydarzeń.'}] %}
+                <section class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">{{ group.title }}</h2>
+                        {% if loop.first and is_granted('CALENDAR_EDIT') %}
+                            <a href="{{ path('app_calendar_new', {kontrahent: contractor.id}) }}" class="btn btn-ghost btn-sm" data-turbo-frame="modal">{{ ux_icon('lucide:plus') }} Wydarzenie</a>
+                        {% endif %}
+                    </div>
+                    {% if group.rows is empty %}
+                        <p class="px-4 py-6 text-sm text-antracyt-500">{{ group.empty }}</p>
+                    {% else %}
+                        <ul class="divide-y divide-szary-200">
+                            {% for row in group.rows %}
+                                {% set event = row.event %}
+                                <li>
+                                    <a href="{{ path('app_calendar_event', {id: event.id, dzien: row.date|date('Y-m-d')}) }}" data-turbo-frame="modal" class="flex items-center gap-3 px-4 py-3 text-tekst hover:bg-szary-100 hover:text-tekst">
+                                        <span class="cal-dot cal-{{ event.category.value }}" aria-hidden="true"></span>
+                                        <span class="flex-1 min-w-0">
+                                            <span class="block truncate text-sm font-semibold">{{ event.title }}</span>
+                                            <span class="block truncate text-xs text-antracyt-500">{{ event.category.label }}{{ event.recurring ? ' · ' ~ event.recurrence.label|lower }}{{ event.location ? ' · ' ~ event.location }}</span>
+                                        </span>
+                                        <span class="text-sm whitespace-nowrap text-right tabular-nums">
+                                            {{ row.date|pl_date }}
+                                            {% if event.timeLabel %}<span class="block text-xs text-antracyt-500">{{ event.timeLabel }}</span>{% endif %}
+                                        </span>
+                                    </a>
+                                </li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </section>
+            {% endfor %}
+        </div>
     {% elseif tab == 'notatki' %}
         <div class="card card-body max-w-3xl">
-            {% if is_granted('CONTRACTOR_EDIT') %}
-                <form method="post" action="{{ path('app_contractor_notes', {id: contractor.id}) }}">
-                    <input type="hidden" name="_token" value="{{ csrf_token('contractor') }}">
-                    <label class="label" for="notes">Notatki</label>
-                    <textarea id="notes" name="notes" class="textarea mb-3" rows="8">{{ contractor.notes }}</textarea>
-                    <button type="submit" class="btn btn-primary">Zapisz notatki</button>
-                </form>
-            {% else %}
-                <p class="whitespace-pre-line">{{ contractor.notes ?: 'Brak notatek.' }}</p>
-            {% endif %}
+            {{ include('_partials/notes.html.twig', {subject: contractor, placeholder: 'Np. z kim rozmawiać, ustalenia, warunki dostaw…'}) }}
         </div>
     {% endif %}
 {% endblock %}

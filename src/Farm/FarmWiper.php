@@ -26,6 +26,7 @@ use App\Entity\MachineInfoEntry;
 use App\Entity\MachineService;
 use App\Entity\MachineServiceAttachment;
 use App\Entity\MilkProduction;
+use App\Entity\Note;
 use App\Entity\Notification;
 use App\Entity\OrderCycle;
 use App\Entity\OrderSettings;
@@ -64,6 +65,7 @@ final class FarmWiper
         SavedFilter::class,
         RecentChoice::class,
         CalendarEvent::class,
+        Note::class,
         InvoiceRule::class,
         KsefSync::class,
         OrderCycle::class,

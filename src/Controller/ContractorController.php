@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Controller;
 
+use App\Calendar\CalendarOccurrences;
 use App\Contractor\ContractorDataUpdater;
 use App\Contractor\WhiteListEnricher;
+use App\Entity\CalendarEvent;
 use App\Entity\Contractor;
 use App\Entity\ContractorHistory;
 use App\Entity\User;
@@ -14,6 +16,7 @@ use App\Enum\DataSource;
 use App\Enum\InvoiceKind;
 use App\Form\ContractorType;
 use App\Product\ProductPurchases;
+use App\Repository\CalendarEventRepository;
 use App\Repository\ContractorHistoryRepository;
 use App\Repository\ContractorRepository;
 use App\Repository\ContractRepository;
@@ -37,7 +40,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 final class ContractorController extends AbstractController
 {
     private const array EDITABLE_FIELDS = ['name', 'shortName', 'nip', 'street', 'postalCode', 'city', 'country', 'email', 'phone', 'contactPerson'];
-    private const array TABS = ['faktury', 'zakupy', 'umowy', 'historia', 'notatki'];
+    private const array TABS = ['faktury', 'zakupy', 'umowy', 'kalendarz', 'historia', 'notatki'];
 
     public function __construct(
         private readonly ContractorRepository $contractors,
@@ -101,6 +104,8 @@ final class ContractorController extends AbstractController
         ContractorHistoryRepository $history,
         ProductPurchases $purchases,
         OrderCycleRepository $cycles,
+        CalendarEventRepository $events,
+        #[CurrentUser] User $user,
     ): Response {
         $tab = \in_array($tab = $request->query->getString('zakladka', 'faktury'), self::TABS, true) ? $tab : 'faktury';
         $years = $invoices->yearsForContractor($contractor);
@@ -121,6 +126,9 @@ final class ContractorController extends AbstractController
         }
         if ('umowy' === $tab) {
             $context['contracts'] = $contracts->createListQuery(['contractor' => $contractor->getId()])->getQuery()->getResult();
+        }
+        if ('kalendarz' === $tab && $this->isGranted(Permission::CALENDAR_VIEW)) {
+            $context['calendar'] = $this->calendarRows($events->findForContractor($contractor, $user));
         }
         if ('historia' === $tab) {
             $context['history'] = $history->findBy(['contractor' => $contractor], ['changedAt' => 'DESC', 'id' => 'DESC'], 200);
@@ -182,17 +190,32 @@ final class ContractorController extends AbstractController
         return $this->redirectToRoute('app_contractor_show', ['id' => $contractor->getId()], Response::HTTP_SEE_OTHER);
     }
 
-    #[Route('/{id}/notatki', name: 'app_contractor_notes', methods: ['POST'])]
-    #[IsGranted(Permission::CONTRACTOR_EDIT)]
-    public function notes(Contractor $contractor, Request $request): Response
+    /**
+     * Wydarzenia kontrahenta: nadchodzące (najbliższy termin, od najbliższego) i minione (od najnowszego).
+     *
+     * @param list<CalendarEvent> $events
+     *
+     * @return array{upcoming: list<array{event: CalendarEvent, date: \DateTimeImmutable}>, past: list<array{event: CalendarEvent, date: \DateTimeImmutable}>}
+     */
+    private function calendarRows(array $events): array
     {
-        $this->assertToken($request);
-        $notes = trim($request->getPayload()->getString('notes'));
-        $contractor->setNotes('' === $notes ? null : $notes);
-        $this->em->flush();
-        $this->addFlash('success', 'Zapisano notatki.');
+        $today = new \DateTimeImmutable('today');
+        $rows = ['upcoming' => [], 'past' => []];
+        foreach ($events as $event) {
+            $start = $event->getStartDate();
+            if (null === $start) {
+                continue;
+            }
+            $next = CalendarOccurrences::next($event, $today->modify(\sprintf('-%d days', $event->getSpanDays())));
+            if (null !== $next) {
+                $rows['upcoming'][] = ['event' => $event, 'date' => $next];
+            } else {
+                $rows['past'][] = ['event' => $event, 'date' => $start];
+            }
+        }
+        usort($rows['upcoming'], static fn (array $a, array $b): int => $a['date'] <=> $b['date']);
 
-        return $this->redirectToRoute('app_contractor_show', ['id' => $contractor->getId(), 'zakladka' => 'notatki'], Response::HTTP_SEE_OTHER);
+        return $rows;
     }
 
     private function assertToken(Request $request): void

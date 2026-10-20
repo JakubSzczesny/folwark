@@ -12,6 +12,7 @@ use App\Entity\User;
 use App\Enum\CalendarCategory;
 use App\Enum\CalendarRecurrence;
 use App\Enum\InvoiceKind;
+use App\Tests\Factory\ContractorFactory;
 use App\Tests\Factory\FarmFactory;
 use App\Tests\Factory\InvoiceFactory;
 use App\Tests\Factory\UserFactory;
@@ -55,6 +56,30 @@ final class CalendarTest extends FunctionalTestCase
             self::assertSelectorExists('turbo-frame#modal', 'W oknie tylko ramka, bez układu strony');
             self::assertSelectorNotExists('.app-sidebar');
         }
+    }
+
+    public function testEventLinkedToContractorShowsOnContractorCard(): void
+    {
+        $contractor = ContractorFactory::createOne(['name' => 'Mleczarnia Gostyń']);
+        $this->loginAs(UserFactory::owner());
+
+        $crawler = $this->client->request('GET', '/kalendarz/nowe?dzien=2099-03-10&kontrahent='.$contractor->getId());
+        self::assertSame((string) $contractor->getId(), $crawler->filter('select[name="calendar_event[contractor]"] option[selected]')->attr('value'));
+        $this->client->submitForm('Dodaj', [
+            'calendar_event[title]' => 'Odbiór cystern – ustalenia',
+            'calendar_event[startDate]' => '2099-03-10',
+        ]);
+        self::assertResponseRedirects(\sprintf('/kontrahenci/%d?zakladka=kalendarz', $contractor->getId()));
+
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('main', 'Nadchodzące');
+        self::assertSelectorTextContains('main', 'Odbiór cystern – ustalenia');
+
+        $event = $this->events()->findOneBy(['title' => 'Odbiór cystern – ustalenia']);
+        $this->client->request('GET', '/kalendarz/'.$event?->getId());
+        self::assertSelectorExists(\sprintf('a[href="/kontrahenci/%d?zakladka=kalendarz"]', $contractor->getId()));
+        $this->client->request('GET', '/szukaj?q=Gosty');
+        self::assertSelectorTextContains('main', 'Odbiór cystern – ustalenia', 'Wyszukiwarka znajduje wydarzenie po kontrahencie');
     }
 
     public function testInvalidTimesAreRejected(): void

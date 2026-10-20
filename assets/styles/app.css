@@ -696,6 +696,21 @@
         height: 36px;
     }
 
+    /* Notatki jak komentarze: inicjały autora, nazwisko, data, treść. */
+    .note {
+        @apply flex items-start gap-3 rounded-ui border border-szary-200 bg-white p-3;
+    }
+
+    .note.is-context {
+        @apply border-zielen-600;
+    }
+
+    .note-avatar {
+        @apply inline-flex shrink-0 items-center justify-center rounded-full bg-zielen-100 text-xs font-semibold text-zielen-700;
+        width: 32px;
+        height: 32px;
+    }
+
     /* Kalendarz: siatka miesiąca, wydarzenia w kolorach kategorii, terminy z modułów przerywaną ramką. */
     .calendar-grid {
         grid-template-columns: repeat(7, minmax(0, 1fr));

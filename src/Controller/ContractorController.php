@@ -26,6 +26,7 @@ use App\Security\Permission;
 use App\Ui\ListFilters;
 use App\Ui\Pager;
 use App\Ui\QueryParam;
+use App\Ui\Sort;
 use App\WhiteList\WhiteListException;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -59,13 +60,15 @@ final class ContractorController extends AbstractController
         $text = trim($request->query->getString('szukaj')) ?: null;
         $kind = ContractorKind::tryFrom($request->query->getString('typ'));
         $inactive = $request->query->getBoolean('nieaktywni');
-        $pager = Pager::fromQuery($this->contractors->createListQuery($text, $kind, $inactive), $request->query->getInt('strona', 1));
+        $year = (int) date('Y');
+        $sort = Sort::fromRequest($request, ContractorRepository::sortFields($year, $this->isGranted(Permission::AMOUNTS_VIEW)), 'nazwa', 'asc', ['koszty', 'przychody', 'faktura', 'umowy']);
+        $pager = Pager::fromQuery($this->contractors->createListQuery($text, $kind, $inactive, $sort), $request->query->getInt('strona', 1));
 
         $ids = array_map(static fn (Contractor $c): int => (int) $c->getId(), $pager->items);
-        $year = (int) date('Y');
 
         return $this->render('contractor/index.html.twig', [
             'pager' => $pager,
+            'sort' => $sort,
             'text' => $text,
             'kind' => $kind,
             'inactive' => $inactive,

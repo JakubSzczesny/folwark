@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use App\Entity\Product;
 use App\Entity\Stock;
+use App\Ui\Sort;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -14,6 +15,14 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class StockRepository extends ServiceEntityRepository
 {
+    public const array SORT = [
+        'towar' => 'p.name',
+        'stan' => 's.quantity',
+        'cena' => 'CASE WHEN s.quantity > 0 THEN s.value / s.quantity ELSE 0 END',
+        'wartosc' => 's.value',
+        'ruch' => 's.lastMovementDate',
+    ];
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, Stock::class);
@@ -26,7 +35,7 @@ class StockRepository extends ServiceEntityRepository
      *
      * @return list<Stock>
      */
-    public function findForList(array $filters): array
+    public function findForList(array $filters, ?Sort $sort = null): array
     {
         $qb = $this->createQueryBuilder('s')
             ->join('s.product', 'p')
@@ -50,6 +59,7 @@ class StockRepository extends ServiceEntityRepository
         if ('' !== ($filters['q'] ?? '')) {
             $qb->andWhere('p.name LIKE :q OR p.internalCode LIKE :q OR p.catalogNumber LIKE :q')->setParameter('q', '%'.addcslashes($filters['q'], '%_').'%');
         }
+        $sort?->apply($qb, 'p.name', 's.id');
 
         return $qb->getQuery()->getResult();
     }

@@ -5,7 +5,10 @@
     data-preview-url="{{ path('app_invoice_preview', {id: invoice.id}) }}"
     data-href="{{ path('app_invoice_show', {id: invoice.id}) }}"
     data-action="click->table-nav#click">
-    <td class="w-4 !pr-0">
+    <td class="w-4 !pr-0 row-select">
+        {% if is_granted('INVOICE_MANAGE') %}
+            <input type="checkbox" class="checkbox" name="ids[]" value="{{ invoice.id }}" form="invoice-bulk" data-bulk-target="item" data-action="click->bulk#toggle" aria-label="Zaznacz fakturę {{ invoice.number }}">
+        {% endif %}
         {% if invoice.unread %}<span class="dot-new" title="Nowa"></span><span class="sr-only">Nowa</span>{% endif %}
         <template data-context-menu>
             {% import '_partials/context_menu.html.twig' as cm %}

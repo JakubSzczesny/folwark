@@ -27,9 +27,10 @@
     </nav>
 
     <div data-controller="filters">
-    {{ include('_partials/filters_toggle.html.twig', {active: filter.toQuery|length - 1}) }}
+    {{ include('_partials/filters_toggle.html.twig', {active: filter.activeFilterCount}) }}
     <form method="get" class="filter-bar is-collapsible" data-filters-target="panel" data-controller="autosubmit" data-turbo-action="replace">
         <input type="hidden" name="rodzaj" value="{{ filter.tab }}">
+        {{ m.sort_fields(filter.sort) }}
         <div class="field">
             <label class="label" for="f-period">Okres</label>
             <select id="f-period" name="okres" class="select" data-action="autosubmit#submit">
@@ -110,25 +111,42 @@
     </form>
     </div>
 
-    <div data-controller="panel" data-action="keydown@window->panel#keydown">
+    {% set bulk = is_granted('INVOICE_MANAGE') %}
+    <div data-controller="panel{{ bulk ? ' bulk' }}" data-action="keydown@window->panel#keydown"
+         data-bulk-total-value="{{ pager.total }}"
+         data-bulk-cost-only-url-value="{{ path('app_invoice_bulk_cost_only') }}">
         <div class="card">
             {% if pager.items is empty %}
                 <twig:EmptyState text="{{ filter.hasActiveFilters ? 'Brak faktur spełniających filtry.' : 'Nie ma jeszcze faktur – pojawią się po synchronizacji z KSeF.' }}"
                                  actionLabel="{{ filter.hasActiveFilters ? 'Wyczyść filtry' : null }}"
                                  actionUrl="{{ filter.hasActiveFilters ? path('app_invoice_index', {wyczysc: 1}) : null }}" />
             {% else %}
+                {{ include('_partials/pagination.html.twig', {top: true}) }}
+                {% if bulk %}
+                    <form id="invoice-bulk" method="post" action="{{ path('app_invoice_bulk') }}" data-bulk-target="form" data-action="submit->bulk#submit">
+                        <input type="hidden" name="_token" value="{{ csrf_token('invoice') }}">
+                        <input type="hidden" name="filtr" value="{{ filter.toQuery|merge({strona: pager.page})|url_encode }}">
+                        <input type="hidden" name="wszystkie" value="0" data-bulk-target="matching">
+                    </form>
+                {% endif %}
                 <div class="table-wrap">
                     <table class="table table-cards {{ filter.tab != 'wszystkie' ? 'hide-kind' }}" data-controller="table-nav context-menu" data-action="keydown@window->table-nav#keydown">
                         <thead>
                             <tr>
-                                <th class="w-4 !pr-0"><span class="sr-only">Nowa</span></th>
-                                {{ m.sort_th('Data wystawienia', 'data', filter) }}
-                                {{ m.sort_th('Numer', 'numer', filter) }}
-                                {{ m.sort_th('Kontrahent', 'kontrahent', filter) }}
-                                {{ m.sort_th('Netto', 'netto', filter, 'text-right') }}
-                                {{ m.sort_th('Brutto', 'brutto', filter, 'text-right') }}
-                                {{ m.sort_th('Termin płatności', 'termin', filter) }}
-                                <th>Status</th>
+                                <th class="w-4 !pr-0">
+                                    {% if bulk %}
+                                        <input type="checkbox" class="checkbox" data-bulk-target="page" data-action="bulk#togglePage" aria-label="Zaznacz wszystkie faktury na stronie" title="Zaznacz wszystkie na stronie">
+                                    {% else %}
+                                        <span class="sr-only">Nowa</span>
+                                    {% endif %}
+                                </th>
+                                {{ m.sort_th('Data wystawienia', 'data', filter.sort) }}
+                                {{ m.sort_th('Numer', 'numer', filter.sort) }}
+                                {{ m.sort_th('Kontrahent', 'kontrahent', filter.sort) }}
+                                {{ m.sort_th('Netto', 'netto', filter.sort, 'text-right') }}
+                                {{ m.sort_th('Brutto', 'brutto', filter.sort, 'text-right') }}
+                                {{ m.sort_th('Termin płatności', 'termin', filter.sort) }}
+                                {{ m.sort_th('Status', 'status', filter.sort) }}
                             </tr>
                         </thead>
                         <tbody>
@@ -149,9 +167,33 @@
                         </tfoot>
                     </table>
                 </div>
+                {% if bulk %}
+                    {% set cost = filter.tab != 'sprzedazowe' %}
+                    <div class="bulk-bar" data-bulk-target="bar" hidden>
+                        <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                            <span class="font-semibold" data-bulk-target="summary" aria-live="polite"></span>
+                            <button type="button" class="link-button" data-bulk-target="pageButton" data-action="bulk#selectPage">Zaznacz całą stronę</button>
+                            {% if pager.total > pager.items|length %}
+                                <button type="button" class="link-button" data-bulk-target="matchingButton" data-action="bulk#selectMatching">Zaznacz wszystkie pasujące do filtrów ({{ pager.total }})</button>
+                            {% endif %}
+                            <button type="button" class="link-button" data-action="bulk#clear">Odznacz</button>
+                        </div>
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button type="submit" form="invoice-bulk" name="akcja" value="przeczytane" class="btn btn-secondary btn-sm">{{ ux_icon('lucide:check-check') }} Przeczytane</button>
+                            {% if cost %}
+                                <button type="button" class="btn btn-secondary btn-sm" data-action="bulk#costOnly">Tylko koszt…</button>
+                                <button type="submit" form="invoice-bulk" name="akcja" value="pomin" class="btn btn-secondary btn-sm">{{ ux_icon('lucide:eye-off') }} Pomiń</button>
+                                <button type="submit" form="invoice-bulk" name="akcja" value="przywroc" class="btn btn-secondary btn-sm">Przywróć</button>
+                            {% endif %}
+                            <button type="submit" form="invoice-bulk" name="akcja" value="oplacone" class="btn btn-secondary btn-sm">{{ ux_icon('lucide:check') }} Opłacone</button>
+                            <button type="submit" form="invoice-bulk" name="akcja" value="nieoplacone" class="btn btn-secondary btn-sm">Nieopłacone</button>
+                        </div>
+                    </div>
+                {% endif %}
                 {{ include('_partials/pagination.html.twig') }}
                 <p class="hidden lg:block px-4 pb-3 text-xs text-antracyt-500">
                     <span class="kbd">↑</span> <span class="kbd">↓</span> wybór · <span class="kbd">Spacja</span> podgląd · <span class="kbd">Enter</span> pełny widok · <span class="kbd">Esc</span> zamknij podgląd
+                    · <span class="kbd">Shift</span> + klik w nagłówek – drugie sortowanie{% if bulk %} · <span class="kbd">Shift</span> + klik w pole wyboru – zaznacz zakres{% endif %}
                 </p>
             {% endif %}
         </div>

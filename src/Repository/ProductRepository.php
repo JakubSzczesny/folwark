@@ -19,6 +19,9 @@ class ProductRepository extends ServiceEntityRepository
         'nazwa' => 'p.name',
         'kategoria' => 'c.name',
         'kod' => 'p.internalCode',
+        'jm' => 'u.symbol',
+        'zakup' => '(SELECT MAX(sort_l.lastOrderDate) FROM App\Entity\OrderCycle sort_l WHERE sort_l.product = p AND sort_l.closedAt IS NULL)',
+        'zamowienie' => '(SELECT MIN(sort_n.predictedDate) FROM App\Entity\OrderCycle sort_n WHERE sort_n.product = p AND sort_n.closedAt IS NULL)',
     ];
 
     public function __construct(ManagerRegistry $registry)

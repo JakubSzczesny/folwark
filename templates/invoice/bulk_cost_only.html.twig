@@ -1,0 +1,15 @@
+<twig:Modal title="Tylko koszt – {{ count }} {{ count|plural('faktura', 'faktury', 'faktur') }}">
+    {% if count == 0 %}
+        <p class="mb-4">Wśród zaznaczonych nie ma faktur zakupowych – „tylko koszt” dotyczy tylko ich.</p>
+        <button type="button" class="btn btn-secondary" data-action="modal#close">Zamknij</button>
+    {% else %}
+        <p class="text-sm text-antracyt-500 mb-4">Zaznaczone faktury zakupowe bez przypisywania towarów: wskaż, gdzie zaliczyć ich koszt. Ustawienie zastąpi dotychczasowy ośrodek i kategorię.</p>
+        {{ form_start(form, {attr: {'data-turbo-frame': 'modal'}}) }}
+            {{ form_widget(form) }}
+            <div class="flex gap-2">
+                <button type="submit" class="btn btn-primary">Zapisz dla {{ count }} {{ count|plural('faktury', 'faktur', 'faktur') }}</button>
+                <button type="button" class="btn btn-ghost" data-action="modal#close">Anuluj</button>
+            </div>
+        {{ form_end(form) }}
+    {% endif %}
+</twig:Modal>

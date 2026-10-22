@@ -252,6 +252,20 @@
         @apply text-antracyt-500 hover:text-tekst;
     }
 
+    .sort-link {
+        @apply inline-flex items-center gap-1 select-none;
+    }
+
+    .table th a.sort-link.is-active {
+        @apply text-tekst;
+    }
+
+    .sort-order {
+        @apply inline-flex items-center justify-center rounded-full bg-szary-200 text-[10px] leading-none font-semibold text-antracyt-500;
+        min-width: 15px;
+        height: 15px;
+    }
+
     .table td {
         @apply px-3 py-2.5 border-b border-szary-200 align-middle;
     }
@@ -275,6 +289,36 @@
 
     .table tr.is-unread td {
         @apply font-semibold;
+    }
+
+    /* Zaznaczanie wierszy do akcji masowych */
+    .table td.row-select {
+        @apply whitespace-nowrap;
+    }
+
+    .table td.row-select .checkbox {
+        @apply align-middle mr-2;
+    }
+
+    .table tr.is-checked td {
+        @apply bg-zielen-100;
+    }
+
+    .card.is-checked {
+        box-shadow: 0 0 0 2px var(--color-zielen-600);
+    }
+
+    .bulk-bar {
+        @apply sticky bottom-0 z-10 flex flex-wrap items-center justify-between gap-3 border-t border-szary-200 bg-white px-4 py-3;
+        box-shadow: 0 -6px 16px rgb(0 0 0 / 0.06);
+    }
+
+    .bulk-bar[hidden] {
+        display: none;
+    }
+
+    .link-button {
+        @apply text-zielen-600 hover:text-zielen-700 hover:underline cursor-pointer;
     }
 
     .table tr[data-href] {

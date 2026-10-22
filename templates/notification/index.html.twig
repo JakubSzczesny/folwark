@@ -43,6 +43,7 @@
         {% if pager.items is empty %}
             <twig:EmptyState text="Brak powiadomień spełniających filtry." />
         {% else %}
+            {{ include('_partials/pagination.html.twig', {top: true}) }}
             <ul class="divide-y divide-szary-200">
                 {% for n in pager.items %}
                     <li>

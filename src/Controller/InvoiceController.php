@@ -36,8 +36,10 @@ use App\Ui\Pager;
 use App\Ui\RecentChoices;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\InputBag;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\CurrentUser;
@@ -171,6 +173,53 @@ final class InvoiceController extends AbstractController
         $this->addFlash('success', \sprintf('Oznaczono jako przeczytane: %d %s.', $count, FormatExtension::plural($count, 'faktura', 'faktury', 'faktur')));
 
         return $this->redirectToRoute('pulpit' === $request->query->get('z') ? 'app_dashboard' : 'app_invoice_index', [], Response::HTTP_SEE_OTHER);
+    }
+
+    /**
+     * Masowa zmiana statusu albo płatności zaznaczonych faktur (albo wszystkich spełniających filtry).
+     */
+    #[Route('/zbiorczo', name: 'app_invoice_bulk', methods: ['POST'])]
+    #[IsGranted(Permission::INVOICE_MANAGE)]
+    public function bulk(Request $request, #[CurrentUser] User $user): Response
+    {
+        $this->assertToken($request);
+        $payload = $request->getPayload();
+        $action = $payload->getString('akcja');
+        if (!\in_array($action, [InvoiceActions::BULK_READ, InvoiceActions::BULK_PAID, InvoiceActions::BULK_UNPAID, InvoiceActions::BULK_SKIP, InvoiceActions::BULK_RESTORE], true)) {
+            throw new BadRequestHttpException('Nieznana akcja.');
+        }
+
+        $invoices = $this->selectedInvoices($payload);
+        $this->bulkFlash(\count($invoices), $this->actions->bulk($invoices, $action, $user));
+
+        return $this->redirect($this->generateUrl('app_invoice_index').'?'.$payload->getString('filtr'), Response::HTTP_SEE_OTHER);
+    }
+
+    #[Route('/zbiorczo/tylko-koszt', name: 'app_invoice_bulk_cost_only', methods: ['GET', 'POST'])]
+    #[IsGranted(Permission::INVOICE_MANAGE)]
+    public function bulkCostOnly(Request $request, RecentChoices $recent, #[CurrentUser] User $user): Response
+    {
+        $invoices = array_values(array_filter($this->selectedInvoices($request->query), static fn (Invoice $i): bool => $i->isCost()));
+        $form = $this->createForm(CostOnlyType::class, null, ['action' => $request->getRequestUri()]);
+        $form->handleRequest($request);
+
+        if ($form->isSubmitted() && $form->isValid()) {
+            $center = $form->get('costCenter')->getData();
+            $category = $form->get('costCategory')->getData();
+            $recent->remember('cost_center', $center?->getId());
+            $recent->remember('cost_category', $category?->getId());
+            $this->bulkFlash(\count($invoices), $this->actions->bulk($invoices, InvoiceActions::BULK_COST_ONLY, $user, $center, $category));
+
+            if (TurboBundle::STREAM_FORMAT === $request->getPreferredFormat()) {
+                $request->setRequestFormat(TurboBundle::STREAM_FORMAT);
+
+                return $this->render('_partials/refresh.stream.html.twig');
+            }
+
+            return $this->redirect($this->generateUrl('app_invoice_index').'?'.$request->query->getString('filtr'), Response::HTTP_SEE_OTHER);
+        }
+
+        return $this->render('invoice/bulk_cost_only.html.twig', ['form' => $form, 'count' => \count($invoices)], new Response(null, $form->isSubmitted() ? 422 : 200));
     }
 
     #[Route('/{id}/podglad', name: 'app_invoice_preview', requirements: ['id' => '\d+'], methods: ['GET'])]
@@ -410,6 +459,41 @@ final class InvoiceController extends AbstractController
         }
 
         return $this->redirectToRoute('app_invoice_show', ['id' => $invoice->getId()], Response::HTTP_SEE_OTHER);
+    }
+
+    /**
+     * Faktury wskazane do masowej zmiany: zaznaczone na liście ("ids[]") albo – z "wszystkie=1" –
+     * wszystkie spełniające filtry listy zapisane w "filtr".
+     *
+     * @param InputBag<string> $input
+     *
+     * @return list<Invoice>
+     */
+    private function selectedInvoices(InputBag $input): array
+    {
+        if ($input->getBoolean('wszystkie')) {
+            parse_str($input->getString('filtr'), $query);
+            $ids = $this->invoices->ids(InvoiceFilter::fromRequest(new Request($query)));
+        } else {
+            $ids = array_values(array_filter(array_map('intval', $input->all('ids'))));
+        }
+
+        return [] === $ids ? [] : $this->invoices->findBy(['id' => $ids]);
+    }
+
+    private function bulkFlash(int $selected, int $changed): void
+    {
+        if (0 === $selected) {
+            $this->addFlash('warning', 'Nie zaznaczono żadnej faktury.');
+
+            return;
+        }
+
+        $message = \sprintf('Zmieniono %d %s.', $changed, FormatExtension::plural($changed, 'fakturę', 'faktury', 'faktur'));
+        if ($changed < $selected) {
+            $message .= \sprintf(' Pozostałych (%d) zmiana nie dotyczy – zostały bez zmian.', $selected - $changed);
+        }
+        $this->addFlash('success', $message);
     }
 
     private function assertToken(Request $request): void

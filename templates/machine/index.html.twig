@@ -25,6 +25,7 @@
     {{ include('_partials/filters_toggle.html.twig', {active: (filters.q ? 1 : 0) + (filters.deadlines ? 1 : 0) + (filters.inactive ? 1 : 0)}) }}
     <form method="get" class="filter-bar is-collapsible" data-filters-target="panel" data-controller="autosubmit" data-turbo-action="replace">
         {% if filters.category %}<input type="hidden" name="kategoria" value="{{ filters.category }}">{% endif %}
+        {{ m.sort_fields(sort) }}
         <div class="field min-w-[240px]">
             <label class="label" for="f-q">Szukaj</label>
             <input id="f-q" type="search" name="szukaj" value="{{ filters.q }}" class="input" placeholder="Nazwa, nr rej., marka" data-action="input->autosubmit#debounced">
@@ -47,6 +48,7 @@
                 actionLabel="{{ is_granted('MACHINE_MANAGE') ? 'Dodaj maszynę' : null }}"
                 actionUrl="{{ is_granted('MACHINE_MANAGE') ? path('app_machine_new') : null }}" />
         {% else %}
+            {{ include('_partials/pagination.html.twig', {top: true}) }}
             <div class="table-wrap">
                 <table class="table table-cards" data-controller="table-nav context-menu" data-action="keydown@window->table-nav#keydown">
                     <thead>
@@ -56,8 +58,8 @@
                             {{ m.sort_th('Nr rej.', 'nr', sort) }}
                             {{ m.sort_th('Kategoria', 'kategoria', sort) }}
                             {{ m.sort_th('Ubezpieczenie do', 'ubezpieczenie', sort) }}
-                            <th>Przegląd do</th>
-                            <th>Ostatni serwis</th>
+                            {{ m.sort_th('Przegląd do', 'przeglad', sort) }}
+                            {{ m.sort_th('Ostatni serwis', 'serwis', sort) }}
                         </tr>
                     </thead>
                     <tbody>

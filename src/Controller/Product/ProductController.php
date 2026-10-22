@@ -60,7 +60,7 @@ final class ProductController extends AbstractController
             'category' => (int) $request->query->getString('kategoria') ?: null,
             'inactive' => $request->query->getBoolean('nieaktywne'),
         ];
-        $sort = Sort::fromRequest($request, ProductRepository::SORT, 'nazwa', 'asc');
+        $sort = Sort::fromRequest($request, ProductRepository::SORT, 'nazwa', 'asc', ['zakup']);
         $pager = Pager::fromQuery($products->createListQuery($filters, $sort), $request->query->getInt('strona', 1));
 
         $cycles = [];

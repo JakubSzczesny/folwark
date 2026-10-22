@@ -23,6 +23,7 @@ use App\Ui\ListFilters;
 use App\Ui\Pager;
 use App\Ui\QueryParam;
 use App\Ui\RecentChoices;
+use App\Ui\Sort;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\Form\FormInterface;
@@ -58,7 +59,8 @@ final class ContractController extends AbstractController
             'expiring' => $request->query->getBoolean('wygasajace'),
             'days' => $settings->int(SettingKey::NOTIFY_CONTRACT_DAYS),
         ];
-        $pager = Pager::fromQuery($this->contracts->createListQuery($filters), $request->query->getInt('strona', 1));
+        $sort = Sort::fromRequest($request, ContractRepository::SORT, 'status', 'asc');
+        $pager = Pager::fromQuery($this->contracts->createListQuery($filters, $sort), $request->query->getInt('strona', 1));
 
         $progress = [];
         foreach ($pager->items as $contract) {
@@ -68,6 +70,7 @@ final class ContractController extends AbstractController
         return $this->render('contract/index.html.twig', [
             'pager' => $pager,
             'filters' => $filters,
+            'sort' => $sort,
             'progress' => $progress,
             'selected_contractor' => null !== $filters['contractor'] ? $contractors->find($filters['contractor']) : null,
         ]);

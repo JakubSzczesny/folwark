@@ -1,4 +1,5 @@
 {% extends 'layout.html.twig' %}
+{% import '_partials/macros.html.twig' as m %}
 
 {% block title %}Dziennik zdarzeń{% endblock %}
 {% block active_menu %}settings{% endblock %}
@@ -7,6 +8,7 @@
     <twig:PageHeader title="Dziennik zdarzeń" back="{{ path('app_settings') }}" />
 
     <form method="get" class="filter-bar" data-controller="autosubmit">
+        {{ m.sort_fields(sort) }}
         <div class="field">
             <label class="label" for="f-entity">Obiekt</label>
             <select id="f-entity" name="obiekt" class="select" data-action="autosubmit#submit">
@@ -22,10 +24,17 @@
         {% if pager.items is empty %}
             <twig:EmptyState text="Brak wpisów." />
         {% else %}
+            {{ include('_partials/pagination.html.twig', {top: true}) }}
             <div class="table-wrap">
                 <table class="table table-cards">
                     <thead>
-                        <tr><th>Czas</th><th>Użytkownik</th><th>Obiekt</th><th>Akcja</th><th>Zmiany</th></tr>
+                        <tr>
+                            {{ m.sort_th('Czas', 'czas', sort) }}
+                            {{ m.sort_th('Użytkownik', 'uzytkownik', sort) }}
+                            {{ m.sort_th('Obiekt', 'obiekt', sort) }}
+                            {{ m.sort_th('Akcja', 'akcja', sort) }}
+                            <th>Zmiany</th>
+                        </tr>
                     </thead>
                     <tbody>
                         {% for log in pager.items %}

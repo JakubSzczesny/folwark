@@ -1,4 +1,5 @@
 {% extends 'layout.html.twig' %}
+{% import '_partials/macros.html.twig' as m %}
 
 {% block title %}Umowy{% endblock %}
 {% block active_menu %}contracts{% endblock %}
@@ -13,6 +14,7 @@
     <div data-controller="filters">
     {{ include('_partials/filters_toggle.html.twig', {active: (filters.contractor ? 1 : 0) + (filters.kind ? 1 : 0) + (filters.status ? 1 : 0) + (filters.expiring ? 1 : 0)}) }}
     <form method="get" class="filter-bar is-collapsible" data-filters-target="panel" data-controller="autosubmit" data-turbo-action="replace">
+        {{ m.sort_fields(sort) }}
         <div class="field min-w-[220px]">
             <label class="label" for="f-contractor">Kontrahent</label>
             <select id="f-contractor" name="kontrahent"
@@ -50,6 +52,7 @@
         {% if pager.items is empty %}
             <twig:EmptyState text="Brak umów spełniających filtry." actionLabel="{{ is_granted('CONTRACT_EDIT') ? 'Dodaj umowę' : null }}" actionUrl="{{ is_granted('CONTRACT_EDIT') ? path('app_contract_new') : null }}" />
         {% else %}
+            {{ include('_partials/pagination.html.twig', {top: true}) }}
             {{ include('contract/_table.html.twig', {contracts: pager.items}) }}
             {{ include('_partials/pagination.html.twig') }}
         {% endif %}

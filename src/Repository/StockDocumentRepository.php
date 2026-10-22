@@ -9,6 +9,7 @@ use App\Entity\StockDocument;
 use App\Enum\DocumentStatus;
 use App\Enum\DocumentType;
 use App\Search\GlobalSearch;
+use App\Ui\Sort;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
@@ -18,6 +19,14 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class StockDocumentRepository extends ServiceEntityRepository
 {
+    public const array SORT = [
+        'data' => 'd.date',
+        'numer' => 'd.number',
+        'kontrahent' => 'c.name',
+        'netto' => '(SELECT SUM(sort_i.netValue) FROM App\Entity\StockDocumentItem sort_i WHERE sort_i.document = d)',
+        'status' => 'd.status',
+    ];
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, StockDocument::class);
@@ -26,7 +35,7 @@ class StockDocumentRepository extends ServiceEntityRepository
     /**
      * @param array{type?: ?DocumentType, status?: ?DocumentStatus, warehouse?: ?int, product?: ?int, from?: ?\DateTimeImmutable, to?: ?\DateTimeImmutable, q?: string} $filters
      */
-    public function createListQuery(array $filters): QueryBuilder
+    public function createListQuery(array $filters, ?Sort $sort = null): QueryBuilder
     {
         $qb = $this->createQueryBuilder('d')
             ->leftJoin('d.contractor', 'c')
@@ -61,7 +70,7 @@ class StockDocumentRepository extends ServiceEntityRepository
             $qb->andWhere('d.number LIKE :q OR c.name LIKE :q OR d.notes LIKE :q')->setParameter('q', '%'.addcslashes($filters['q'], '%_').'%');
         }
 
-        return $qb;
+        return $sort?->apply($qb, 'd.id') ?? $qb;
     }
 
     /**

@@ -21,13 +21,14 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class InvoiceRepository extends ServiceEntityRepository
 {
-    private const array SORT_FIELDS = [
+    public const array SORT = [
         'data' => 'i.issueDate',
         'numer' => 'i.number',
         'kontrahent' => 'i.contractorName',
         'netto' => 'i.net',
         'brutto' => 'i.gross',
         'termin' => 'i.paymentDue',
+        'status' => "CASE i.status WHEN 'new' THEN 0 WHEN 'read' THEN 1 WHEN 'goods_assigned' THEN 2 WHEN 'cost_only' THEN 3 ELSE 4 END",
     ];
 
     public function __construct(ManagerRegistry $registry)
@@ -78,11 +79,21 @@ class InvoiceRepository extends ServiceEntityRepository
     {
         $qb = $this->filtered($filter)
             ->leftJoin('i.contractor', 'c')
-            ->addSelect('c')
-            ->orderBy(self::SORT_FIELDS[$filter->sort], strtoupper($filter->direction))
-            ->addOrderBy('i.id', strtoupper($filter->direction));
+            ->addSelect('c');
 
-        return $qb;
+        return $filter->sort->apply($qb, 'i.id');
+    }
+
+    /**
+     * Identyfikatory wszystkich faktur spełniających filtry, w kolejności listy.
+     *
+     * @return list<int>
+     */
+    public function ids(InvoiceFilter $filter): array
+    {
+        $qb = $filter->sort->apply($this->filtered($filter)->select('i.id'), 'i.id');
+
+        return array_map('intval', array_column($qb->getQuery()->getScalarResult(), 'id'));
     }
 
     /**
@@ -115,10 +126,7 @@ class InvoiceRepository extends ServiceEntityRepository
      */
     public function neighbours(InvoiceFilter $filter, Invoice $invoice): array
     {
-        $ids = array_map('intval', array_column(
-            $this->createListQuery($filter)->select('i.id')->getQuery()->getScalarResult(),
-            'id',
-        ));
+        $ids = $this->ids($filter);
         $index = array_search($invoice->getId(), $ids, true);
         if (false === $index) {
             return ['prev' => null, 'next' => null];

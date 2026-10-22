@@ -1,4 +1,5 @@
 {% extends 'layout.html.twig' %}
+{% import '_partials/macros.html.twig' as m %}
 
 {% block title %}Dokumenty magazynowe{% endblock %}
 {% block active_menu %}documents{% endblock %}
@@ -14,6 +15,7 @@
     <div data-controller="filters">
     {{ include('_partials/filters_toggle.html.twig', {active: (filters.type ? 1 : 0) + (filters.status ? 1 : 0) + (filters.warehouse ? 1 : 0) + (filters.from ? 1 : 0) + (filters.to ? 1 : 0) + (filters.q ? 1 : 0)}) }}
     <form method="get" class="filter-bar is-collapsible" data-filters-target="panel" data-controller="autosubmit" data-turbo-action="replace">
+        {{ m.sort_fields(sort) }}
         <div class="field">
             <label class="label" for="f-q">Szukaj</label>
             <input id="f-q" type="search" name="q" value="{{ filters.q }}" class="input" placeholder="Numer, kontrahent, uwagi" data-action="input->autosubmit#debounced">
@@ -55,13 +57,16 @@
         {% if pager.items is empty %}
             <twig:EmptyState text="Brak dokumentów spełniających filtry." actionLabel="{{ is_granted('DOCUMENT_EDIT') ? 'Nowy dokument' : null }}" actionUrl="{{ is_granted('DOCUMENT_EDIT') ? path('app_document_new') : null }}" />
         {% else %}
+            {{ include('_partials/pagination.html.twig', {top: true}) }}
             <div class="table-wrap">
                 <table class="table table-cards" data-controller="table-nav context-menu" data-action="keydown@window->table-nav#keydown">
                     <thead>
                         <tr>
-                            <th>Data</th><th>Numer</th><th>Kontrahent / magazyn</th>
-                            {% if amounts %}<th class="text-right">Netto</th>{% endif %}
-                            <th>Status</th>
+                            {{ m.sort_th('Data', 'data', sort) }}
+                            {{ m.sort_th('Numer', 'numer', sort) }}
+                            {{ m.sort_th('Kontrahent / magazyn', 'kontrahent', sort) }}
+                            {% if amounts %}{{ m.sort_th('Netto', 'netto', sort, 'text-right') }}{% endif %}
+                            {{ m.sort_th('Status', 'status', sort) }}
                         </tr>
                     </thead>
                     <tbody>

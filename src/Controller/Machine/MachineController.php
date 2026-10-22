@@ -55,7 +55,7 @@ final class MachineController extends AbstractController
             'inactive' => $request->query->getBoolean('wycofane'),
             'until' => new \DateTimeImmutable(\sprintf('today +%d days', $days)),
         ];
-        $sort = Sort::fromRequest($request, MachineRepository::SORT, 'nazwa', 'asc');
+        $sort = Sort::fromRequest($request, MachineRepository::SORT, 'nazwa', 'asc', ['serwis']);
         $pager = Pager::fromQuery($this->machines->createListQuery($filters, $sort), $request->query->getInt('strona', 1));
         $ids = array_map(static fn (Machine $m): int => (int) $m->getId(), $pager->items);
 

@@ -188,6 +188,83 @@ final class InvoiceControllerTest extends FunctionalTestCase
         self::assertSame('Paliwo', $invoice->getCostCategory()?->getName());
     }
 
+    public function testSortByTwoColumns(): void
+    {
+        $a = ContractorFactory::createOne(['name' => 'Alfa']);
+        $b = ContractorFactory::createOne(['name' => 'Beta']);
+        InvoiceFactory::createOne(['number' => 'B-stara', 'contractor' => $b, 'contractorName' => 'Beta', 'issueDate' => new \DateTimeImmutable('-20 days')]);
+        InvoiceFactory::createOne(['number' => 'A-nowa', 'contractor' => $a, 'contractorName' => 'Alfa', 'issueDate' => new \DateTimeImmutable('-1 day')]);
+        InvoiceFactory::createOne(['number' => 'B-nowa', 'contractor' => $b, 'contractorName' => 'Beta', 'issueDate' => new \DateTimeImmutable('-2 days')]);
+        InvoiceFactory::createOne(['number' => 'A-stara', 'contractor' => $a, 'contractorName' => 'Alfa', 'issueDate' => new \DateTimeImmutable('-30 days'), 'status' => InvoiceStatus::Skipped]);
+        $this->loginAs(UserFactory::owner());
+
+        $numbers = fn (string $query): array => $this->client->request('GET', '/faktury?rodzaj=zakupowe'.$query)->filter('tbody .card-title-cell a')->each(static fn ($a): string => trim($a->text()));
+
+        self::assertSame(['A-nowa', 'B-nowa', 'B-stara', 'A-stara'], $numbers(''), 'Domyślnie od najnowszej');
+        self::assertSame(['A-nowa', 'A-stara', 'B-nowa', 'B-stara'], $numbers('&sort=kontrahent&kierunek=asc&sort2=data&kierunek2=desc'));
+        self::assertSame(['A-stara', 'A-nowa', 'B-nowa', 'B-stara'], $numbers('&sort=status&kierunek=desc&sort2=numer&kierunek2=asc'), 'Status sortowany przez ukrytą kolumnę');
+
+        $crawler = $this->client->request('GET', '/faktury?rodzaj=zakupowe&sort=kontrahent&kierunek=asc');
+        $number = $crawler->filter('th a.sort-link:contains("Numer")');
+        self::assertStringContainsString('sort=numer&kierunek=asc', (string) $number->attr('href'), 'Klik – tylko ta kolumna');
+        self::assertStringNotContainsString('sort2', (string) $number->attr('href'));
+        $header = $crawler->filter('th a.sort-link:contains("Data wystawienia")');
+        self::assertStringNotContainsString('sort', (string) $header->attr('href'), 'Klik w domyślną kolumnę wraca do domyślnego sortowania');
+        self::assertStringContainsString('sort=kontrahent&kierunek=asc&sort2=data&kierunek2=desc', (string) $header->attr('data-sort-link-add-value'), 'Shift + klik – druga kolumna');
+        self::assertSelectorExists('form.filter-bar input[type=hidden][name=sort][value=kontrahent]', 'Formularz filtrów nie gubi sortowania');
+    }
+
+    public function testBulkStatusChangeForSelectedAndAllMatching(): void
+    {
+        $first = InvoiceFactory::createOne(['number' => 'M/1']);
+        $second = InvoiceFactory::createOne(['number' => 'M/2']);
+        $income = InvoiceFactory::createOne(['number' => 'M/3', 'kind' => InvoiceKind::Income]);
+        $other = InvoiceFactory::createOne(['number' => 'X/1']);
+        $this->loginAs(UserFactory::owner());
+
+        $crawler = $this->client->request('GET', '/faktury?rodzaj=wszystkie&szukaj=M/');
+        self::assertSelectorCount(3, 'tbody input[name="ids[]"]');
+        $token = $crawler->filter('form#invoice-bulk input[name=_token]')->attr('value');
+        $filter = $crawler->filter('form#invoice-bulk input[name=filtr]')->attr('value');
+
+        $this->client->request('POST', '/faktury/zbiorczo', ['_token' => $token, 'akcja' => 'pomin', 'filtr' => $filter, 'ids' => [$first->getId(), $income->getId()]]);
+        self::assertResponseRedirects('/faktury?'.$filter);
+        self::assertSame(InvoiceStatus::Skipped, $this->reload($first)->getStatus());
+        self::assertNotSame(InvoiceStatus::Skipped, $this->reload($income)->getStatus(), 'Sprzedażowej się nie pomija');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('body', 'Zmieniono 1 fakturę. Pozostałych (1) zmiana nie dotyczy');
+
+        $this->client->request('POST', '/faktury/zbiorczo', ['_token' => $token, 'akcja' => 'oplacone', 'filtr' => $filter, 'wszystkie' => 1]);
+        foreach ([$first, $second, $income] as $invoice) {
+            self::assertTrue($this->reload($invoice)->isPaid(), 'Wszystkie pasujące do filtrów');
+        }
+        self::assertFalse($this->reload($other)->isPaid(), 'Faktura spoza filtrów bez zmian');
+
+        $this->client->request('POST', '/faktury/zbiorczo', ['_token' => 'zly', 'akcja' => 'oplacone', 'ids' => [$other->getId()]]);
+        self::assertResponseStatusCodeSame(403);
+    }
+
+    public function testBulkCostOnly(): void
+    {
+        $this->useFarm();
+        $this->service(\App\Setup\StartupData::class)->seed();
+        $first = InvoiceFactory::createOne();
+        $second = InvoiceFactory::createOne();
+        $this->loginAs(UserFactory::owner());
+
+        $crawler = $this->client->request('GET', \sprintf('/faktury/zbiorczo/tylko-koszt?ids[]=%d&ids[]=%d&filtr=rodzaj%%3Dzakupowe', $first->getId(), $second->getId()));
+        self::assertSelectorTextContains('turbo-frame#modal', 'Tylko koszt – 2 faktury');
+        $form = $crawler->selectButton('Zapisz dla 2 faktur')->form();
+        $form['cost_only[costCategory]'] = (string) $crawler->filter('select[name="cost_only[costCategory]"] option:contains("Paliwo")')->attr('value');
+        $this->client->submit($form);
+        self::assertResponseRedirects('/faktury?rodzaj=zakupowe');
+
+        foreach ([$first, $second] as $invoice) {
+            self::assertSame(InvoiceStatus::CostOnly, $this->reload($invoice)->getStatus());
+            self::assertSame('Paliwo', $this->reload($invoice)->getCostCategory()?->getName());
+        }
+    }
+
     public function testExportXlsx(): void
     {
         InvoiceFactory::createMany(3);

@@ -21,27 +21,85 @@
             <div class="alert alert-danger mb-4">Uzupełnij zaznaczone pozycje.</div>
         {% endif %}
 
-        <form method="post" action="{{ path('app_invoice_assign', {id: invoice.id}) }}">
+        <form method="post" action="{{ path('app_invoice_assign', {id: invoice.id}) }}" data-controller="assign-bulk">
             <input type="hidden" name="_token" value="{{ csrf_token('invoice-assign') }}">
+            {% if rows|length > 1 %}
+                <div class="card card-body mb-4">
+                    <div class="flex flex-wrap items-end gap-3">
+                        <label class="inline-flex items-center gap-2 cursor-pointer whitespace-nowrap" style="min-height:40px">
+                            <input type="checkbox" class="checkbox" data-assign-bulk-target="all" data-action="assign-bulk#toggleAll">
+                            Zaznacz wszystkie
+                        </label>
+                        <div class="field mb-0 min-w-[220px] flex-1">
+                            <label class="label" for="bulk-search">Zaznacz pozycje zawierające</label>
+                            <input id="bulk-search" type="search" class="input" placeholder="np. energia, opłata, dystrybucja" data-assign-bulk-target="search" data-action="input->assign-bulk#search keydown.enter->assign-bulk#preventSubmit">
+                        </div>
+                        <button type="button" class="btn btn-secondary" data-action="assign-bulk#selectUnassigned">Zaznacz bez towaru</button>
+                    </div>
+
+                    <div class="mt-4 border-t border-szary-200 pt-4" data-assign-bulk-target="panel" hidden>
+                        <p class="text-sm font-semibold mb-3" data-assign-bulk-target="summary" aria-live="polite"></p>
+                        <div class="grid gap-3 lg:grid-cols-[minmax(240px,2fr)_minmax(180px,1fr)_auto] lg:items-end">
+                            <div class="field mb-0">
+                                <label class="label" for="bulk-product">Towar dla zaznaczonych</label>
+                                <div class="flex gap-2">
+                                    <div class="flex-1 min-w-0">
+                                        <select id="bulk-product"
+                                                data-assign-bulk-target="product"
+                                                data-controller="symfony--ux-autocomplete--autocomplete"
+                                                data-symfony--ux-autocomplete--autocomplete-url-value="{{ path('ux_entity_autocomplete', {alias: 'product'}) }}"
+                                                data-symfony--ux-autocomplete--autocomplete-preload-value="focus">
+                                            <option value="">Wybierz towar…</option>
+                                        </select>
+                                    </div>
+                                    <button type="button" class="btn btn-primary" data-action="assign-bulk#applyProduct">Ustaw</button>
+                                </div>
+                            </div>
+                            <div class="field mb-0">
+                                <label class="label" for="bulk-center">Ośrodek kosztów dla zaznaczonych</label>
+                                <div class="flex gap-2">
+                                    <select id="bulk-center" class="select flex-1" data-assign-bulk-target="center">
+                                        <option value="">—</option>
+                                        {% for center in centers %}<option value="{{ center.id }}">{{ center.name }}</option>{% endfor %}
+                                    </select>
+                                    <button type="button" class="btn btn-secondary" data-action="assign-bulk#applyCenter">Ustaw</button>
+                                </div>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" class="btn btn-secondary" data-action="assign-bulk#skip">Pomiń zaznaczone</button>
+                                <button type="button" class="btn btn-ghost" data-action="assign-bulk#unskip">Nie pomijaj</button>
+                            </div>
+                        </div>
+                        <p class="help mt-2">Zmiany trafiają do pozycji poniżej – zapisz je przyciskiem „Zatwierdź przypisanie”.</p>
+                    </div>
+                </div>
+            {% endif %}
             <div class="space-y-3">
                 {% for row in rows %}
                     {% set item = row.item %}
                     {% set name = 'rows[' ~ item.id ~ ']' %}
                     <section class="card card-body {{ errors[item.id] is defined ? 'ring-1 ring-blad' }} {{ item.beforeCorrection ? 'bg-szary-50' }}"
+                             data-assign-bulk-target="row"
+                             data-name="{{ item.name }}"
                              data-controller="assign-row"
                              data-assign-row-item-value="{{ item.id }}"
                              data-assign-row-quantity-value="{{ item.quantity ?? '' }}"
                              data-assign-row-factor-url-value="{{ path('app_invoice_assign_factor') }}"
                              data-action="product-created->assign-row#created">
                         <div class="flex flex-wrap items-start justify-between gap-2 mb-3">
-                            <div class="min-w-0">
-                                <p class="font-semibold">{{ item.position }}. {{ item.name }}</p>
-                                <p class="text-sm text-antracyt-500 tabular-nums">
-                                    {% if item.beforeCorrection %}<twig:Badge>przed korektą</twig:Badge> {% endif %}
-                                    {{ item.quantity is not null ? item.quantity|qty ~ ' ' ~ item.unit : '' }}
-                                    {% if item.unitPriceNet is not null %} · {{ item.unitPriceNet|amount(4) }} zł/{{ item.unit ?: 'jedn.' }}{% endif %}
-                                    {% if item.netValue is not null %} · {{ item.netValue|money }} netto{% endif %}
-                                </p>
+                            <div class="min-w-0 flex items-start gap-3">
+                                {% if rows|length > 1 %}
+                                    <input type="checkbox" class="checkbox mt-0.5 shrink-0" data-assign-bulk-target="check" data-action="click->assign-bulk#toggle" aria-label="Zaznacz pozycję {{ item.position }}">
+                                {% endif %}
+                                <div class="min-w-0">
+                                    <p class="font-semibold">{{ item.position }}. {{ item.name }}</p>
+                                    <p class="text-sm text-antracyt-500 tabular-nums">
+                                        {% if item.beforeCorrection %}<twig:Badge>przed korektą</twig:Badge> {% endif %}
+                                        {{ item.quantity is not null ? item.quantity|qty ~ ' ' ~ item.unit : '' }}
+                                        {% if item.unitPriceNet is not null %} · {{ item.unitPriceNet|amount(4) }} zł/{{ item.unit ?: 'jedn.' }}{% endif %}
+                                        {% if item.netValue is not null %} · {{ item.netValue|money }} netto{% endif %}
+                                    </p>
+                                </div>
                             </div>
                             {% if row.source and sources[row.source] is defined %}
                                 <twig:Badge tone="{{ row.source == 'proposal' ? 'warning' : 'positive' }}">{{ sources[row.source] }}</twig:Badge>

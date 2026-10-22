@@ -9,6 +9,7 @@ use App\Entity\Contractor;
 use App\Enum\ContractKind;
 use App\Enum\ContractStatus;
 use App\Search\GlobalSearch;
+use App\Ui\Sort;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
@@ -18,6 +19,15 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class ContractRepository extends ServiceEntityRepository
 {
+    public const array SORT = [
+        'numer' => 'k.number',
+        'kontrahent' => 'c.name',
+        'przedmiot' => 'k.subject',
+        'rodzaj' => 'k.kind',
+        'termin' => 'k.validTo',
+        'status' => 'k.status',
+    ];
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, Contract::class);
@@ -52,7 +62,7 @@ class ContractRepository extends ServiceEntityRepository
     /**
      * @param array{contractor?: ?int, kind?: ?ContractKind, status?: ?ContractStatus, expiring?: bool, today?: \DateTimeImmutable, days?: int} $filters
      */
-    public function createListQuery(array $filters): QueryBuilder
+    public function createListQuery(array $filters, ?Sort $sort = null): QueryBuilder
     {
         $qb = $this->createQueryBuilder('k')
             ->join('k.contractor', 'c')
@@ -60,6 +70,7 @@ class ContractRepository extends ServiceEntityRepository
             ->orderBy('k.status')
             ->addOrderBy('k.validTo')
             ->addOrderBy('k.number');
+        $sort?->apply($qb, 'k.validTo', 'k.number', 'k.id');
 
         if (null !== ($filters['contractor'] ?? null)) {
             $qb->andWhere('k.contractor = :contractor')->setParameter('contractor', $filters['contractor']);

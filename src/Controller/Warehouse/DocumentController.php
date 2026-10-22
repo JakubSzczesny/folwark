@@ -18,6 +18,7 @@ use App\Repository\WarehouseRepository;
 use App\Security\Permission;
 use App\Ui\ListFilters;
 use App\Ui\Pager;
+use App\Ui\Sort;
 use App\Warehouse\StockLedger;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -57,9 +58,13 @@ final class DocumentController extends AbstractController
             'q' => trim($request->query->getString('q')),
         ];
 
+        $fields = $this->isGranted(Permission::AMOUNTS_VIEW) ? StockDocumentRepository::SORT : array_diff_key(StockDocumentRepository::SORT, ['netto' => true]);
+        $sort = Sort::fromRequest($request, $fields, 'data', 'desc', ['netto']);
+
         return $this->render('warehouse/document/index.html.twig', [
-            'pager' => Pager::fromQuery($this->documents->createListQuery($filters), $request->query->getInt('strona', 1)),
+            'pager' => Pager::fromQuery($this->documents->createListQuery($filters, $sort), $request->query->getInt('strona', 1)),
             'filters' => $filters,
+            'sort' => $sort,
             'warehouses' => $warehouses->findBy([], ['name' => 'ASC']),
         ]);
     }

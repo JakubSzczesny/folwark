@@ -21,6 +21,8 @@ class MachineRepository extends ServiceEntityRepository
         'nr' => 'm.registrationNumber',
         'kategoria' => 'c.position',
         'ubezpieczenie' => 'm.insuranceUntil',
+        'przeglad' => 'm.inspectionUntil',
+        'serwis' => '(SELECT MAX(sort_s.date) FROM App\Entity\MachineService sort_s WHERE sort_s.machine = m)',
     ];
 
     public function __construct(ManagerRegistry $registry)

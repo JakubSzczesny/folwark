@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace App\Controller\Warehouse;
 
+use App\Entity\Warehouse;
 use App\Repository\ProductCategoryRepository;
 use App\Repository\StockRepository;
 use App\Repository\WarehouseRepository;
 use App\Security\Permission;
 use App\Ui\ListFilters;
+use App\Ui\Sort;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -36,8 +38,13 @@ final class StockController extends AbstractController
             'zero' => $request->query->getBoolean('zerowe'),
         ];
 
-        $groups = [];
-        foreach ($stocks->findForList($filters) as $stock) {
+        $fields = $this->isGranted(Permission::AMOUNTS_VIEW) ? StockRepository::SORT : array_diff_key(StockRepository::SORT, ['cena' => true, 'wartosc' => true]);
+        $sort = Sort::fromRequest($request, $fields, 'towar', 'asc', ['stan', 'cena', 'wartosc', 'ruch']);
+
+        // Grupy w kolejności magazynów, sortowanie obowiązuje wewnątrz grupy.
+        $all = $warehouses->findBy([], ['name' => 'ASC']);
+        $groups = array_fill_keys(array_map(static fn (Warehouse $w): int => (int) $w->getId(), $all), null);
+        foreach ($stocks->findForList($filters, $sort) as $stock) {
             $warehouse = $stock->getWarehouse();
             $groups[$warehouse->getId()] ??= ['warehouse' => $warehouse, 'stocks' => [], 'value' => 0.0];
             $groups[$warehouse->getId()]['stocks'][] = $stock;
@@ -45,9 +52,10 @@ final class StockController extends AbstractController
         }
 
         return $this->render('warehouse/stock/index.html.twig', [
-            'groups' => $groups,
+            'groups' => array_filter($groups),
             'filters' => $filters,
-            'warehouses' => $warehouses->findBy([], ['name' => 'ASC']),
+            'sort' => $sort,
+            'warehouses' => $all,
             'categories' => $categories->findBy([], ['name' => 'ASC']),
         ]);
     }

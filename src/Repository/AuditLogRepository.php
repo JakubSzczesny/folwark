@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Repository;
 
 use App\Entity\AuditLog;
+use App\Ui\Sort;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
@@ -14,12 +15,19 @@ use Doctrine\Persistence\ManagerRegistry;
  */
 class AuditLogRepository extends ServiceEntityRepository
 {
+    public const array SORT = [
+        'czas' => 'l.createdAt',
+        'uzytkownik' => 'u.fullName',
+        'obiekt' => 'l.entity',
+        'akcja' => 'l.action',
+    ];
+
     public function __construct(ManagerRegistry $registry)
     {
         parent::__construct($registry, AuditLog::class);
     }
 
-    public function createListQuery(?string $entity): QueryBuilder
+    public function createListQuery(?string $entity, ?Sort $sort = null): QueryBuilder
     {
         $qb = $this->createQueryBuilder('l')
             ->leftJoin('l.user', 'u')
@@ -31,7 +39,7 @@ class AuditLogRepository extends ServiceEntityRepository
             $qb->andWhere('l.entity = :entity')->setParameter('entity', $entity);
         }
 
-        return $qb;
+        return $sort?->apply($qb, 'l.id') ?? $qb;
     }
 
     /**

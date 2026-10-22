@@ -3,9 +3,14 @@
     <table class="table table-cards" data-controller="table-nav context-menu" data-action="keydown@window->table-nav#keydown">
         <thead>
             <tr>
-                <th>Numer</th>
-                {% if show_contractor|default(true) %}<th>Kontrahent</th>{% endif %}
-                <th>Przedmiot</th><th>Rodzaj</th><th>Obowiązuje do</th><th class="min-w-[180px]">Realizacja</th><th>Status</th>
+                {% set sort = sort|default(null) %}
+                {{ m.sort_th('Numer', 'numer', sort) }}
+                {% if show_contractor|default(true) %}{{ m.sort_th('Kontrahent', 'kontrahent', sort) }}{% endif %}
+                {{ m.sort_th('Przedmiot', 'przedmiot', sort) }}
+                {{ m.sort_th('Rodzaj', 'rodzaj', sort) }}
+                {{ m.sort_th('Obowiązuje do', 'termin', sort) }}
+                <th class="min-w-[180px]">Realizacja</th>
+                {{ m.sort_th('Status', 'status', sort) }}
             </tr>
         </thead>
         <tbody>

@@ -1,7 +1,7 @@
 {% if pager.total > 0 %}
     {% set route = app.request.attributes.get('_route') %}
     {% set params = app.request.attributes.get('_route_params')|merge(app.request.query.all) %}
-    <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm text-antracyt-500">
+    <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3 text-sm text-antracyt-500 {{ top|default(false) ? 'border-b border-szary-200' }}">
         <span>{{ pager.firstIndex }}–{{ pager.lastIndex }} z {{ pager.total }}</span>
         {% if pager.pages > 1 %}
             <div class="flex items-center gap-2">

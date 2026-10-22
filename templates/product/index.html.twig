@@ -14,6 +14,7 @@
     <div data-controller="filters">
     {{ include('_partials/filters_toggle.html.twig', {active: (filters.q ? 1 : 0) + (filters.category ? 1 : 0) + (filters.inactive ? 1 : 0)}) }}
     <form method="get" class="filter-bar is-collapsible" data-filters-target="panel" data-controller="autosubmit" data-turbo-action="replace">
+        {{ m.sort_fields(sort) }}
         <div class="field min-w-[240px]">
             <label class="label" for="f-q">Szukaj</label>
             <input id="f-q" type="search" name="szukaj" value="{{ filters.q }}" class="input" placeholder="Nazwa, kod, nr katalogowy" data-action="input->autosubmit#debounced">
@@ -39,15 +40,16 @@
                 actionLabel="{{ is_granted('PRODUCT_EDIT') ? 'Dodaj towar' : null }}"
                 actionUrl="{{ is_granted('PRODUCT_EDIT') ? path('app_product_new') : null }}" />
         {% else %}
+            {{ include('_partials/pagination.html.twig', {top: true}) }}
             <div class="table-wrap">
                 <table class="table table-cards" data-controller="table-nav context-menu" data-action="keydown@window->table-nav#keydown">
                     <thead>
                         <tr>
                             {{ m.sort_th('Nazwa', 'nazwa', sort) }}
                             {{ m.sort_th('Kategoria', 'kategoria', sort) }}
-                            <th>Jm.</th>
-                            <th>Ostatni zakup</th>
-                            <th>Następne zamówienie</th>
+                            {{ m.sort_th('Jm.', 'jm', sort) }}
+                            {{ m.sort_th('Ostatni zakup', 'zakup', sort) }}
+                            {{ m.sort_th('Następne zamówienie', 'zamowienie', sort) }}
                         </tr>
                     </thead>
                     <tbody>

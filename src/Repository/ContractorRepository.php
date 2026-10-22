@@ -7,6 +7,7 @@ namespace App\Repository;
 use App\Entity\Contractor;
 use App\Enum\ContractorKind;
 use App\Search\GlobalSearch;
+use App\Ui\Sort;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\ORM\QueryBuilder;
 use Doctrine\Persistence\ManagerRegistry;
@@ -21,9 +22,35 @@ class ContractorRepository extends ServiceEntityRepository
         parent::__construct($registry, Contractor::class);
     }
 
-    public function createListQuery(?string $text, ?ContractorKind $kind, bool $includeInactive = false): QueryBuilder
+    /**
+     * Kolumny sortowania listy; sumy faktur liczone za podany rok, kwoty tylko dla uprawnionych.
+     *
+     * @return array<string, string>
+     */
+    public static function sortFields(int $year, bool $amounts): array
+    {
+        $sum = static fn (string $kind, string $alias): string => \sprintf(
+            "(SELECT SUM(%1\$s.net) FROM App\Entity\Invoice %1\$s WHERE %1\$s.contractor = c AND %1\$s.kind = '%2\$s' AND %1\$s.status != 'skipped' AND %1\$s.issueDate BETWEEN '%3\$d-01-01' AND '%3\$d-12-31')",
+            $alias, $kind, $year,
+        );
+
+        return [
+            'nazwa' => 'c.name',
+            'nip' => 'c.nip',
+            'miejscowosc' => 'c.city',
+        ] + ($amounts ? [
+            'koszty' => $sum('cost', 'sort_k'),
+            'przychody' => $sum('income', 'sort_p'),
+        ] : []) + [
+            'faktura' => '(SELECT MAX(sort_f.issueDate) FROM App\Entity\Invoice sort_f WHERE sort_f.contractor = c)',
+            'umowy' => "(SELECT COUNT(sort_u.id) FROM App\Entity\Contract sort_u WHERE sort_u.contractor = c AND sort_u.status = 'active')",
+        ];
+    }
+
+    public function createListQuery(?string $text, ?ContractorKind $kind, bool $includeInactive = false, ?Sort $sort = null): QueryBuilder
     {
         $qb = $this->createQueryBuilder('c')->orderBy('c.name');
+        $sort?->apply($qb, 'c.name', 'c.id');
 
         if (null !== $text) {
             $digits = preg_replace('/\D+/', '', $text) ?? '';

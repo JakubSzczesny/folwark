@@ -7,7 +7,9 @@ namespace App\Invoice;
 use App\Enum\InvoiceKind;
 use App\Enum\InvoiceStatus;
 use App\Enum\PaymentStatus;
+use App\Repository\InvoiceRepository;
 use App\Ui\QueryParam;
+use App\Ui\Sort;
 use Symfony\Component\HttpFoundation\Request;
 
 /**
@@ -41,8 +43,7 @@ final class InvoiceFilter
     public ?string $amountFrom = null;
     public ?string $amountTo = null;
     public ?string $text = null;
-    public string $sort = 'data';
-    public string $direction = 'desc';
+    public Sort $sort;
 
     public static function fromRequest(Request $request): self
     {
@@ -62,8 +63,7 @@ final class InvoiceFilter
         $filter->amountFrom = self::amount($query->getString('kwota_od'));
         $filter->amountTo = self::amount($query->getString('kwota_do'));
         $filter->text = '' !== ($text = trim($query->getString('szukaj'))) ? $text : null;
-        $filter->sort = \in_array($sort = $query->getString('sort'), ['data', 'numer', 'kontrahent', 'netto', 'brutto', 'termin'], true) ? $sort : 'data';
-        $filter->direction = 'asc' === $query->getString('kierunek') ? 'asc' : 'desc';
+        $filter->sort = Sort::fromRequest($request, InvoiceRepository::SORT, 'data', 'desc', ['netto', 'brutto']);
 
         return $filter;
     }
@@ -107,28 +107,20 @@ final class InvoiceFilter
             'kwota_od' => $this->amountFrom,
             'kwota_do' => $this->amountTo,
             'szukaj' => $this->text,
-            'sort' => 'data' !== $this->sort ? $this->sort : null,
-            'kierunek' => 'desc' !== $this->direction ? $this->direction : null,
-        ], static fn (mixed $v): bool => null !== $v && '' !== $v);
+        ] + $this->sort->toQuery(), static fn (mixed $v): bool => null !== $v && '' !== $v);
     }
 
-    public function isActive(string $field): bool
+    /**
+     * Liczba ustawionych filtrów – bez zakładki i sortowania.
+     */
+    public function activeFilterCount(): int
     {
-        return $field === $this->sort;
-    }
-
-    public function directionFor(string $field): string
-    {
-        if ($field !== $this->sort) {
-            return 'data' === $field ? 'desc' : 'asc';
-        }
-
-        return 'asc' === $this->direction ? 'desc' : 'asc';
+        return \count(array_diff_key($this->toQuery(), $this->sort->toQuery())) - 1;
     }
 
     public function hasActiveFilters(): bool
     {
-        return \count($this->toQuery()) > 1;
+        return $this->activeFilterCount() > 0;
     }
 
     private static function date(string $value): ?\DateTimeImmutable

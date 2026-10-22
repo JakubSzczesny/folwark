@@ -1,12 +1,32 @@
+{# Nagłówek kolumny z sortowaniem: klik – tylko po tej kolumnie, Shift + klik – dodatkowo po niej (maks. 2 kolumny). #}
 {% macro sort_th(label, field, sort, class = '') %}
-    {% set route = app.request.attributes.get('_route') %}
-    {% set params = app.request.attributes.get('_route_params')|merge(app.request.query.all)|merge({sort: field, kierunek: sort.directionFor(field), strona: 1}) %}
-    <th class="{{ class }}" {% if sort.isActive(field) %}aria-sort="{{ sort.direction == 'asc' ? 'ascending' : 'descending' }}"{% endif %}>
-        <a href="{{ path(route, params) }}" class="inline-flex items-center gap-1">
-            {{ label }}
-            {% if sort.isActive(field) %}{{ ux_icon(sort.direction == 'asc' ? 'lucide:arrow-up' : 'lucide:arrow-down', {width: 14, height: 14}) }}{% endif %}
-        </a>
-    </th>
+    {% if sort is null %}
+        <th class="{{ class }}">{{ label }}</th>
+    {% else %}
+        {% set route = app.request.attributes.get('_route') %}
+        {% set params = app.request.attributes.get('_route_params')|merge(app.request.query.all)|merge({strona: null}) %}
+        {% set position = sort.position(field) %}
+        {% set direction = sort.directionOf(field) %}
+        <th class="{{ class }}" {% if position == 1 %}aria-sort="{{ direction == 'asc' ? 'ascending' : 'descending' }}"{% endif %}>
+            <a href="{{ path(route, params|merge(sort.queryFor(field))) }}"
+               class="sort-link {{ position ? 'is-active' }}"
+               data-controller="sort-link"
+               data-sort-link-add-value="{{ path(route, params|merge(sort.queryFor(field, true))) }}"
+               data-action="click->sort-link#click"
+               title="Sortuj · Shift + klik: sortuj dodatkowo po tej kolumnie">
+                {{ label }}
+                {% if direction %}
+                    {{ ux_icon(direction == 'asc' ? 'lucide:arrow-up' : 'lucide:arrow-down', {width: 14, height: 14}) }}
+                    {% if sort.multi %}<span class="sort-order" aria-label="kolejność sortowania {{ position }}">{{ position }}</span>{% endif %}
+                {% endif %}
+            </a>
+        </th>
+    {% endif %}
+{% endmacro %}
+
+{# Ukryte pola sortowania w formularzu filtrów – zmiana filtra nie gubi sortowania. #}
+{% macro sort_fields(sort) %}
+    {% for key, value in sort.toQuery %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
 {% endmacro %}
 
 {% macro deadline(date, warn_days = 30, settled = false) %}

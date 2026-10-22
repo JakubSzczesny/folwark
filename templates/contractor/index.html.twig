@@ -1,4 +1,5 @@
 {% extends 'layout.html.twig' %}
+{% import '_partials/macros.html.twig' as m %}
 
 {% block title %}Kontrahenci{% endblock %}
 {% block active_menu %}contractors{% endblock %}
@@ -13,6 +14,7 @@
     <div data-controller="filters">
     {{ include('_partials/filters_toggle.html.twig', {active: text or kind or inactive ? 1 : 0}) }}
     <form method="get" class="filter-bar is-collapsible" data-filters-target="panel" data-controller="autosubmit" data-turbo-action="replace">
+        {{ m.sort_fields(sort) }}
         <div class="field flex-1 min-w-[220px] max-w-md">
             <label class="label" for="f-text">Szukaj</label>
             <input id="f-text" type="search" name="szukaj" class="input" value="{{ text }}" placeholder="Nazwa lub NIP" data-action="input->autosubmit#debounced">
@@ -37,13 +39,20 @@
             <twig:EmptyState text="{{ text or kind ? 'Brak kontrahentów spełniających filtry.' : 'Brak kontrahentów. Pojawią się po synchronizacji faktur z KSeF.' }}" />
         {% else %}
             {% set amounts = is_granted('AMOUNTS_VIEW') %}
+            {{ include('_partials/pagination.html.twig', {top: true}) }}
             <div class="table-wrap">
                 <table class="table table-cards" data-controller="table-nav context-menu" data-action="keydown@window->table-nav#keydown">
                     <thead>
                         <tr>
-                            <th>Nazwa</th><th>NIP</th><th>Miejscowość</th>
-                            {% if amounts %}<th class="text-right">Koszty {{ year }}</th><th class="text-right">Przychody {{ year }}</th>{% endif %}
-                            <th>Ostatnia faktura</th><th class="text-right">Aktywne umowy</th>
+                            {{ m.sort_th('Nazwa', 'nazwa', sort) }}
+                            {{ m.sort_th('NIP', 'nip', sort) }}
+                            {{ m.sort_th('Miejscowość', 'miejscowosc', sort) }}
+                            {% if amounts %}
+                                {{ m.sort_th('Koszty ' ~ year, 'koszty', sort, 'text-right') }}
+                                {{ m.sort_th('Przychody ' ~ year, 'przychody', sort, 'text-right') }}
+                            {% endif %}
+                            {{ m.sort_th('Ostatnia faktura', 'faktura', sort) }}
+                            {{ m.sort_th('Aktywne umowy', 'umowy', sort, 'text-right') }}
                         </tr>
                     </thead>
                     <tbody>

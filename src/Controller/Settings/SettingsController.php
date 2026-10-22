@@ -16,6 +16,7 @@ use App\Repository\AuditLogRepository;
 use App\Security\Permission;
 use App\Settings\SettingsForm;
 use App\Ui\Pager;
+use App\Ui\Sort;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -105,10 +106,12 @@ final class SettingsController extends AbstractController
     public function audit(Request $request, AuditLogRepository $logs): Response
     {
         $entity = $request->query->getString('obiekt') ?: null;
-        $pager = Pager::fromQuery($logs->createListQuery($entity), $request->query->getInt('strona', 1));
+        $sort = Sort::fromRequest($request, AuditLogRepository::SORT, 'czas', 'desc');
+        $pager = Pager::fromQuery($logs->createListQuery($entity, $sort), $request->query->getInt('strona', 1));
 
         return $this->render('settings/audit.html.twig', [
             'pager' => $pager,
+            'sort' => $sort,
             'entity' => $entity,
             'entities' => $logs->entityNames(),
         ]);

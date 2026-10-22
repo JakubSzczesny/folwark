@@ -25,6 +25,13 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  */
 class InvoiceActions
 {
+    public const string BULK_READ = 'przeczytane';
+    public const string BULK_PAID = 'oplacone';
+    public const string BULK_UNPAID = 'nieoplacone';
+    public const string BULK_SKIP = 'pomin';
+    public const string BULK_RESTORE = 'przywroc';
+    public const string BULK_COST_ONLY = 'tylko-koszt';
+
     public function __construct(
         private readonly EntityManagerInterface $em,
         private readonly AuditLogger $audit,
@@ -75,6 +82,89 @@ class InvoiceActions
         }
 
         return $count;
+    }
+
+    /**
+     * Zmiana wielu faktur naraz (masowa edycja z listy). Faktury, których akcja nie dotyczy
+     * (np. pominięcie faktury sprzedażowej, opłacenie już opłaconej), zostają bez zmian.
+     *
+     * @param iterable<Invoice> $invoices
+     *
+     * @return int liczba zmienionych faktur
+     */
+    public function bulk(iterable $invoices, string $action, ?User $user = null, ?CostCenter $center = null, ?CostCategory $category = null): int
+    {
+        $changed = [];
+        foreach ($invoices as $invoice) {
+            $done = match ($action) {
+                self::BULK_READ => $this->bulkRead($invoice, $user),
+                self::BULK_PAID => !$invoice->isPaid() && $this->bulkPaid($invoice),
+                self::BULK_UNPAID => $invoice->isPaid() && $this->bulkUnpaid($invoice),
+                self::BULK_SKIP => $invoice->isCost() && InvoiceStatus::Skipped !== $invoice->getStatus() && $this->bulkStatus($invoice, InvoiceStatus::Skipped),
+                self::BULK_RESTORE => InvoiceStatus::Skipped === $invoice->getStatus() && $this->bulkStatus($invoice, InvoiceStatus::Read),
+                self::BULK_COST_ONLY => $invoice->isCost() && $this->bulkCostOnly($invoice, $center, $category),
+                default => throw new \InvalidArgumentException(\sprintf('Nieznana akcja: %s', $action)),
+            };
+            if ($done) {
+                $changed[] = $invoice;
+            }
+        }
+        $this->em->flush();
+
+        if (self::BULK_READ === $action && null !== $user && [] !== $changed) {
+            foreach ($changed as $invoice) {
+                $this->notifications->markReadByType($user, NotificationType::NewInvoices, $this->urls->generate('app_invoice_show', ['id' => $invoice->getId()]));
+            }
+            if (0 === $this->invoices->countNew()) {
+                $this->notifications->markReadByType($user, NotificationType::NewInvoices);
+            }
+        }
+
+        return \count($changed);
+    }
+
+    private function bulkRead(Invoice $invoice, ?User $user): bool
+    {
+        if (!$invoice->markRead($user)) {
+            return false;
+        }
+        $this->audit->log('Invoice', $invoice->getId(), 'read', [], $user);
+
+        return true;
+    }
+
+    private function bulkPaid(Invoice $invoice): bool
+    {
+        $invoice->markPaid();
+        $this->audit->log('Invoice', $invoice->getId(), 'paid', ['paidAt' => $invoice->getPaidAt()?->format('Y-m-d')]);
+
+        return true;
+    }
+
+    private function bulkUnpaid(Invoice $invoice): bool
+    {
+        $invoice->setPayment(PaymentStatus::Unpaid);
+        $this->audit->log('Invoice', $invoice->getId(), 'unpaid');
+
+        return true;
+    }
+
+    private function bulkStatus(Invoice $invoice, InvoiceStatus $status): bool
+    {
+        $this->changeStatus($invoice, $status);
+
+        return true;
+    }
+
+    private function bulkCostOnly(Invoice $invoice, ?CostCenter $center, ?CostCategory $category): bool
+    {
+        $invoice->setCostCenter($center)->setCostCategory($category);
+        $this->changeStatus($invoice, InvoiceStatus::CostOnly, [
+            'costCenter' => $center?->getName(),
+            'costCategory' => $category?->getName(),
+        ]);
+
+        return true;
     }
 
     public function skip(Invoice $invoice): void

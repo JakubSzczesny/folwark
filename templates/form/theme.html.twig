@@ -54,7 +54,7 @@
 {% block choice_widget_expanded %}
     <div {{ block('widget_container_attributes') }} class="flex flex-wrap gap-x-5 gap-y-2">
         {% for child in form %}
-            <label class="inline-flex items-center gap-2 cursor-pointer" style="min-height:40px">
+            <label class="check-label">
                 {{ form_widget(child) }}
                 <span>{{ child.vars.label }}</span>
             </label>

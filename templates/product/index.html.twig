@@ -26,7 +26,7 @@
                 {% for category in categories %}<option value="{{ category.id }}" {{ filters.category == category.id ? 'selected' }}>{{ category.parent ? '— ' }}{{ category.name }}</option>{% endfor %}
             </select>
         </div>
-        <label class="inline-flex items-center gap-2 cursor-pointer" style="min-height:40px">
+        <label class="check-label">
             <input type="checkbox" class="checkbox" name="nieaktywne" value="1" {{ filters.inactive ? 'checked' }} data-action="autosubmit#submit">
             Pokaż nieaktywne
         </label>

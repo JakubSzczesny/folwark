@@ -30,11 +30,11 @@
             <label class="label" for="f-q">Szukaj</label>
             <input id="f-q" type="search" name="szukaj" value="{{ filters.q }}" class="input" placeholder="Nazwa, nr rej., marka" data-action="input->autosubmit#debounced">
         </div>
-        <label class="inline-flex items-center gap-2 cursor-pointer" style="min-height:40px">
+        <label class="check-label">
             <input type="checkbox" class="checkbox" name="terminy" value="1" {{ filters.deadlines ? 'checked' }} data-action="autosubmit#submit">
             Terminy w ciągu {{ days }} dni
         </label>
-        <label class="inline-flex items-center gap-2 cursor-pointer" style="min-height:40px">
+        <label class="check-label">
             <input type="checkbox" class="checkbox" name="wycofane" value="1" {{ filters.inactive ? 'checked' }} data-action="autosubmit#submit">
             Pokaż wycofane
         </label>

@@ -6,7 +6,7 @@
         <a href="{{ path('app_order_index') }}" class="text-sm">Wszystkie</a>
     </div>
     {% if orders is empty %}
-        <p class="px-4 py-6 text-sm text-antracyt-500">W najbliższych tygodniach nic nie trzeba zamawiać – albo przypisz towary do faktur, żeby przewidywanie miało dane.</p>
+        <twig:EmptyState compact text="W najbliższych tygodniach nic nie trzeba zamawiać – albo przypisz towary do faktur, żeby przewidywanie miało dane." icon="shopping-cart" />
     {% else %}
         <ul class="divide-y divide-szary-200">
             {% for cycle in orders %}

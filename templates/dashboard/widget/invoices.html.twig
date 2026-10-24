@@ -5,7 +5,7 @@
         <a href="{{ path('app_invoice_index', {rodzaj: 'wszystkie'}) }}" class="text-sm">Wszystkie</a>
     </div>
     {% if invoices is empty %}
-        <p class="px-4 py-6 text-sm text-antracyt-500">Brak faktur.</p>
+        <twig:EmptyState compact text="Brak faktur." icon="file-text" />
     {% else %}
         <ul class="divide-y divide-szary-200">
             {% for invoice in invoices %}

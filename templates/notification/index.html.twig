@@ -31,7 +31,7 @@
             <label class="label" for="f-to">Do</label>
             <input id="f-to" type="date" name="do" class="input" value="{{ filters.to ? filters.to|date('Y-m-d') }}" data-action="autosubmit#submit">
         </div>
-        <label class="inline-flex items-center gap-2 cursor-pointer" style="min-height:40px">
+        <label class="check-label">
             <input type="checkbox" class="checkbox" name="nieprzeczytane" value="1" {{ filters.unread ? 'checked' }} data-action="autosubmit#submit">
             Tylko nieprzeczytane
         </label>

@@ -9,7 +9,7 @@
         {% endif %}
     </div>
     {% if items is empty %}
-        <p class="px-4 py-6 text-sm text-antracyt-500">Brak powiadomień.</p>
+        <twig:EmptyState compact text="Brak powiadomień." icon="bell" />
     {% else %}
         <ul class="max-h-[60vh] overflow-y-auto divide-y divide-szary-200">
             {% for n in items %}

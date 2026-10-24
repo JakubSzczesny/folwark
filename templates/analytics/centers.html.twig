@@ -10,7 +10,7 @@
     <section class="card mb-6">
         <div class="card-header"><h2 class="card-title">Pola i sezony {{ year }}</h2></div>
         {% if seasons is empty %}
-            <p class="px-4 py-6 text-sm text-antracyt-500">Brak sezonów upraw na {{ year }}. Dodaj je w słownikach (Pola → Sezony upraw) – każdy sezon dostaje własny ośrodek kosztów.</p>
+            <twig:EmptyState compact text="Brak sezonów upraw na {{ year }}. Dodaj je w słownikach (Pola → Sezony upraw) – każdy sezon dostaje własny ośrodek kosztów." icon="chart-column" />
         {% else %}
             <div class="table-wrap">
                 <table class="table table-cards">
@@ -78,7 +78,7 @@
     <section class="card mb-6">
         <div class="card-header"><h2 class="card-title">Maszyny {{ year }}</h2></div>
         {% if machines is empty %}
-            <p class="px-4 py-6 text-sm text-antracyt-500">Brak kosztów przypisanych do maszyn w {{ year }}.</p>
+            <twig:EmptyState compact text="Brak kosztów przypisanych do maszyn w {{ year }}." icon="chart-column" />
         {% else %}
             <div class="table-wrap">
                 <table class="table table-cards">

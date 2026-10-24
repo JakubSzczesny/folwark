@@ -6,7 +6,7 @@
         {% if attention.total > 0 %}<span class="text-sm text-antracyt-500">{{ attention.total }} {{ attention.total|plural('pozycja', 'pozycje', 'pozycji') }}</span>{% endif %}
     </div>
     {% if attention.items is empty %}
-        <p class="px-4 py-6 text-sm text-antracyt-500">Nic nie wymaga teraz uwagi.</p>
+        <twig:EmptyState compact text="Nic nie wymaga teraz uwagi." icon="circle-check" />
     {% else %}
         <ul class="divide-y divide-szary-200" data-controller="context-menu" data-loading="action(showAttentionPage)|addClass(opacity-50)">
             {% for item in attention.items %}

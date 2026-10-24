@@ -4,7 +4,7 @@
 {% block active_menu %}documents{% endblock %}
 
 {% block content %}
-    <twig:PageHeader title="Nowy dokument" subtitle="Wybierz rodzaj dokumentu" back="{{ path('app_document_index') }}" />
+    <twig:PageHeader title="Nowy dokument" subtitle="Wybierz rodzaj dokumentu" back="{{ path('app_document_index') }}" backLabel="Dokumenty" />
 
     {% if not has_warehouses %}
         <div class="alert alert-warning mb-4">Najpierw dodaj magazyn w <a href="{{ path('admin') }}">słownikach</a>.</div>

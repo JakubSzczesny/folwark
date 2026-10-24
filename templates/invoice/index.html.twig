@@ -88,7 +88,7 @@
                     {% endfor %}
                 </select>
             </div>
-            <label class="inline-flex items-center gap-2 cursor-pointer self-end" style="min-height:40px" title="Faktury, na których któraś pozycja nie ma przypisanego towaru z kartoteki">
+            <label class="check-label self-end" title="Faktury, na których któraś pozycja nie ma przypisanego towaru z kartoteki">
                 <input type="checkbox" class="checkbox" name="bez_towaru" value="1" {{ filter.unassigned ? 'checked' }} data-action="autosubmit#submit">
                 Pozycje bez towaru
             </label>

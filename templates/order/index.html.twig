@@ -50,7 +50,7 @@
                 {% for mode in enum_cases('App\\Enum\\OrderMode') %}<option value="{{ mode.value }}" {{ filters.mode == mode.value ? 'selected' }}>{{ mode.label }}</option>{% endfor %}
             </select>
         </div>
-        <label class="inline-flex items-center gap-2 cursor-pointer" style="min-height:40px">
+        <label class="check-label">
             <input type="checkbox" class="checkbox" name="ukryte" value="1" {{ filters.hidden ? 'checked' }} data-action="autosubmit#submit">
             Pokaż ukryte
         </label>

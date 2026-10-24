@@ -1,7 +1,7 @@
 {% if query|length < min_length %}
     <p class="px-4 py-6 text-sm text-antracyt-500">Wpisz co najmniej {{ min_length }} znaki.</p>
 {% elseif groups is empty %}
-    <p class="px-4 py-6 text-sm text-antracyt-500">Nic nie znaleziono dla „{{ query }}”.</p>
+    <twig:EmptyState compact text="Nic nie znaleziono dla „{{ query }}”." icon="search" />
 {% else %}
     <div role="listbox" aria-label="Wyniki wyszukiwania">
         {% for group in groups %}

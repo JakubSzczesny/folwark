@@ -5,7 +5,7 @@
 {% block active_menu %}contractors{% endblock %}
 
 {% block content %}
-    <twig:PageHeader title="{{ contractor.name }}" back="{{ path('app_contractor_index') }}">
+    <twig:PageHeader title="{{ contractor.name }}" back="{{ path('app_contractor_index') }}" backLabel="Kontrahenci">
         {% if is_granted('CONTRACTOR_EDIT') %}
             <a href="{{ path('app_contractor_edit', {id: contractor.id}) }}" class="btn btn-secondary">{{ ux_icon('lucide:pencil') }} Edytuj</a>
         {% endif %}
@@ -95,7 +95,7 @@
                         <span class="text-sm tabular-nums">{{ group.items|reduce((sum, i) => sum + i.net, 0)|money }} netto</span>
                     </div>
                     {% if group.items is empty %}
-                        <p class="px-4 py-6 text-sm text-antracyt-500">Brak faktur.</p>
+                        <twig:EmptyState compact text="Brak faktur." icon="file-text" />
                     {% else %}
                         <div class="table-wrap">
                             <table class="table table-cards">
@@ -165,7 +165,7 @@
                         {% endif %}
                     </div>
                     {% if group.rows is empty %}
-                        <p class="px-4 py-6 text-sm text-antracyt-500">{{ group.empty }}</p>
+                        <twig:EmptyState compact text="{{ group.empty }}" icon="calendar" />
                     {% else %}
                         <ul class="divide-y divide-szary-200">
                             {% for row in group.rows %}

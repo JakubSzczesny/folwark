@@ -3,7 +3,7 @@
 {% block title %}Nowe gospodarstwo{% endblock %}
 
 {% block content %}
-    <twig:PageHeader title="Nowe gospodarstwo" subtitle="Zostaniesz jego właścicielem. Pozostałe osoby dodasz potem w Ustawieniach." back="{{ path('app_farm_index') }}" />
+    <twig:PageHeader title="Nowe gospodarstwo" subtitle="Zostaniesz jego właścicielem. Pozostałe osoby dodasz potem w Ustawieniach." back="{{ path('app_farm_index') }}" backLabel="Gospodarstwa" />
 
     <div class="card card-body max-w-xl">
         {{ form_start(form) }}

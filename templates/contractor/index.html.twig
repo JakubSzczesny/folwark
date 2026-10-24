@@ -26,7 +26,7 @@
                 {% for k in kinds %}<option value="{{ k.value }}" {{ kind == k ? 'selected' }}>{{ k.label }}</option>{% endfor %}
             </select>
         </div>
-        <label class="inline-flex items-center gap-2 cursor-pointer" style="min-height:40px">
+        <label class="check-label">
             <input type="checkbox" class="checkbox" name="nieaktywni" value="1" {{ inactive ? 'checked' }} data-action="autosubmit#submit">
             Także nieaktywni
         </label>

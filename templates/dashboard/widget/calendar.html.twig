@@ -5,7 +5,7 @@
         <a href="{{ path('app_calendar_index') }}" class="text-sm">Kalendarz</a>
     </div>
     {% if events is empty %}
-        <p class="px-4 py-6 text-sm text-antracyt-500">W najbliższych dwóch tygodniach nic nie zaplanowano.</p>
+        <twig:EmptyState compact text="W najbliższych dwóch tygodniach nic nie zaplanowano." icon="calendar" />
     {% else %}
         <ul class="divide-y divide-szary-200">
             {% for entry in events %}

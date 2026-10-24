@@ -6,7 +6,7 @@
 {% block content %}
     {% set amounts = is_granted('AMOUNTS_VIEW') %}
     {% set token = csrf_token('stock-document') %}
-    <twig:PageHeader title="{{ document.label }}" subtitle="{{ document.type.label }}" back="{{ path('app_document_index') }}">
+    <twig:PageHeader title="{{ document.label }}" subtitle="{{ document.type.label }}" back="{{ path('app_document_index') }}" backLabel="Dokumenty">
         <a href="{{ path('app_document_pdf', {id: document.id}) }}" class="btn btn-secondary" data-turbo="false">{{ ux_icon('lucide:download') }} PDF</a>
         {% if is_granted('DOCUMENT_EDIT') %}
             {% if document.draft %}

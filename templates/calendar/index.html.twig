@@ -65,11 +65,11 @@
                 {% endfor %}
             </select>
         </div>
-        <label class="inline-flex items-center gap-2 cursor-pointer self-end" style="min-height:40px">
+        <label class="check-label self-end">
             <input type="checkbox" class="checkbox" name="moje" value="1" {{ filters.mine ? 'checked' }} data-action="autosubmit#submit">
             Tylko moje
         </label>
-        <label class="inline-flex items-center gap-2 cursor-pointer self-end" style="min-height:40px" title="Płatności faktur, umowy, terminy maszyn i zamówień – z modułów, do których masz dostęp">
+        <label class="check-label self-end" title="Płatności faktur, umowy, terminy maszyn i zamówień – z modułów, do których masz dostęp">
             <input type="hidden" name="terminy" value="0">
             <input type="checkbox" class="checkbox" name="terminy" value="1" {{ filters.deadlines ? 'checked' }} data-action="autosubmit#submit">
             Terminy z modułów

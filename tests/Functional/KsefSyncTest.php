@@ -15,7 +15,11 @@ use App\Enum\InvoiceStatus;
 use App\Enum\NotificationType;
 use App\Ksef\Dto\MetadataQuery;
 use App\Ksef\Fake\Fa3Builder;
+use App\Ksef\Fake\FakeKsefClient;
+use App\Ksef\Http\HttpKsefClient;
+use App\Ksef\KsefClientSelector;
 use App\Ksef\KsefException;
+use App\Ksef\KsefIdentity;
 use App\Ksef\SubjectType;
 use App\Settings\SettingKey;
 use App\Settings\Settings;
@@ -227,6 +231,55 @@ final class KsefSyncTest extends FunctionalTestCase
 
         self::assertSame(['FV/1/2026', 'PET/1/2026'], $this->invoiceNumbers());
         self::assertFalse($this->lastSync()->isFailed());
+    }
+
+    public function testSimulatorRefusesFarmWithProductionEnvironment(): void
+    {
+        $owner = UserFactory::owner();
+        $this->service(Settings::class)->set(SettingKey::KSEF_ENVIRONMENT, 'prod');
+        $this->addInvoice($this->costInvoice('PET/1/2026', '2026-05-04')->item('ON', 'l', 100, 5));
+
+        $this->syncKsef();
+
+        self::assertSame([], $this->invoiceNumbers());
+        self::assertStringContainsString('KSEF_CLIENT=fake', (string) $this->lastSync()->getError());
+        self::assertSame([], $this->service(Settings::class)->get(SettingKey::KSEF_CURSORS), 'Symulator nie może przesunąć kursora produkcyjnego gospodarstwa');
+
+        $this->loginAs($owner);
+        $this->client->request('GET', '/ustawienia/ksef');
+        self::assertSelectorTextContains('.alert-danger', 'KSEF_CLIENT=fake');
+    }
+
+    public function testClientModeMustBeHttpOrFake(): void
+    {
+        $settings = $this->service(Settings::class);
+        $selector = fn (string $mode): KsefClientSelector => new KsefClientSelector($this->service(HttpKsefClient::class), $this->service(FakeKsefClient::class), $this->service(KsefIdentity::class), $mode);
+
+        self::assertStringContainsString('„true”', (string) $selector('true')->configurationError());
+        self::assertNull($selector('http')->configurationError());
+        self::assertNull($selector('fake')->configurationError());
+
+        $settings->set(SettingKey::KSEF_ENVIRONMENT, 'prod');
+        self::assertNull($selector('http')->configurationError());
+        self::assertNotNull($selector('fake')->configurationError());
+    }
+
+    public function testCursorFromOtherSourceIsDiscarded(): void
+    {
+        $settings = $this->service(Settings::class);
+        $now = (new \DateTimeImmutable())->format(\DATE_ATOM);
+        $this->fakeKsef()->add($this->costInvoice('PET/1/2026', '2026-05-04')->item('ON', 'l', 100, 5)->toXml(), new \DateTimeImmutable('-30 days'));
+
+        // Kursor z tego samego źródła obowiązuje – starsza faktura jest już „za nim”.
+        $settings->set(SettingKey::KSEF_CURSORS, ['source' => $this->service(KsefClientSelector::class)->source(), 'Subject1' => $now, 'Subject2' => $now]);
+        $this->syncKsef();
+        self::assertSame([], $this->invoiceNumbers());
+
+        // Kursor bez źródła (zapisany przed tą zmianą) albo z innego źródła – pobieramy od daty początkowej.
+        $settings->set(SettingKey::KSEF_CURSORS, ['Subject1' => $now, 'Subject2' => $now]);
+        $this->syncKsef();
+        self::assertSame(['PET/1/2026'], $this->invoiceNumbers());
+        self::assertSame($this->service(KsefClientSelector::class)->source(), $settings->get(SettingKey::KSEF_CURSORS)['source'] ?? null);
     }
 
     public function testErrorIsRecordedAndNotified(): void

@@ -41,6 +41,7 @@ class KsefSynchronizer
 
     public function __construct(
         private readonly KsefClient $client,
+        private readonly KsefClientSelector $clients,
         private readonly InvoiceImporter $importer,
         private readonly Settings $settings,
         private readonly KsefIdentity $identity,
@@ -114,6 +115,11 @@ class KsefSynchronizer
             if (!$this->isConfigured()) {
                 throw new KsefException('Uzupełnij NIP gospodarstwa i token w ustawieniach KSeF.');
             }
+            $problem = $this->clients->configurationError();
+            if (null !== $problem) {
+                throw new KsefException($problem);
+            }
+            $this->discardCursorsFromOtherSource();
 
             // Każda rola ma własny kursor, więc błąd jednej nie wstrzymuje drugiej. Wyjątek: limit zapytań
             // i zamknięty EntityManager – wtedy dalsze zapytania i tak by się nie udały.
@@ -247,6 +253,24 @@ class KsefSynchronizer
             }
             $from = $windowEnd;
         }
+    }
+
+    /**
+     * Kursor dotyczy źródła, z którego go ustalono (klient, środowisko, NIP). Gdy źródło jest inne – albo nieznane,
+     * bo kursor zapisano przed tą zmianą – pobieramy od daty początkowej; już zapisane faktury pomija deduplikacja.
+     */
+    private function discardCursorsFromOtherSource(): void
+    {
+        $source = $this->clients->source();
+        $cursors = (array) $this->settings->get(SettingKey::KSEF_CURSORS);
+        if (($cursors['source'] ?? null) === $source) {
+            return;
+        }
+
+        if ([] !== $cursors) {
+            $this->logger->notice('Zmieniło się źródło faktur KSeF – pobieranie od daty początkowej.', ['previous' => $cursors['source'] ?? null, 'current' => $source]);
+        }
+        $this->settings->set(SettingKey::KSEF_CURSORS, ['source' => $source], false);
     }
 
     private function describe(\Throwable $e): string

@@ -344,7 +344,7 @@ final class HttpKsefClient implements KsefClient
 
     private function environment(): KsefEnvironment
     {
-        return KsefEnvironment::tryFrom((string) $this->settings->string(SettingKey::KSEF_ENVIRONMENT)) ?? KsefEnvironment::Test;
+        return $this->identity->environment();
     }
 
     private function nip(): string

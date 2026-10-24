@@ -8,6 +8,8 @@ use App\Entity\Farm;
 use App\Farm\FarmRunner;
 use App\Invoice\InvoiceXmlService;
 use App\Ksef\KsefClient;
+use App\Ksef\KsefClientMode;
+use App\Ksef\KsefClientSelector;
 use App\Ksef\KsefIdentity;
 use App\Ksef\KsefSynchronizer;
 use App\Repository\FarmRepository;
@@ -38,6 +40,7 @@ final class KsefTestCommand
         private readonly InvoiceRepository $invoices,
         private readonly InvoiceXmlService $xml,
         private readonly EntityManagerInterface $em,
+        private readonly KsefClientSelector $clients,
         #[Autowire('%env(KSEF_CLIENT)%')]
         private readonly string $clientType,
     ) {
@@ -45,7 +48,7 @@ final class KsefTestCommand
 
     public function __invoke(SymfonyStyle $io, #[Option(description: 'Tylko to gospodarstwo (id)')] ?int $farm = null, #[Option(description: 'Po teście pobierz nowe faktury')] bool $sync = false, #[Option(description: 'Pobierz XML faktury o tym id i pokaż pozycje')] ?int $xml = null): int
     {
-        $io->writeln(\sprintf('Klient KSeF: <info>%s</info>%s', $this->clientType, 'fake' === $this->clientType ? ' (symulator – ustaw KSEF_CLIENT=http, żeby łączyć się z prawdziwym API)' : ''));
+        $io->writeln(\sprintf('Klient KSeF: <info>%s</info>%s', $this->clientType, KsefClientMode::Fake === $this->clients->mode() ? ' (symulator – ustaw KSEF_CLIENT=http, żeby łączyć się z prawdziwym API)' : ''));
 
         $failed = false;
         foreach (null === $farm ? $this->farms->findBy([], ['id' => 'ASC']) : array_filter([$this->farms->find($farm)]) as $entity) {
@@ -58,6 +61,13 @@ final class KsefTestCommand
                 }
 
                 $io->writeln(\sprintf('Środowisko: %s, NIP: %s', $this->settings->get(SettingKey::KSEF_ENVIRONMENT), $this->identity->nip() ?? '—'));
+                $problem = $this->clients->configurationError();
+                if (null !== $problem) {
+                    $failed = true;
+                    $io->error($problem);
+
+                    return;
+                }
                 try {
                     $io->success($this->client->testConnection());
                     if ($sync) {

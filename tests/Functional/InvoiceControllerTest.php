@@ -321,7 +321,7 @@ final class InvoiceControllerTest extends FunctionalTestCase
         self::assertStringContainsString('po terminie', implode(' ', $titles));
 
         $this->loginAs($owner);
-        $this->client->request('GET', '/');
+        $this->client->request('GET', '/?edycja=1');
         self::assertSelectorTextContains('#attention-title', 'Wymaga uwagi');
         self::assertSelectorTextContains('main', 'LATE');
     }

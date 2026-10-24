@@ -54,7 +54,7 @@ final class MachineTest extends FunctionalTestCase
         $this->client->request('GET', '/maszyny');
         self::assertSelectorTextContains('tbody', 'John Deere 6155M');
 
-        $this->client->request('GET', '/');
+        $this->client->request('GET', '/?edycja=1');
         self::assertSelectorTextContains('main', 'Ubezpieczenie');
         self::assertSelectorTextContains('main', 'John Deere 6155M (CCH 45KL)');
         self::assertSelectorTextContains('main', 'za 14 dni');
@@ -189,7 +189,7 @@ final class MachineTest extends FunctionalTestCase
         self::assertSame('FV/BLISKO', $service?->getInvoice()?->getNumber());
         self::assertCount(1, $service->getParts());
 
-        $this->client->request('GET', '/');
+        $this->client->request('GET', '/?edycja=1');
         self::assertSelectorTextContains('main', 'wymiana oleju');
 
         $this->useFarm();

@@ -1,5 +1,6 @@
 import { Controller } from '@hotwired/stimulus';
 import * as Turbo from '@hotwired/turbo';
+import { skeleton } from '../skeleton.js';
 
 /*
  * Wyszukiwarka globalna: Ctrl+K lub "/" otwiera okno, strzałki wybierają wynik, Enter przechodzi.
@@ -60,6 +61,10 @@ export default class extends Controller {
 
         const abort = this.abort;
         this.dialogTarget.classList.add('is-loading');
+        // Pierwsze wyniki: szkielet listy. Kolejne zapytania zostawiają poprzednie wyniki do czasu przyjścia nowych.
+        if (q.length >= 2 && this.items().length === 0) {
+            this.resultsTarget.innerHTML = skeleton('search');
+        }
         try {
             const response = await fetch(url, { signal: abort.signal, headers: { 'X-Requested-With': 'fetch' } });
             this.resultsTarget.innerHTML = await response.text();

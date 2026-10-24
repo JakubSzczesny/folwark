@@ -69,7 +69,7 @@
         </div>
     </section>
 
-    <turbo-frame id="machine-tab" data-turbo-action="advance">
+    <turbo-frame id="machine-tab" data-turbo-action="advance" data-controller="tabs" data-action="turbo:frame-load->tabs#frameLoaded">
         <nav class="tabs" aria-label="Sekcje maszyny">
             <a href="{{ path('app_machine_show', {id: machine.id}) }}" class="tab {{ tab == 'info' ? 'tab-active' }}">Informacje</a>
             <a href="{{ path('app_machine_service', {id: machine.id}) }}" class="tab {{ tab == 'service' ? 'tab-active' }}">Serwis</a>

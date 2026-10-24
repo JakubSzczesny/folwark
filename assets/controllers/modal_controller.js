@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { skeleton } from '../skeleton.js';
 
 /*
  * Okno dialogowe z ramką Turbo "modal". Link z data-turbo-frame="modal" ładuje treść
@@ -22,12 +23,12 @@ export default class extends Controller {
                 this.close();
             }
         };
-        // Okno otwiera się od razu z kropkami ładowania, zanim przyjdzie treść.
+        // Okno otwiera się od razu ze szkieletem, zanim przyjdzie treść.
         this.onFetch = (event) => {
             if (event.target !== this.frameTarget || this.dialogTarget.open) {
                 return;
             }
-            this.frameTarget.innerHTML = '<div class="flex items-center justify-center p-12" role="status" aria-label="Wczytywanie"><span class="dots dots-lg" aria-hidden="true"><span></span><span></span><span></span></span></div>';
+            this.frameTarget.innerHTML = skeleton('modal');
             this.dialogTarget.showModal();
         };
         document.addEventListener('turbo:frame-load', this.onLoad);

@@ -33,7 +33,7 @@
         {% endif %}
     </section>
 
-    <turbo-frame id="product-tab" data-turbo-action="advance">
+    <turbo-frame id="product-tab" data-turbo-action="advance" data-controller="tabs" data-action="turbo:frame-load->tabs#frameLoaded">
         <nav class="tabs" aria-label="Sekcje towaru">
             <a href="{{ path('app_product_show', {id: product.id}) }}" class="tab {{ tab == 'purchases' ? 'tab-active' }}">Zakupy</a>
             <a href="{{ path('app_product_suppliers', {id: product.id}) }}" class="tab {{ tab == 'suppliers' ? 'tab-active' }}">Dostawcy</a>

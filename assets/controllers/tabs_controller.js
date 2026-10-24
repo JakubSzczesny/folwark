@@ -10,15 +10,22 @@ export default class extends Controller {
     connect() {
         this.onFetch = (event) => this.fetching(event);
         this.onFail = () => this.restore();
-        // Migawka strony dla przycisku Wstecz nie może zapamiętać przełączania w toku.
-        document.addEventListener('turbo:before-cache', this.onFail);
+        // Turbo kopiuje ramkę dla przycisku Wstecz tuż przed wstawieniem nowej treści – kopia ma mieć
+        // stan sprzed przełączenia, nie szkielet i nową zakładkę.
+        this.element.addEventListener('turbo:before-frame-render', this.onFail);
+        // Strona odtworzona z pamięci podręcznej mogła zapamiętać przełączanie w toku.
+        if (this.element.classList.contains('is-switching')) {
+            this.element.classList.remove('is-switching');
+            this.element.querySelector('[data-tab-skeleton]')?.remove();
+            this.syncWithLocation();
+        }
         this.element.addEventListener('turbo:before-fetch-request', this.onFetch);
         this.element.addEventListener('turbo:fetch-request-error', this.onFail);
         this.element.addEventListener('turbo:frame-missing', this.onFail);
     }
 
     disconnect() {
-        document.removeEventListener('turbo:before-cache', this.onFail);
+        this.element.removeEventListener('turbo:before-frame-render', this.onFail);
         this.element.removeEventListener('turbo:before-fetch-request', this.onFetch);
         this.element.removeEventListener('turbo:fetch-request-error', this.onFail);
         this.element.removeEventListener('turbo:frame-missing', this.onFail);
@@ -29,12 +36,7 @@ export default class extends Controller {
         if (event.target !== this.element) {
             return;
         }
-        const url = new URL(event.detail.url, window.location.origin);
-        const tab = Array.from(this.element.querySelectorAll(':scope > .tabs a.tab'))
-            .find((link) => {
-                const href = new URL(link.href, window.location.origin);
-                return href.pathname === url.pathname && href.search === url.search;
-            });
+        const tab = this.tabFor(event.detail.url);
         if (!tab || tab.classList.contains('tab-active')) {
             return;
         }
@@ -55,6 +57,21 @@ export default class extends Controller {
         this.element.querySelector('[data-tab-skeleton]')?.remove();
         this.element.querySelector('a.tab.tab-active')?.classList.remove('tab-active');
         this.previous?.classList.add('tab-active');
+    }
+
+    syncWithLocation() {
+        const tab = this.tabFor(window.location.href);
+        if (tab) {
+            this.element.querySelectorAll(':scope > .tabs a.tab').forEach((link) => link.classList.toggle('tab-active', link === tab));
+        }
+    }
+
+    tabFor(address) {
+        const url = new URL(address, window.location.origin);
+        return Array.from(this.element.querySelectorAll(':scope > .tabs a.tab')).find((link) => {
+            const href = new URL(link.href, window.location.origin);
+            return href.pathname === url.pathname && href.search === url.search;
+        });
     }
 
     frameLoaded() {

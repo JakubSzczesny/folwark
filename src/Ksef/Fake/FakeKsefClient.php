@@ -29,6 +29,12 @@ class FakeKsefClient implements KsefClient, ResetInterface
 
     private int $requests = 0;
 
+    /** @var (\Closure(MetadataQuery): ?KsefException)|null */
+    private ?\Closure $failure = null;
+
+    /** @var array<string, true> */
+    private array $unreadable = [];
+
     public function __construct(
         #[Autowire('%env(resolve:KSEF_FAKE_DIR)%')]
         private readonly string $directory,
@@ -46,6 +52,28 @@ class FakeKsefClient implements KsefClient, ResetInterface
         return $ksefNumber;
     }
 
+    /**
+     * Awaria KSeF w testach: wyjątek zwrócony przez $failure zastępuje odpowiedź na zapytanie (null – zapytanie przechodzi).
+     *
+     * @param (\Closure(MetadataQuery): ?KsefException)|null $failure
+     */
+    public function failWhen(?\Closure $failure): void
+    {
+        $this->failure = $failure;
+    }
+
+    /**
+     * Pozycja, której metadanych klient nie potrafi odczytać – trafia do odrzuconych, tak jak w HttpKsefClient.
+     */
+    public function markUnreadable(string $ksefNumber, bool $unreadable = true): void
+    {
+        if ($unreadable) {
+            $this->unreadable[$ksefNumber] = true;
+        } else {
+            unset($this->unreadable[$ksefNumber]);
+        }
+    }
+
     public function requestCount(): int
     {
         return $this->requests;
@@ -54,6 +82,11 @@ class FakeKsefClient implements KsefClient, ResetInterface
     public function queryMetadata(MetadataQuery $query): MetadataPage
     {
         ++$this->requests;
+        $failure = null !== $this->failure ? ($this->failure)($query) : null;
+        if (null !== $failure) {
+            throw $failure;
+        }
+
         $contextNip = $this->identity->nip();
         $to = $query->to ?? new \DateTimeImmutable();
 
@@ -73,8 +106,14 @@ class FakeKsefClient implements KsefClient, ResetInterface
 
         usort($matching, static fn (InvoiceMetadata $a, InvoiceMetadata $b): int => [$a->permanentStorageDate, $a->ksefNumber] <=> [$b->permanentStorageDate, $b->ksefNumber]);
         $page = \array_slice($matching, $query->pageOffset * $query->pageSize, $query->pageSize);
+        $rejected = array_values(array_map(
+            static fn (InvoiceMetadata $m): string => $m->ksefNumber.' (nieczytelne metadane)',
+            array_filter($page, fn (InvoiceMetadata $m): bool => isset($this->unreadable[$m->ksefNumber])),
+        ));
+        $page = array_values(array_filter($page, fn (InvoiceMetadata $m): bool => !isset($this->unreadable[$m->ksefNumber])));
 
-        return new MetadataPage($page, ($query->pageOffset + 1) * $query->pageSize < \count($matching), false, $to);
+        // Jak w KSeF: HWM to punkt kompletności całego systemu (tu: teraz), niezależny od końca okna zapytania.
+        return new MetadataPage($page, ($query->pageOffset + 1) * $query->pageSize < \count($matching), false, new \DateTimeImmutable(), $rejected);
     }
 
     public function downloadInvoice(string $ksefNumber): string

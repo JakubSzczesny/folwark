@@ -13,6 +13,12 @@ use App\Entity\Notification;
 use App\Enum\InvoiceKind;
 use App\Enum\InvoiceStatus;
 use App\Enum\NotificationType;
+use App\Ksef\Dto\MetadataQuery;
+use App\Ksef\Fake\Fa3Builder;
+use App\Ksef\KsefException;
+use App\Ksef\SubjectType;
+use App\Settings\SettingKey;
+use App\Settings\Settings;
 use App\Tests\Factory\FarmFactory;
 use App\Tests\Factory\UserFactory;
 use Doctrine\ORM\EntityManagerInterface;
@@ -128,7 +134,7 @@ final class KsefSyncTest extends FunctionalTestCase
         $this->em->persist((new InvoiceRule())->setContractorNip($energyNip));
         $this->em->flush();
 
-        $this->fakeKsef()->add(\App\Ksef\Fake\Fa3Builder::invoice(self::FARM_NIP, 'Gospodarstwo testowe', '1131000001', 'Mleczarnia', 'FV/1/2026', new \DateTimeImmutable('2026-05-10'))
+        $this->fakeKsef()->add(Fa3Builder::invoice(self::FARM_NIP, 'Gospodarstwo testowe', '1131000001', 'Mleczarnia', 'FV/1/2026', new \DateTimeImmutable('2026-05-10'))
             ->item('Mleko surowe', 'l', 50000, 2.2, '5')->toXml(), new \DateTimeImmutable('2026-05-10 12:00'));
         $this->addInvoice($this->costInvoice('ENE/1/2026', '2026-05-05', $energyNip, 'Energa')->item('Energia', 'kWh', 5000, 0.7));
 
@@ -159,6 +165,70 @@ final class KsefSyncTest extends FunctionalTestCase
         self::assertSame('PET/1/2026', $correction->getCorrectedInvoice()?->getNumber());
     }
 
+    public function testBackfillInterruptedInLaterWindowResumesFromThatWindow(): void
+    {
+        $start = (new \DateTimeImmutable('-200 days'))->setTime(0, 0);
+        $this->service(Settings::class)->set(SettingKey::KSEF_SYNC_FROM, $start->format('Y-m-d'));
+        foreach (['A' => 10, 'B' => 120, 'C' => 190] as $suffix => $days) {
+            $date = $start->modify(\sprintf('+%d days', $days));
+            $this->fakeKsef()->add($this->costInvoice('PET/'.$suffix, $date->format('Y-m-d'))->item('ON', 'l', 100, 5)->toXml(), $date->setTime(12, 0));
+        }
+
+        // Pierwsze okno 90-dniowe przechodzi, drugie trafia na awarię KSeF.
+        $secondWindow = $start->modify(\sprintf('+%d days', MetadataQuery::MAX_RANGE_DAYS));
+        $this->fakeKsef()->failWhen(static fn (MetadataQuery $q): ?KsefException => $q->from >= $secondWindow ? new KsefException('KSeF jest chwilowo niedostępny.') : null);
+        $this->syncKsef();
+
+        self::assertSame(['PET/A'], $this->invoiceNumbers());
+        self::assertTrue($this->lastSync()->isFailed());
+
+        $this->fakeKsef()->failWhen(null);
+        $this->syncKsef();
+
+        self::assertSame(['PET/A', 'PET/B', 'PET/C'], $this->invoiceNumbers(), 'Kursor nie może przeskoczyć okien, których nie pobrano');
+        self::assertFalse($this->lastSync()->isFailed());
+    }
+
+    public function testUnreadableInvoiceDoesNotBlockOthersAndIsRetried(): void
+    {
+        $broken = $this->fakeKsef()->add($this->costInvoice('PET/1/2026', '2026-05-04')->item('ON', 'l', 100, 5)->toXml(), new \DateTimeImmutable('-2 days'));
+        $this->fakeKsef()->add($this->costInvoice('PET/2/2026', '2026-05-05')->item('ON', 'l', 100, 5)->toXml(), new \DateTimeImmutable('-1 day'));
+        $this->fakeKsef()->markUnreadable($broken);
+
+        $this->syncKsef();
+        $this->addInvoice($this->costInvoice('PET/3/2026', '2026-05-06')->item('ON', 'l', 100, 5));
+        $this->syncKsef();
+
+        self::assertSame(['PET/2/2026', 'PET/3/2026'], $this->invoiceNumbers(), 'Nieczytelna pozycja nie wstrzymuje kolejnych');
+        self::assertStringContainsString($broken, (string) $this->lastSync()->getError());
+
+        $this->fakeKsef()->markUnreadable($broken, false);
+        $this->syncKsef();
+
+        self::assertSame(['PET/1/2026', 'PET/2/2026', 'PET/3/2026'], $this->invoiceNumbers(), 'Odrzucona pozycja jest ponawiana, aż się uda');
+        self::assertFalse($this->lastSync()->isFailed());
+    }
+
+    public function testSalesAreSyncedWhenPurchaseQueryFails(): void
+    {
+        $this->fakeKsef()->add(Fa3Builder::invoice(self::FARM_NIP, 'Gospodarstwo testowe', '1131000001', 'Mleczarnia', 'FV/1/2026', new \DateTimeImmutable('2026-05-10'))
+            ->item('Mleko surowe', 'l', 50000, 2.2, '5')->toXml());
+        $this->addInvoice($this->costInvoice('PET/1/2026', '2026-05-04')->item('ON', 'l', 100, 5));
+        $this->fakeKsef()->failWhen(static fn (MetadataQuery $q): ?KsefException => SubjectType::Buyer === $q->subjectType ? new KsefException('Brak uprawnień do faktur zakupowych.') : null);
+
+        $this->syncKsef();
+
+        self::assertSame(['FV/1/2026'], $this->invoiceNumbers());
+        self::assertSame('Brak uprawnień do faktur zakupowych.', $this->lastSync()->getError());
+        self::assertSame(1, $this->lastSync()->getNewCount());
+
+        $this->fakeKsef()->failWhen(null);
+        $this->syncKsef();
+
+        self::assertSame(['FV/1/2026', 'PET/1/2026'], $this->invoiceNumbers());
+        self::assertFalse($this->lastSync()->isFailed());
+    }
+
     public function testErrorIsRecordedAndNotified(): void
     {
         $farm = FarmFactory::createOne(['nip' => null]);
@@ -170,5 +240,21 @@ final class KsefSyncTest extends FunctionalTestCase
         $sync = $this->em->getRepository(KsefSync::class)->findOneBy([]);
         self::assertTrue($sync?->isFailed());
         self::assertSame(1, $this->em->getRepository(Notification::class)->count(['user' => $owner, 'type' => NotificationType::KsefError]));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function invoiceNumbers(): array
+    {
+        return array_values(array_map(static fn (Invoice $i): string => $i->getNumber(), $this->em->getRepository(Invoice::class)->findBy([], ['number' => 'ASC'])));
+    }
+
+    private function lastSync(): KsefSync
+    {
+        $sync = $this->em->getRepository(KsefSync::class)->findOneBy([], ['id' => 'DESC']);
+        self::assertNotNull($sync);
+
+        return $sync;
     }
 }

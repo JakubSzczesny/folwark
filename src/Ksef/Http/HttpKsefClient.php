@@ -61,16 +61,25 @@ final class HttpKsefClient implements KsefClient
             'json' => ['subjectType' => $query->subjectType->value, 'dateRange' => $dateRange],
         ]);
 
-        $invoices = array_map(
-            static fn (array $row): InvoiceMetadata => InvoiceMetadata::fromApi($row),
-            array_values($data['invoices'] ?? []),
-        );
+        // Jedna nietypowa pozycja nie może zatrzymać całej strony – odrzucone zgłaszamy, a synchronizacja je ponawia.
+        $invoices = [];
+        $rejected = [];
+        foreach (array_values($data['invoices'] ?? []) as $row) {
+            try {
+                $invoices[] = InvoiceMetadata::fromApi((array) $row);
+            } catch (\Throwable $e) {
+                $ksefNumber = \is_array($row) && isset($row['ksefNumber']) && \is_scalar($row['ksefNumber']) ? (string) $row['ksefNumber'] : 'bez numeru KSeF';
+                $this->logger->error('Nie udało się odczytać metadanych faktury {number} z KSeF.', ['number' => $ksefNumber, 'exception' => $e]);
+                $rejected[] = \sprintf('%s (%s)', $ksefNumber, $e->getMessage());
+            }
+        }
 
         return new MetadataPage(
             $invoices,
             (bool) ($data['hasMore'] ?? false),
             (bool) ($data['isTruncated'] ?? false),
             isset($data['permanentStorageHwmDate']) ? new \DateTimeImmutable((string) $data['permanentStorageHwmDate']) : null,
+            $rejected,
         );
     }
 

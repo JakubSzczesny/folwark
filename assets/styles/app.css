@@ -99,6 +99,11 @@
         @apply bg-white border-szary-200 text-blad hover:bg-blad-tlo hover:text-blad;
     }
 
+    /* Potwierdzenie nieodwracalnej akcji (usuwanie) – pełny czerwony przycisk. */
+    .btn-danger-solid {
+        @apply bg-blad border-blad text-white hover:bg-[#962019] hover:border-[#962019] hover:text-white;
+    }
+
     .btn-sm {
         @apply px-3 text-sm;
         min-height: 40px;
@@ -1290,6 +1295,67 @@ turbo-frame.is-switching[busy]::after {
 
 @media (prefers-reduced-motion: reduce) {
     .skeleton {
+        animation: none;
+    }
+}
+
+/* Okno potwierdzenia (assets/confirm.js). */
+.confirm-dialog {
+    margin: 0 auto;
+    margin-top: 18vh;
+    width: calc(100% - 2rem);
+    max-width: 460px;
+    padding: 0;
+    border: 1px solid var(--color-szary-200);
+    border-radius: var(--radius-ui);
+    background: var(--color-bialy);
+    color: var(--color-tekst);
+    box-shadow: 0 24px 48px rgb(36 40 44 / 0.22);
+    overflow: hidden;
+}
+
+.confirm-dialog::backdrop {
+    background: rgb(36 40 44 / 0.4);
+    backdrop-filter: blur(2px);
+}
+
+.confirm-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 9999px;
+    background: var(--color-blad-tlo);
+    color: var(--color-blad);
+}
+
+.confirm-icon[hidden] {
+    display: none !important;
+}
+
+/* Wszystkie okna (formularze, wyszukiwarka, potwierdzenie) wchodzą tak samo jak podgląd: lekko z dołu. */
+@keyframes dialog-in {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes backdrop-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+dialog[open] {
+    animation: dialog-in 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+dialog[open]::backdrop {
+    animation: backdrop-in 180ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    dialog[open], dialog[open]::backdrop {
         animation: none;
     }
 }

@@ -219,6 +219,7 @@ final class ProductController extends AbstractController
                 $factor = $item instanceof InvoiceItem && $item->getInvoice()->getFarm()?->getId() === $product->getFarm()?->getId()
                     ? $units->factor($item->getName(), $item->getUnit(), $product)
                     : null;
+                $this->addFlash('success', \sprintf('Dodano towar „%s”.', $product->getName()));
 
                 return $this->render('product/_created.stream.html.twig', ['product' => $product, 'row' => $request->query->getString('wiersz'), 'factor' => $factor]);
             }

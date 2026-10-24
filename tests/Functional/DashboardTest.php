@@ -31,7 +31,8 @@ final class DashboardTest extends FunctionalTestCase
         self::assertSame(['chart', 'tiles'], $this->widgets($crawler));
 
         $this->client->submit($crawler->filter('form[action="/pulpit/widzety/przywroc"]')->form());
-        $crawler = $this->client->followRedirect();
+        $this->client->followRedirect();
+        $crawler = $this->client->request('GET', '/?edycja=1');
         self::assertSame(['attention'], $this->widgets($crawler));
     }
 

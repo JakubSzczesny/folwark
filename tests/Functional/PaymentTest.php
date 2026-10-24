@@ -50,7 +50,7 @@ final class PaymentTest extends FunctionalTestCase
         self::assertSelectorExists('script[data-bspay-transfer]');
         self::assertSelectorTextContains('turbo-frame#modal', $invoice->getNumber());
 
-        $crawler = $this->client->request('GET', '/');
+        $crawler = $this->client->request('GET', '/?edycja=1');
         $menu = $crawler->filter('.attention-row template[data-context-menu]');
         self::assertGreaterThan(0, $menu->count());
         self::assertStringContainsString(\sprintf('/faktury/%d/oplacona?z=pulpit', $invoice->getId()), $crawler->filter('[data-widget="attention"]')->html());
@@ -71,7 +71,7 @@ final class PaymentTest extends FunctionalTestCase
         InvoiceFactory::createMany(3, ['kind' => InvoiceKind::Cost]);
         $this->loginAs(UserFactory::owner());
 
-        $crawler = $this->client->request('GET', '/');
+        $crawler = $this->client->request('GET', '/?edycja=1');
         preg_match('~przeczytane\?z=pulpit"[^>]*>\s*<input type="hidden" name="_token" value="([^"]+)"~', $crawler->filter('[data-widget="attention"]')->html(), $token);
         $this->client->request('POST', '/faktury/przeczytane?z=pulpit', ['_token' => $token[1] ?? '']);
         self::assertResponseRedirects('/');
@@ -123,7 +123,7 @@ final class PaymentTest extends FunctionalTestCase
         self::assertCount(1, $button);
         self::assertSame(\sprintf('/faktury/%d/przelew.json', $invoice->getId()), $button->attr('data-bspay-send-url-value'));
 
-        $crawler = $this->client->request('GET', '/');
+        $crawler = $this->client->request('GET', '/?edycja=1');
         self::assertStringContainsString('data-controller="bspay-send"', $crawler->filter('[data-widget="attention"]')->html());
 
         $this->client->request('GET', \sprintf('/faktury/%d/przelew.json', $invoice->getId()));

@@ -10,12 +10,15 @@ export default class extends Controller {
     connect() {
         this.onFetch = (event) => this.fetching(event);
         this.onFail = () => this.restore();
+        // Migawka strony dla przycisku Wstecz nie może zapamiętać przełączania w toku.
+        document.addEventListener('turbo:before-cache', this.onFail);
         this.element.addEventListener('turbo:before-fetch-request', this.onFetch);
         this.element.addEventListener('turbo:fetch-request-error', this.onFail);
         this.element.addEventListener('turbo:frame-missing', this.onFail);
     }
 
     disconnect() {
+        document.removeEventListener('turbo:before-cache', this.onFail);
         this.element.removeEventListener('turbo:before-fetch-request', this.onFetch);
         this.element.removeEventListener('turbo:fetch-request-error', this.onFail);
         this.element.removeEventListener('turbo:frame-missing', this.onFail);

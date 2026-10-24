@@ -1,4 +1,5 @@
 import { Controller } from '@hotwired/stimulus';
+import { confirmAction } from '../confirm.js';
 
 /*
  * Zaznaczanie wierszy listy do akcji masowych: pola wyboru w wierszach, „cała strona”
@@ -99,8 +100,17 @@ export default class extends Controller {
             event.preventDefault();
             return;
         }
-        if (this.allMatching && !window.confirm(`Zmienić ${count} ${plural(count)}?`)) {
+        if (this.allMatching && !this.confirmed) {
             event.preventDefault();
+            const submitter = event.submitter;
+            confirmAction({ message: `Zmienić ${count} ${plural(count)}?`, confirmLabel: submitter?.textContent.trim() || 'Zmień' })
+                .then((ok) => {
+                    if (ok) {
+                        this.confirmed = true;
+                        this.formTarget.requestSubmit(submitter);
+                        this.confirmed = false;
+                    }
+                });
         }
     }
 

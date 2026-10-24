@@ -138,4 +138,18 @@
     </main>
 </div>
 {% endif %}
+
+{# Potwierdzenie akcji (assets/confirm.js) – zamiast systemowego okienka przeglądarki. #}
+<dialog id="confirm-dialog" class="confirm-dialog" aria-labelledby="confirm-dialog-message">
+    <form method="dialog">
+        <div class="flex gap-4 p-5">
+            <span class="confirm-icon" data-confirm-icon hidden>{{ ux_icon('lucide:triangle-alert', {width: 20, height: 20}) }}</span>
+            <p id="confirm-dialog-message" class="flex-1 pt-2 leading-relaxed" data-confirm-message></p>
+        </div>
+        <div class="flex flex-wrap justify-end gap-2 border-t border-szary-200 bg-szary-50 px-5 py-3">
+            <button type="submit" value="" class="btn btn-secondary" data-confirm-cancel>Anuluj</button>
+            <button type="submit" value="ok" class="btn btn-primary" data-confirm-accept>Potwierdź</button>
+        </div>
+    </form>
+</dialog>
 {% endblock %}

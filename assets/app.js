@@ -1,6 +1,7 @@
 import { StreamActions, visit } from '@hotwired/turbo';
 import './stimulus_bootstrap.js';
 import './loading.js';
+import './confirm.js';
 import './autocomplete_in_dialog.js';
 import './styles/app.css';
 

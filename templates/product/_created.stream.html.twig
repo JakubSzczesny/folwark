@@ -1,1 +1,2 @@
 <turbo-stream action="product_created" row="{{ row }}" product-id="{{ product.id }}" product-label="{{ product.name }}{{ product.unitSymbol ? ' [' ~ product.unitSymbol ~ ']' }}" unit="{{ product.unitSymbol }}" factor="{{ factor is not null ? factor : '' }}"></turbo-stream>
+{{ include('_partials/toasts.stream.html.twig') }}

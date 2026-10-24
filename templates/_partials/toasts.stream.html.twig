@@ -1,0 +1,6 @@
+{# Komunikaty po akcji, która odpowiada strumieniem Turbo (bez przeładowania strony) – dopinane do treści jak przy zwykłym wejściu. #}
+{% if app.session.started and app.session.flashBag.peekAll is not empty %}
+    <turbo-stream action="append" target="main">
+        <template>{{ include('_partials/flashes.html.twig') }}</template>
+    </turbo-stream>
+{% endif %}

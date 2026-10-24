@@ -10,7 +10,7 @@
 {% endblock %}
 
 {% block content %}
-    <twig:PageHeader title="{{ title }}" back="{{ path('app_calendar_index', {miesiac: event.startDate ? event.startDate|date('Y-m')}) }}" />
+    <twig:PageHeader title="{{ title }}" back="{{ path('app_calendar_index', {miesiac: event.startDate ? event.startDate|date('Y-m')}) }}" backLabel="Kalendarz" />
     <div class="card card-body max-w-2xl">
         {{ include('calendar/_form.html.twig') }}
     </div>

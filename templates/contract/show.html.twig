@@ -5,7 +5,7 @@
 {% block active_menu %}contracts{% endblock %}
 
 {% block content %}
-    <twig:PageHeader title="Umowa {{ contract.number }}" subtitle="{{ contract.subject }}" back="{{ path('app_contract_index') }}">
+    <twig:PageHeader title="Umowa {{ contract.number }}" subtitle="{{ contract.subject }}" back="{{ path('app_contract_index') }}" backLabel="Umowy">
         {% if is_granted('CONTRACT_EDIT') %}
             <a href="{{ path('app_contract_edit', {id: contract.id}) }}" class="btn btn-primary">{{ ux_icon('lucide:pencil') }} Edytuj</a>
         {% endif %}
@@ -29,7 +29,7 @@
                 <section class="card">
                     <div class="card-header"><h2 class="card-title">Faktury</h2></div>
                     {% if invoices is empty %}
-                        <p class="px-4 py-6 text-sm text-antracyt-500">Żadna faktura nie jest przypisana do tej umowy.</p>
+                        <twig:EmptyState compact text="Żadna faktura nie jest przypisana do tej umowy." icon="file-text" />
                     {% else %}
                         <div class="table-wrap">
                             <table class="table table-cards">

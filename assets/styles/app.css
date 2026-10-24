@@ -236,6 +236,12 @@
         accent-color: var(--color-zielen-600);
     }
 
+    /* Pole wyboru z etykietą w pasku filtrów i formularzach – ta sama wysokość co pola obok. */
+    .check-label {
+        @apply inline-flex items-center gap-2 cursor-pointer;
+        min-height: 40px;
+    }
+
     .form-grid {
         @apply grid gap-x-4 sm:grid-cols-2;
     }
@@ -446,6 +452,16 @@
 
     .empty-state {
         @apply flex flex-col items-center justify-center gap-3 py-12 px-4 text-center text-antracyt-500;
+    }
+
+    .empty-state-compact {
+        @apply flex items-center gap-3 px-4 py-5 text-sm text-antracyt-500;
+    }
+
+    .empty-state-icon {
+        @apply inline-flex shrink-0 items-center justify-center rounded-full bg-szary-100 text-antracyt-500;
+        width: 36px;
+        height: 36px;
     }
 
     .alert {

@@ -4,7 +4,7 @@
 {% block active_menu %}invoices{% endblock %}
 
 {% block content %}
-    <twig:PageHeader title="Przypisz towary" subtitle="{{ invoice.number }} · {{ invoice.contractorLabel }} · {{ invoice.issueDate|pl_date }}" back="{{ path('app_invoice_show', {id: invoice.id}) }}" />
+    <twig:PageHeader title="Przypisz towary" subtitle="{{ invoice.number }} · {{ invoice.contractorLabel }} · {{ invoice.issueDate|pl_date }}" back="{{ path('app_invoice_show', {id: invoice.id}) }}" backLabel="Faktura" />
 
     {% if rows is empty %}
         <div class="card card-body">
@@ -26,7 +26,7 @@
             {% if rows|length > 1 %}
                 <div class="card card-body mb-4">
                     <div class="flex flex-wrap items-end gap-3">
-                        <label class="inline-flex items-center gap-2 cursor-pointer whitespace-nowrap" style="min-height:40px">
+                        <label class="check-label whitespace-nowrap">
                             <input type="checkbox" class="checkbox" data-assign-bulk-target="all" data-action="assign-bulk#toggleAll">
                             Zaznacz wszystkie
                         </label>
@@ -145,7 +145,7 @@
                                 </select>
                             </div>
 
-                            <label class="inline-flex items-center gap-2 cursor-pointer whitespace-nowrap" style="min-height:40px">
+                            <label class="check-label whitespace-nowrap">
                                 <input type="checkbox" class="checkbox" name="{{ name }}[skip]" value="1" {{ row.skip ? 'checked' }} data-assign-row-target="skip" data-action="assign-row#toggleSkip">
                                 Pomiń pozycję
                             </label>
@@ -159,7 +159,7 @@
                 <p class="mt-4 text-sm text-antracyt-500">Przyjęcie do magazynu: <a href="{{ path('app_document_show', {id: existing_pz.id}) }}">{{ existing_pz.label }}</a>.</p>
             {% elseif is_granted('DOCUMENT_EDIT') %}
                 <div class="card card-body mt-4 flex flex-wrap items-end gap-4">
-                    <label class="inline-flex items-center gap-2 cursor-pointer" style="min-height:40px">
+                    <label class="check-label">
                         <input type="checkbox" class="checkbox" name="pz" value="1" {{ create_pz ? 'checked' }} {{ warehouses is empty ? 'disabled' }}>
                         Utwórz też PZ
                     </label>

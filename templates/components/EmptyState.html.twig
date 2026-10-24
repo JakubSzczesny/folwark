@@ -1,8 +1,20 @@
-{% props text, actionLabel = null, actionUrl = null %}
-<div {{ attributes.defaults({class: 'empty-state'}) }}>
-    <p>{{ text }}</p>
-    {% if actionUrl %}
-        <a href="{{ actionUrl }}" class="btn btn-primary">{{ actionLabel }}</a>
-    {% endif %}
-    {% block content %}{% endblock %}
-</div>
+{# Pusty stan. Zwykły – na środku pustej listy; compact – w karcie lub widżecie: ikona, tekst i ewentualnie link w jednym wierszu. #}
+{% props text, actionLabel = null, actionUrl = null, compact = false, icon = 'inbox' %}
+{% if compact %}
+    <div {{ attributes.defaults({class: 'empty-state-compact'}) }}>
+        <span class="empty-state-icon">{{ ux_icon('lucide:' ~ icon) }}</span>
+        <p class="flex-1">{{ text }}</p>
+        {% if actionUrl %}
+            <a href="{{ actionUrl }}" class="font-semibold whitespace-nowrap">{{ actionLabel }}</a>
+        {% endif %}
+        {% block content %}{% endblock %}
+    </div>
+{% else %}
+    <div {{ attributes.defaults({class: 'empty-state'}) }}>
+        <p>{{ text }}</p>
+        {% if actionUrl %}
+            <a href="{{ actionUrl }}" class="btn btn-primary">{{ actionLabel }}</a>
+        {% endif %}
+        {{ block('content') }}
+    </div>
+{% endif %}

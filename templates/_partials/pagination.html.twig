@@ -5,12 +5,17 @@
         <span>{{ pager.firstIndex }}–{{ pager.lastIndex }} z {{ pager.total }}</span>
         {% if pager.pages > 1 %}
             <div class="flex items-center gap-2">
+                {# Na pierwszej i ostatniej stronie przycisk zostaje wyłączony, żeby pasek nie skakał. #}
                 {% if pager.hasPrevious %}
                     <a class="btn btn-secondary btn-sm" href="{{ path(route, params|merge({strona: pager.page - 1})) }}" rel="prev">{{ ux_icon('lucide:chevron-left') }} Poprzednia</a>
+                {% else %}
+                    <span class="btn btn-secondary btn-sm" aria-disabled="true">{{ ux_icon('lucide:chevron-left') }} Poprzednia</span>
                 {% endif %}
                 <span class="tabular-nums">Strona {{ pager.page }} z {{ pager.pages }}</span>
                 {% if pager.hasNext %}
                     <a class="btn btn-secondary btn-sm" href="{{ path(route, params|merge({strona: pager.page + 1})) }}" rel="next">Następna {{ ux_icon('lucide:chevron-right') }}</a>
+                {% else %}
+                    <span class="btn btn-secondary btn-sm" aria-disabled="true">Następna {{ ux_icon('lucide:chevron-right') }}</span>
                 {% endif %}
             </div>
         {% endif %}

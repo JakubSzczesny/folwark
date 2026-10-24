@@ -4,7 +4,7 @@
 {% block active_menu %}settings{% endblock %}
 
 {% block content %}
-    <twig:PageHeader title="Członkowie gospodarstwa" subtitle="{{ current_farm().name }}" back="{{ path('app_settings') }}" />
+    <twig:PageHeader title="Członkowie gospodarstwa" subtitle="{{ current_farm().name }}" back="{{ path('app_settings') }}" backLabel="Ustawienia" />
 
     <div class="grid gap-6 xl:grid-cols-[1fr_420px]">
         <section class="card">

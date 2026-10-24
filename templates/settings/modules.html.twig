@@ -4,7 +4,7 @@
 {% block active_menu %}settings{% endblock %}
 
 {% block content %}
-    <twig:PageHeader title="Moduły" subtitle="Wyłączony moduł znika z menu, wyszukiwarki i pulpitu, a jego ekrany są niedostępne. Dane zostają – po ponownym włączeniu wszystko wraca." back="{{ path('app_settings') }}" />
+    <twig:PageHeader title="Moduły" subtitle="Wyłączony moduł znika z menu, wyszukiwarki i pulpitu, a jego ekrany są niedostępne. Dane zostają – po ponownym włączeniu wszystko wraca." back="{{ path('app_settings') }}" backLabel="Ustawienia" />
     <div class="card card-body max-w-2xl">
         <form method="post">
             <input type="hidden" name="_token" value="{{ csrf_token('modules') }}">

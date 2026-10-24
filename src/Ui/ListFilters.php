@@ -15,6 +15,7 @@ use Symfony\Component\HttpFoundation\Request;
 /**
  * Filtry list żyją w adresie URL; ostatnio użyty zestaw zapamiętujemy per użytkownik.
  * Wejście na listę bez parametrów przywraca zapisane filtry, "?wyczysc=1" je kasuje.
+ * Parametry z $notRemembered działają tylko w bieżącym adresie i nie trafiają do zapisanego zestawu.
  */
 final class ListFilters
 {
@@ -27,7 +28,10 @@ final class ListFilters
     ) {
     }
 
-    public function restore(Request $request, string $listKey): ?RedirectResponse
+    /**
+     * @param list<string> $notRemembered
+     */
+    public function restore(Request $request, string $listKey, array $notRemembered = []): ?RedirectResponse
     {
         $user = $this->security->getUser();
         if (!$user instanceof User || !$request->isMethod('GET')) {
@@ -47,14 +51,17 @@ final class ListFilters
 
         $params = array_diff_key($request->query->all(), array_flip(self::IGNORED));
         if ([] === $params) {
-            if (null !== $saved && '' !== $saved->getQuery()) {
-                return new RedirectResponse($request->getPathInfo().'?'.$saved->getQuery());
+            parse_str($saved?->getQuery() ?? '', $savedParams);
+            // Zestawy zapisane, zanim parametr przestał być zapamiętywany, też go gubią.
+            $savedQuery = http_build_query(array_diff_key($savedParams, array_flip($notRemembered)));
+            if ('' !== $savedQuery) {
+                return new RedirectResponse($request->getPathInfo().'?'.$savedQuery);
             }
 
             return null;
         }
 
-        $query = http_build_query($params);
+        $query = http_build_query(array_diff_key($params, array_flip($notRemembered)));
         $saved ??= new SavedFilter($user, $listKey);
         if ($saved->getQuery() !== $query) {
             $saved->setQuery($query);

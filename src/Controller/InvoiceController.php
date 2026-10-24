@@ -52,6 +52,9 @@ final class InvoiceController extends AbstractController
 {
     private const string LIST_KEY = 'invoices';
 
+    /** Status nie jest zapamiętywany: wejście na listę zawsze pokazuje wszystkie statusy. */
+    private const array NOT_REMEMBERED = ['status'];
+
     public function __construct(
         private readonly InvoiceRepository $invoices,
         private readonly InvoiceActions $actions,
@@ -71,7 +74,7 @@ final class InvoiceController extends AbstractController
         KsefSyncRepository $syncs,
         InvoiceItemRepository $items,
     ): Response {
-        if ($redirect = $listFilters->restore($request, self::LIST_KEY)) {
+        if ($redirect = $listFilters->restore($request, self::LIST_KEY, self::NOT_REMEMBERED)) {
             return $redirect;
         }
 

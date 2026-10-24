@@ -57,6 +57,25 @@ final class InvoiceControllerTest extends FunctionalTestCase
         self::assertResponseRedirects('/faktury?rodzaj=zakupowe&okres=ten-rok&kontrahent='.$contractor->getId(), null, 'Filtry są zapamiętywane per użytkownik');
     }
 
+    public function testStatusFilterIsNotRememberedSoReadInvoicesStayOnTheList(): void
+    {
+        InvoiceFactory::createOne(['number' => 'K/nowa']);
+        $read = InvoiceFactory::createOne(['number' => 'K/przeczytana']);
+
+        $this->loginAs(UserFactory::owner());
+
+        $this->client->request('GET', '/faktury?rodzaj=wszystkie&status=new');
+        self::assertSelectorCount(2, 'tbody tr');
+
+        $this->client->request('GET', '/faktury/'.$read->getId());
+        self::assertFalse($this->reload($read)->isUnread());
+
+        $this->client->request('GET', '/faktury');
+        self::assertResponseRedirects('/faktury?rodzaj=wszystkie', null, 'Status nie jest zapamiętywany, domyślnie „Wszystkie”');
+        $this->client->followRedirect();
+        self::assertSelectorCount(2, 'tbody tr');
+    }
+
     public function testEmptyFilterFieldsFromFormAreIgnored(): void
     {
         InvoiceFactory::createOne(['number' => 'K/7']);

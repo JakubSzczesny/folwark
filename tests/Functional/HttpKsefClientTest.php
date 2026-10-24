@@ -40,22 +40,7 @@ final class HttpKsefClientTest extends KernelTestCase
     public function testAuthenticatesWithTokenAndQueriesMetadata(): void
     {
         $client = $this->client([
-            new MockResponse(self::json(['challenge' => '20260101-CR-1111111111-2222222222-33', 'timestamp' => '2026-01-01T10:00:00.123Z', 'timestampMs' => 1767261600123, 'clientIp' => '127.0.0.1'])),
-            new MockResponse(self::json([[
-                'certificate' => $this->certificate(),
-                'certificateId' => 'Y2VydA==',
-                'publicKeyId' => str_repeat('A', 44),
-                'validFrom' => '2025-01-01T00:00:00Z',
-                'validTo' => '2030-01-01T00:00:00Z',
-                'usage' => ['KsefTokenEncryption'],
-            ]])),
-            new MockResponse(self::json(['referenceNumber' => '20260101-AU-1111111111-2222222222-33', 'authenticationToken' => ['token' => 'auth-jwt', 'validUntil' => '2026-01-01T11:00:00Z']]), ['http_code' => 202]),
-            new MockResponse(self::json(['status' => ['code' => 100, 'description' => 'Uwierzytelnianie w toku']])),
-            new MockResponse(self::json(['status' => ['code' => 200, 'description' => 'Uwierzytelnianie zakończone sukcesem']])),
-            new MockResponse(self::json([
-                'accessToken' => ['token' => 'access-jwt', 'validUntil' => '2099-01-01T00:00:00Z'],
-                'refreshToken' => ['token' => 'refresh-jwt', 'validUntil' => '2099-01-07T00:00:00Z'],
-            ])),
+            ...$this->authResponses(),
             new MockResponse(self::json([
                 'hasMore' => false,
                 'isTruncated' => false,
@@ -104,6 +89,41 @@ final class HttpKsefClientTest extends KernelTestCase
         self::assertArrayNotHasKey('to', $body['dateRange']);
     }
 
+    public function testUnreadableMetadataRowIsRejectedWithoutLosingTheRest(): void
+    {
+        $row = static fn (string $ksefNumber, string $number, string $storedAt): array => [
+            'ksefNumber' => $ksefNumber,
+            'invoiceNumber' => $number,
+            'issueDate' => '2026-05-04',
+            'acquisitionDate' => '2026-05-04T10:00:01Z',
+            'permanentStorageDate' => $storedAt,
+            'seller' => ['nip' => '7311000000', 'name' => 'PETROMEX'],
+            'buyer' => ['identifier' => ['type' => 'Nip', 'value' => '5841000001'], 'name' => 'Gospodarstwo'],
+            'netAmount' => 100, 'grossAmount' => 123, 'vatAmount' => 23, 'currency' => 'PLN',
+            'invoiceType' => 'Vat',
+            'formCode' => ['systemCode' => 'FA (3)', 'schemaVersion' => '1-0E', 'value' => 'FA'],
+        ];
+        $client = $this->client([
+            ...$this->authResponses(),
+            new MockResponse(self::json([
+                'hasMore' => false,
+                'isTruncated' => false,
+                'permanentStorageHwmDate' => '2026-05-05T00:00:00Z',
+                'invoices' => [
+                    $row('7311000000-20260504-AAAAAA-AAAAAA-AA', 'PET/1/2026', '2026-05-04T10:00:02Z'),
+                    $row('7311000000-20260504-BBBBBB-BBBBBB-BB', 'PET/2/2026', 'nie-data'),
+                    $row('7311000000-20260504-CCCCCC-CCCCCC-CC', 'PET/3/2026', '2026-05-04T11:00:02Z'),
+                ],
+            ])),
+        ]);
+
+        $page = $client->queryMetadata(new MetadataQuery(SubjectType::Buyer, new \DateTimeImmutable('2026-05-01T00:00:00Z')));
+
+        self::assertSame(['PET/1/2026', 'PET/3/2026'], array_map(static fn ($m): string => $m->invoiceNumber, $page->invoices));
+        self::assertCount(1, $page->rejected);
+        self::assertStringStartsWith('7311000000-20260504-BBBBBB-BBBBBB-BB (', $page->rejected[0]);
+    }
+
     public function testRateLimitIsReported(): void
     {
         $client = $this->client([
@@ -140,6 +160,33 @@ final class HttpKsefClientTest extends KernelTestCase
 
         static::getContainer()->get(Settings::class)->set(SettingKey::KSEF_TOKEN, null);
         self::assertFalse($client->isConfigured());
+    }
+
+    /**
+     * Uwierzytelnienie tokenem zakończone sukcesem: challenge, certyfikat, ksef-token, dwa odczyty statusu, redeem.
+     *
+     * @return list<MockResponse>
+     */
+    private function authResponses(): array
+    {
+        return [
+            new MockResponse(self::json(['challenge' => '20260101-CR-1111111111-2222222222-33', 'timestamp' => '2026-01-01T10:00:00.123Z', 'timestampMs' => 1767261600123, 'clientIp' => '127.0.0.1'])),
+            new MockResponse(self::json([[
+                'certificate' => $this->certificate(),
+                'certificateId' => 'Y2VydA==',
+                'publicKeyId' => str_repeat('A', 44),
+                'validFrom' => '2025-01-01T00:00:00Z',
+                'validTo' => '2030-01-01T00:00:00Z',
+                'usage' => ['KsefTokenEncryption'],
+            ]])),
+            new MockResponse(self::json(['referenceNumber' => '20260101-AU-1111111111-2222222222-33', 'authenticationToken' => ['token' => 'auth-jwt', 'validUntil' => '2026-01-01T11:00:00Z']]), ['http_code' => 202]),
+            new MockResponse(self::json(['status' => ['code' => 100, 'description' => 'Uwierzytelnianie w toku']])),
+            new MockResponse(self::json(['status' => ['code' => 200, 'description' => 'Uwierzytelnianie zakończone sukcesem']])),
+            new MockResponse(self::json([
+                'accessToken' => ['token' => 'access-jwt', 'validUntil' => '2099-01-01T00:00:00Z'],
+                'refreshToken' => ['token' => 'refresh-jwt', 'validUntil' => '2099-01-07T00:00:00Z'],
+            ])),
+        ];
     }
 
     /**

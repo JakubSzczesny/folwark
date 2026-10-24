@@ -41,6 +41,7 @@ class KsefSynchronizer
 
     public function __construct(
         private readonly KsefClient $client,
+        private readonly KsefClientSelector $clients,
         private readonly InvoiceImporter $importer,
         private readonly Settings $settings,
         private readonly KsefIdentity $identity,
@@ -105,24 +106,55 @@ class KsefSynchronizer
 
         /** @var list<Invoice> $new */
         $new = [];
-        $error = null;
+        /** @var list<string> $errors */
+        $errors = [];
+        /** @var list<string> $rejected */
+        $rejected = [];
 
         try {
             if (!$this->isConfigured()) {
                 throw new KsefException('Uzupełnij NIP gospodarstwa i token w ustawieniach KSeF.');
             }
+            $problem = $this->clients->configurationError();
+            if (null !== $problem) {
+                throw new KsefException($problem);
+            }
+            $this->discardCursorsFromOtherSource();
 
+            // Każda rola ma własny kursor, więc błąd jednej nie wstrzymuje drugiej. Wyjątek: limit zapytań
+            // i zamknięty EntityManager – wtedy dalsze zapytania i tak by się nie udały.
             foreach ([SubjectType::Buyer, SubjectType::Seller] as $subject) {
-                array_push($new, ...$this->syncSubject($subject));
+                try {
+                    $this->syncSubject($subject, $new, $rejected);
+                } catch (KsefRateLimitException $e) {
+                    throw $e;
+                } catch (\Throwable $e) {
+                    if (!$this->em->isOpen()) {
+                        throw $e;
+                    }
+                    $this->logger->error('Synchronizacja KSeF ({subject}) nie powiodła się.', ['subject' => $subject->value, 'exception' => $e]);
+                    $errors[] = $this->describe($e);
+                }
             }
             $this->settings->set(SettingKey::KSEF_BLOCKED_UNTIL, null, false);
         } catch (KsefRateLimitException $e) {
             $this->settings->set(SettingKey::KSEF_BLOCKED_UNTIL, (new \DateTimeImmutable(\sprintf('+%d seconds', $e->retryAfterSeconds)))->format(\DATE_ATOM), false);
-            $error = $e->getMessage();
+            $errors[] = $e->getMessage();
         } catch (\Throwable $e) {
             $this->logger->error('Synchronizacja KSeF nie powiodła się.', ['exception' => $e]);
-            $error = $e instanceof KsefException ? $e->getMessage() : 'Nieoczekiwany błąd: '.$e->getMessage();
+            $errors[] = $this->describe($e);
         }
+
+        if ([] !== $rejected) {
+            $errors[] = \sprintf(
+                'Nie udało się odczytać %d %s z KSeF: %s. Pozostałe pobrano, a %s będziemy próbować pobrać ponownie przy każdej synchronizacji.',
+                \count($rejected),
+                FormatExtension::plural(\count($rejected), 'faktury', 'faktur', 'faktur'),
+                implode('; ', $rejected),
+                1 === \count($rejected) ? 'tę' : 'te',
+            );
+        }
+        $error = [] !== $errors ? implode(' ', array_unique($errors)) : null;
 
         $costCount = \count(array_filter($new, static fn (Invoice $i): bool => $i->isCost()));
         $sync->finish(\count($new), $costCount, $error);
@@ -146,9 +178,12 @@ class KsefSynchronizer
     }
 
     /**
-     * @return list<Invoice>
+     * Nowe faktury trafiają do $new na bieżąco, żeby te zapisane przed ewentualnym błędem też dostały powiadomienie i XML.
+     *
+     * @param list<Invoice> $new
+     * @param list<string>  $rejected pozycje, których metadanych nie udało się odczytać
      */
-    private function syncSubject(SubjectType $subject): array
+    private function syncSubject(SubjectType $subject, array &$new, array &$rejected): void
     {
         $cursors = (array) $this->settings->get(SettingKey::KSEF_CURSORS);
         $overlap = $this->settings->int(SettingKey::KSEF_OVERLAP_MINUTES);
@@ -157,7 +192,9 @@ class KsefSynchronizer
             : ($this->settings->date(SettingKey::KSEF_SYNC_FROM) ?? new \DateTimeImmutable('first day of january this year'))->setTime(0, 0);
 
         $now = new \DateTimeImmutable();
-        $new = [];
+        // Początek pierwszego zapytania, w którym trafiła się nieczytelna pozycja – kursor go nie minie,
+        // więc następna synchronizacja odczyta ją ponownie (już pobrane pomija deduplikacja po numerze KSeF).
+        $hold = null;
 
         while ($from < $now) {
             $windowEnd = $from->modify(\sprintf('+%d days', MetadataQuery::MAX_RANGE_DAYS));
@@ -168,10 +205,18 @@ class KsefSynchronizer
             while (true) {
                 $result = $this->client->queryMetadata($query->withPage($page));
                 foreach ($result->invoices as $metadata) {
-                    $invoice = $this->importer->import($metadata, $subject);
+                    try {
+                        $invoice = $this->importer->import($metadata, $subject);
+                    } catch (\Throwable $e) {
+                        throw new KsefException(\sprintf('Nie udało się zapisać faktury %s (numer KSeF %s): %s', $metadata->invoiceNumber, $metadata->ksefNumber, $e->getMessage()), previous: $e);
+                    }
                     if (null !== $invoice) {
                         $new[] = $invoice;
                     }
+                }
+                if ([] !== $result->rejected) {
+                    array_push($rejected, ...$result->rejected);
+                    $hold ??= $query->from;
                 }
                 $this->em->flush();
 
@@ -191,6 +236,14 @@ class KsefSynchronizer
             }
 
             $cursor = $result->permanentStorageHwmDate ?? ($isLast ? $now : $windowEnd);
+            // HWM dotyczy całego KSeF, nie okna – zwykle to „prawie teraz”. Gdyby kursor wcześniejszego okna
+            // tyle przeskoczył, przerwanie w kolejnym oknie (limit, awaria) pominęłoby jego faktury na zawsze.
+            if (!$isLast && $cursor > $windowEnd) {
+                $cursor = $windowEnd;
+            }
+            if (null !== $hold && $hold < $cursor) {
+                $cursor = $hold;
+            }
             $cursors[$subject->value] = $cursor->format(\DATE_ATOM);
             $this->settings->set(SettingKey::KSEF_CURSORS, $cursors, false);
             $this->em->flush();
@@ -200,8 +253,29 @@ class KsefSynchronizer
             }
             $from = $windowEnd;
         }
+    }
 
-        return $new;
+    /**
+     * Kursor dotyczy źródła, z którego go ustalono (klient, środowisko, NIP). Gdy źródło jest inne – albo nieznane,
+     * bo kursor zapisano przed tą zmianą – pobieramy od daty początkowej; już zapisane faktury pomija deduplikacja.
+     */
+    private function discardCursorsFromOtherSource(): void
+    {
+        $source = $this->clients->source();
+        $cursors = (array) $this->settings->get(SettingKey::KSEF_CURSORS);
+        if (($cursors['source'] ?? null) === $source) {
+            return;
+        }
+
+        if ([] !== $cursors) {
+            $this->logger->notice('Zmieniło się źródło faktur KSeF – pobieranie od daty początkowej.', ['previous' => $cursors['source'] ?? null, 'current' => $source]);
+        }
+        $this->settings->set(SettingKey::KSEF_CURSORS, ['source' => $source], false);
+    }
+
+    private function describe(\Throwable $e): string
+    {
+        return $e instanceof KsefException ? $e->getMessage() : 'Nieoczekiwany błąd: '.$e->getMessage();
     }
 
     /**

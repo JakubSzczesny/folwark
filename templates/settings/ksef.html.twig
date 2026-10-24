@@ -15,6 +15,10 @@
         </form>
     </twig:PageHeader>
 
+    {% if client_problem %}
+        <div class="alert alert-danger mb-4" role="alert">{{ client_problem }} Do tego czasu synchronizacja kończy się błędem.</div>
+    {% endif %}
+
     {% if simulator %}
         <div class="alert alert-info mb-4">Działa symulator KSeF (KSEF_CLIENT=fake): faktury pochodzą z plików na serwerze, a środowisko i token poniżej nie są używane. Do prawdziwego KSeF ustaw KSEF_CLIENT=http.</div>
     {% endif %}
@@ -63,6 +67,9 @@
 
             <section class="card card-body">
                 <h2 class="card-title mb-2">Postęp pobierania</h2>
+                {% if cursors_stale %}
+                    <p class="text-sm text-antracyt-500 mb-2">Zmieniło się źródło faktur (klient KSeF, środowisko lub NIP), więc następna synchronizacja pobierze faktury od daty początkowej. Już zapisane nie zostaną zdublowane.</p>
+                {% endif %}
                 <dl class="dl mb-4">
                     <dt>Faktury zakupowe</dt><dd>{{ cursors.Subject2 is defined ? 'do ' ~ date(cursors.Subject2)|pl_datetime : 'jeszcze nie pobierano' }}</dd>
                     <dt>Faktury sprzedażowe</dt><dd>{{ cursors.Subject1 is defined ? 'do ' ~ date(cursors.Subject1)|pl_datetime : 'jeszcze nie pobierano' }}</dd>

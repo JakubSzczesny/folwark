@@ -9,6 +9,8 @@ use App\Entity\User;
 use App\Farm\FarmContext;
 use App\Form\Settings\KsefSettingsType;
 use App\Ksef\KsefClient;
+use App\Ksef\KsefClientMode;
+use App\Ksef\KsefClientSelector;
 use App\Ksef\KsefException;
 use App\Ksef\KsefIdentity;
 use App\Message\SyncKsefMetadata;
@@ -20,7 +22,6 @@ use App\Settings\SettingsForm;
 use App\Util\Nip;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\DependencyInjection\Attribute\Autowire;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -40,7 +41,7 @@ final class KsefSettingsController extends AbstractController
     }
 
     #[Route('', name: 'app_settings_ksef', methods: ['GET', 'POST'])]
-    public function index(Request $request, SecretBox $secrets, KsefSyncRepository $syncs, KsefIdentity $identity, #[Autowire('%env(KSEF_CLIENT)%')] string $clientMode): Response
+    public function index(Request $request, SecretBox $secrets, KsefSyncRepository $syncs, KsefIdentity $identity, KsefClientSelector $clients): Response
     {
         $before = [$this->settings->string(SettingKey::KSEF_ENVIRONMENT), $identity->nip()];
 
@@ -69,19 +70,30 @@ final class KsefSettingsController extends AbstractController
             return $this->redirectToRoute('app_settings_ksef', [], Response::HTTP_SEE_OTHER);
         }
 
+        $cursors = (array) $this->settings->get(SettingKey::KSEF_CURSORS);
+
         return $this->render('settings/ksef.html.twig', [
             'form' => $form,
             'syncs' => $syncs->findRecent(15),
-            'cursors' => (array) $this->settings->get(SettingKey::KSEF_CURSORS),
+            'cursors' => $cursors,
+            'cursors_stale' => [] !== $cursors && ($cursors['source'] ?? null) !== $clients->source(),
             'blocked_until' => $this->settings->date(SettingKey::KSEF_BLOCKED_UNTIL),
-            'simulator' => 'fake' === $clientMode,
+            'simulator' => KsefClientMode::Fake === $clients->mode(),
+            'client_problem' => $clients->configurationError(),
         ]);
     }
 
     #[Route('/test', name: 'app_settings_ksef_test', methods: ['POST'])]
-    public function test(Request $request, KsefClient $client): Response
+    public function test(Request $request, KsefClient $client, KsefClientSelector $clients): Response
     {
         $this->assertToken($request);
+
+        $problem = $clients->configurationError();
+        if (null !== $problem) {
+            $this->addFlash('error', 'Test połączenia nieudany: '.$problem);
+
+            return $this->redirectToRoute('app_settings_ksef', [], Response::HTTP_SEE_OTHER);
+        }
 
         try {
             $this->addFlash('success', $client->testConnection());

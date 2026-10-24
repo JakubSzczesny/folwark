@@ -41,6 +41,7 @@
             <p class="help mt-3 mb-0">Układ jest zapisany dla Ciebie w tym gospodarstwie. Strzałkami przy widżetach zmienisz kolejność.</p>
         </section>
 
-        <div data-controller="live-refresh"><twig:Dashboard /></div>
+        {# Zwykłe wejście: strona od razu, widżety doczytują się w tle (szkielety). W trybie dostosowywania pulpit renderuje się od razu, żeby przesuwanie nie migało. #}
+        <div data-controller="live-refresh">{% if editing %}<twig:Dashboard />{% else %}<twig:Dashboard loading="defer" />{% endif %}</div>
     </div>
 {% endblock %}

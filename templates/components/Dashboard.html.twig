@@ -36,3 +36,21 @@
 
     <p class="text-xs text-antracyt-500">Odświeżono {{ this.refreshedAt|date('H:i:s') }}</p>
 </div>
+
+{# Pulpit wczytuje się po wyświetleniu strony (loading="defer"); do tego czasu szkielety widżetów. #}
+{% macro placeholder(props) %}
+    <div class="grid gap-6 mb-6 lg:grid-cols-2">
+        <section class="card lg:col-span-2">
+            <div class="card-header"><span class="skeleton skeleton-title" style="width: 160px"></span></div>
+            <twig:Skeleton variant="rows" count="3" />
+        </section>
+        <section class="card">
+            <div class="card-header"><span class="skeleton skeleton-title" style="width: 140px"></span></div>
+            <twig:Skeleton variant="lines" count="4" />
+        </section>
+        <section class="card">
+            <div class="card-header"><span class="skeleton skeleton-title" style="width: 120px"></span></div>
+            <twig:Skeleton variant="lines" count="4" />
+        </section>
+    </div>
+{% endmacro %}

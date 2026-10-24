@@ -9,9 +9,11 @@
 const LOADING = 'is-loading';
 const REFRESHING = 'is-refreshing';
 const SAVE_DELAY = 150;
+const REFRESH_DELAY = 200;
 
 let busyCount = 0;
 let saveTimer = null;
+let refreshTimer = null;
 
 function start(button) {
     if (button instanceof HTMLElement && button.classList.contains('btn')) {
@@ -50,6 +52,7 @@ function hideSaving(all = false) {
 }
 
 function stopAll() {
+    clearTimeout(refreshTimer);
     document.querySelectorAll(`.btn.${LOADING}`).forEach((button) => button.classList.remove(LOADING));
     document.querySelectorAll(`.${REFRESHING}`).forEach((element) => element.classList.remove(REFRESHING));
     hideSaving(true);
@@ -59,9 +62,10 @@ document.addEventListener('turbo:submit-start', (event) => {
     const { formSubmission } = event.detail;
     const form = formSubmission.formElement;
     if (form.method.toLowerCase() === 'get') {
-        // Filtry listy: lista zostaje na miejscu do czasu przyjścia nowej.
+        // Filtry listy: lista zostaje na miejscu do czasu przyjścia nowej. Szybka odpowiedź nie miga przygaszeniem.
         if (form.classList.contains('filter-bar')) {
-            form.classList.add(REFRESHING);
+            clearTimeout(refreshTimer);
+            refreshTimer = setTimeout(() => form.classList.add(REFRESHING), REFRESH_DELAY);
         }
         start(formSubmission.submitter);
         return;

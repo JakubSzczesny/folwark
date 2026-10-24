@@ -1,0 +1,75 @@
+{# Szkielet wczytywanej treści. Wariant mówi, jak wygląda to, co przyjdzie: rows (lista), table (tabela), form (formularz), document (podgląd faktury), chart (wykres). #}
+{% props variant = 'rows', count = 3 %}
+{% set widths = ['46%', '38%', '52%', '31%', '44%', '58%'] %}
+<div {{ attributes.defaults({role: 'status', 'aria-label': 'Wczytywanie', 'aria-busy': 'true'}) }}>
+    {% if variant == 'rows' %}
+        {% for i in 1..count %}
+            <div class="skeleton-row">
+                <span class="skeleton skeleton-badge shrink-0"></span>
+                <span class="skeleton-stack">
+                    <span class="skeleton skeleton-text" style="width: {{ widths[(i - 1) % 6] }}"></span>
+                    <span class="skeleton skeleton-small" style="width: {{ widths[(i + 2) % 6]|trim('%') * 0.6 }}%"></span>
+                </span>
+            </div>
+        {% endfor %}
+    {% elseif variant == 'lines' %}
+        <div class="flex flex-col gap-4 p-4">
+            {% for i in 1..count %}
+                <div class="flex justify-between gap-4">
+                    <span class="skeleton skeleton-text" style="width: {{ widths[(i - 1) % 6]|trim('%') + 10 }}%"></span>
+                    <span class="skeleton skeleton-text" style="width: {{ 60 + (i * 7) % 24 }}px"></span>
+                </div>
+            {% endfor %}
+        </div>
+    {% elseif variant == 'table' %}
+        <div class="card">
+            {% for i in 1..count %}
+                <div class="skeleton-row">
+                    <span class="skeleton skeleton-text shrink-0" style="width: 80px"></span>
+                    <span class="skeleton skeleton-text flex-1" style="max-width: {{ widths[(i - 1) % 6] }}"></span>
+                    <span class="flex-1"></span>
+                    <span class="skeleton skeleton-text shrink-0" style="width: {{ 60 + (i * 7) % 24 }}px"></span>
+                </div>
+            {% endfor %}
+        </div>
+    {% elseif variant == 'form' %}
+        <div class="flex items-center justify-between gap-3 border-b border-szary-200 px-4 py-3">
+            <span class="skeleton skeleton-title" style="width: 40%"></span>
+        </div>
+        <div class="p-4">
+            {% for i in 1..count %}
+                <div class="field">
+                    <span class="skeleton skeleton-small mb-2" style="width: {{ 20 + (i * 9) % 20 }}%"></span>
+                    <span class="skeleton skeleton-field"></span>
+                </div>
+            {% endfor %}
+            <div class="flex justify-end gap-2 pt-2">
+                <span class="skeleton skeleton-field" style="width: 96px"></span>
+                <span class="skeleton skeleton-field" style="width: 120px"></span>
+            </div>
+        </div>
+    {% elseif variant == 'document' %}
+        <div class="flex flex-col gap-5 p-5">
+            <div class="flex gap-2"><span class="skeleton skeleton-badge"></span><span class="skeleton skeleton-badge" style="width: 64px"></span></div>
+            <div class="flex flex-col gap-2"><span class="skeleton skeleton-title" style="width: 58%"></span><span class="skeleton skeleton-text" style="width: 40%"></span></div>
+            <div class="grid gap-4 sm:grid-cols-2">
+                {% for i in 1..2 %}
+                    <div class="flex flex-col gap-1.5"><span class="skeleton skeleton-small" style="width: 40%"></span><span class="skeleton skeleton-text" style="width: 80%"></span><span class="skeleton skeleton-text" style="width: 60%"></span></div>
+                {% endfor %}
+            </div>
+            <div class="rounded-ui border border-szary-100">
+                {% for i in 1..count %}
+                    <div class="skeleton-row"><span class="skeleton skeleton-text flex-1"></span><span class="skeleton skeleton-text" style="width: 50px"></span><span class="skeleton skeleton-text" style="width: 70px"></span></div>
+                {% endfor %}
+            </div>
+            <div class="flex justify-end"><span class="skeleton skeleton-title" style="width: 140px"></span></div>
+        </div>
+    {% elseif variant == 'chart' %}
+        <div class="flex items-end gap-3.5 p-4" style="height: 220px">
+            {% for h in [40, 65, 50, 85, 60, 72, 45, 90, 55, 70, 62, 80] %}
+                <span class="skeleton flex-1" style="height: {{ h }}%"></span>
+            {% endfor %}
+        </div>
+    {% endif %}
+    <span class="sr-only">Wczytywanie…</span>
+</div>

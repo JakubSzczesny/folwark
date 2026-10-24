@@ -12,7 +12,7 @@ final class DashboardTest extends FunctionalTestCase
     {
         $this->loginAs(UserFactory::owner());
 
-        $crawler = $this->client->request('GET', '/');
+        $crawler = $this->client->request('GET', '/?edycja=1');
         self::assertSame(['attention'], $this->widgets($crawler));
 
         foreach (['tiles', 'chart'] as $key) {
@@ -39,13 +39,23 @@ final class DashboardTest extends FunctionalTestCase
     {
         $this->loginAs(UserFactory::worker());
 
-        $crawler = $this->client->request('GET', '/');
+        $crawler = $this->client->request('GET', '/?edycja=1');
         self::assertCount(0, $crawler->filter('form[action="/pulpit/widzety/invoices/dodaj"]'), 'Pracownik nie widzi faktur');
 
         $token = $crawler->filter('form[action="/pulpit/widzety/tiles/dodaj"] input[name="_token"]')->attr('value');
         $this->client->request('POST', '/pulpit/widzety/invoices/dodaj', ['_token' => $token]);
         $crawler = $this->client->followRedirect();
         self::assertSame(['attention'], $this->widgets($crawler));
+    }
+
+    public function testRegularVisitShowsSkeletonUntilWidgetsLoad(): void
+    {
+        $this->loginAs(UserFactory::owner());
+
+        $crawler = $this->client->request('GET', '/');
+        self::assertResponseIsSuccessful();
+        self::assertCount(0, $crawler->filter('[data-widget]'), 'Widżety doczytują się po wyświetleniu strony');
+        self::assertGreaterThan(0, $crawler->filter('main .skeleton')->count());
     }
 
     /**

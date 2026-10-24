@@ -1,7 +1,8 @@
 import { Controller } from '@hotwired/stimulus';
+import { skeleton } from '../skeleton.js';
 
 /*
- * Okno podglądu na środku ekranu z rozmytym tłem. Otwiera się od razu z kropkami ładowania, gdy ramka
+ * Okno podglądu na środku ekranu z rozmytym tłem. Otwiera się od razu ze szkieletem treści, gdy ramka
  * "preview" zaczyna wczytywać treść; zamyka przyciskiem, klawiszem Esc albo kliknięciem w tło.
  */
 export default class extends Controller {
@@ -15,7 +16,7 @@ export default class extends Controller {
         };
         this.onFetch = (event) => {
             if (event.target === this.frameTarget && this.panelTarget.hidden) {
-                this.frameTarget.innerHTML = '<div class="flex items-center justify-center p-12" role="status" aria-label="Wczytywanie"><span class="dots dots-lg" aria-hidden="true"><span></span><span></span><span></span></span></div>';
+                this.frameTarget.innerHTML = skeleton('preview');
                 this.open();
             }
         };

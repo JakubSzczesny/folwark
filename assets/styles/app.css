@@ -1239,3 +1239,57 @@ main:has(.filter-bar.is-refreshing) .calendar-grid {
     background-color: var(--color-zielen-600);
     height: 3px;
 }
+
+/*
+ * Szkielety – kształt treści, która właśnie się wczytuje (okna, podgląd, zakładki, pulpit, powiadomienia, wyszukiwarka).
+ * Kropki zostają tam, gdzie kształtu nie znamy; szkielet tam, gdzie wiadomo, co przyjdzie.
+ */
+@keyframes skeleton-shimmer {
+    from { background-position: 100% 0; }
+    to { background-position: -100% 0; }
+}
+
+.skeleton {
+    display: block;
+    border-radius: 4px;
+    background: linear-gradient(90deg, var(--color-szary-100) 25%, var(--color-szary-50) 50%, var(--color-szary-100) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.skeleton-text { height: 12px; }
+.skeleton-title { height: 20px; }
+.skeleton-small { height: 10px; }
+.skeleton-badge { width: 84px; height: 22px; border-radius: var(--radius-ui); }
+.skeleton-field { height: 40px; border-radius: var(--radius-ui); }
+
+.skeleton-row {
+    @apply flex items-center gap-3 px-4 py-3.5 border-b border-szary-100;
+}
+
+.skeleton-row:last-child {
+    @apply border-b-0;
+}
+
+.skeleton-stack {
+    @apply flex flex-col gap-1.5 flex-1 min-w-0;
+}
+
+/* Zakładka przełącza się od razu, a pod paskiem pokazuje się szkielet zamiast przygaszonej starej treści. */
+turbo-frame.is-switching > :not(.tabs):not([data-tab-skeleton]) {
+    display: none;
+}
+
+turbo-frame.is-switching[busy] > * {
+    opacity: 1;
+}
+
+turbo-frame.is-switching[busy]::after {
+    content: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton {
+        animation: none;
+    }
+}

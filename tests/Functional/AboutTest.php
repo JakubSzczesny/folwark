@@ -32,7 +32,7 @@ final class AboutTest extends FunctionalTestCase
             'version' => '1.47',
             'commit' => 'c2619a7f00000000000000000000000000000000',
             'commit_date' => '2026-10-24T18:00:00+02:00',
-            'updated_at' => '2026-10-25T03:17:00+02:00',
+            'updated_at' => '2026-10-24T03:17:00+02:00',
             'previous_commit' => 'd0b24ae000000000000000000000000000000000',
             'changes' => [
                 ['commit' => 'c2619a7f', 'date' => '2026-10-24T18:00:00+02:00', 'subject' => 'Wygląd: czcionka Inter lokalnie', 'new' => true],
@@ -43,7 +43,7 @@ final class AboutTest extends FunctionalTestCase
 
         $this->client->request('GET', '/ustawienia');
         self::assertSelectorTextContains('.app-sidebar', 'wersja 1.47');
-        self::assertSelectorTextContains('main', 'Wersja 1.47, zaktualizowano 25.10.2026 03:17.');
+        self::assertSelectorTextContains('main', 'Wersja 1.47, zaktualizowano 24.10.2026 03:17.');
 
         $this->client->request('GET', '/ustawienia/o-programie');
         self::assertResponseIsSuccessful();

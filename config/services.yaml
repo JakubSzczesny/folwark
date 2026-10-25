@@ -1,5 +1,6 @@
 parameters:
     ksef.auth_poll_interval_ms: 1000
+    app.release_file: '%kernel.project_dir%/var/wersja.json'
 
 services:
     _defaults:
@@ -18,3 +19,4 @@ services:
 when@test:
     parameters:
         ksef.auth_poll_interval_ms: 0
+        app.release_file: '%kernel.project_dir%/var/wersja-test.json'

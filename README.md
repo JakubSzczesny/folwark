@@ -86,6 +86,8 @@ Automatycznie: `folwark-update.timer` codziennie o 3:15 uruchamia `deploy/update
 
 Błąd migracji zatrzymuje aktualizację z wypisaną instrukcją powrotu (kod + odtworzenie z kopii sprzed aktualizacji). Wszystko widać w `journalctl -u folwark-update`. Aktualizacja od razu: `systemctl start folwark-update`. Inną gałąź (np. osobną „produkcyjną”, do której trafiają tylko sprawdzone zmiany) ustawia się w `Environment=UPDATE_BRANCH=` w `/etc/systemd/system/folwark-update.service`. Nowe pakiety systemowe czy rozszerzenia PHP trzeba doinstalować ręcznie.
 
+Numer wersji (w stopce menu, „1.<liczba commitów>”) oraz datę ostatniej aktualizacji i listę ostatnich zmian (Ustawienia → O programie) zapisuje `php bin/console app:wersja` do `var/wersja.json`. Polecenie uruchamia się samo przy każdym `composer install`, więc też przy aktualizacji; opisy zmian to tytuły commitów. Data aktualizacji zmienia się tylko wtedy, gdy zmienił się commit.
+
 Ręcznie:
 
 ```bash

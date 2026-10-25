@@ -47,7 +47,8 @@
             {% endfor %}
         </nav>
 
-        <div class="sidebar-label border-t border-antracyt-700 px-4 py-3 text-[11px] tracking-wide text-antracyt-300">© {{ 'now'|date('Y') }} JS</div>
+        {% set installed = app_release() %}
+        <div class="sidebar-label border-t border-antracyt-700 px-4 py-3 text-[11px] tracking-wide text-antracyt-300">© {{ 'now'|date('Y') }} JS{% if installed %} <span title="Zaktualizowano {{ installed.updatedAt|pl_datetime }} ({{ installed.shortCommit }})">· wersja {{ installed.version }}</span>{% endif %}</div>
     </aside>
 
     <div class="app-main">

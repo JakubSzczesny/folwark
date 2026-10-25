@@ -15,8 +15,10 @@ use App\Message\RecalculateOrders;
 use App\Repository\AuditLogRepository;
 use App\Security\Permission;
 use App\Settings\SettingsForm;
+use App\Twig\FormatExtension;
 use App\Ui\Pager;
 use App\Ui\Sort;
+use App\Version\ReleaseInfo;
 use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
@@ -42,6 +44,7 @@ final class SettingsController extends AbstractController
         ['route' => 'app_settings_rules', 'title' => 'Reguły faktur', 'text' => 'Automatyczne „tylko koszt” dla wybranych dostawców.'],
         ['route' => 'admin', 'title' => 'Słowniki', 'text' => 'Kategorie, jednostki, magazyny, ośrodki kosztów, pola, rodzaje serwisu…'],
         ['route' => 'app_settings_audit', 'title' => 'Dziennik zdarzeń', 'text' => 'Kto, co i kiedy zmienił.'],
+        ['route' => 'app_settings_about', 'title' => 'O programie', 'text' => 'Wersja, data ostatniej aktualizacji i lista zmian.'],
         ['route' => 'app_settings_danger', 'title' => 'Strefa niebezpieczna', 'text' => 'Wyczyszczenie wszystkich danych albo usunięcie gospodarstwa.', 'danger' => true],
     ];
 
@@ -52,10 +55,14 @@ final class SettingsController extends AbstractController
     }
 
     #[Route('', name: 'app_settings', methods: ['GET'])]
-    public function index(): Response
+    public function index(ReleaseInfo $releaseInfo): Response
     {
+        $release = $releaseInfo->current();
         $sections = [];
         foreach (self::SECTIONS as $section) {
+            if ('app_settings_about' === $section['route'] && null !== $release) {
+                $section['text'] = \sprintf('Wersja %s, zaktualizowano %s.', $release->version, FormatExtension::dateTime($release->updatedAt));
+            }
             try {
                 $sections[] = $section + ['url' => $this->generateUrl($section['route'])];
             } catch (RouteNotFoundException) {
@@ -115,6 +122,12 @@ final class SettingsController extends AbstractController
             'entity' => $entity,
             'entities' => $logs->entityNames(),
         ]);
+    }
+
+    #[Route('/o-programie', name: 'app_settings_about', methods: ['GET'])]
+    public function about(ReleaseInfo $releaseInfo): Response
+    {
+        return $this->render('settings/about.html.twig', ['release' => $releaseInfo->current()]);
     }
 
     /**

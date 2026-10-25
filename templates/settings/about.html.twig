@@ -1,0 +1,41 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}O programie{% endblock %}
+{% block active_menu %}settings{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="O programie" back="{{ path('app_settings') }}" backLabel="Ustawienia" />
+
+    {% if release %}
+        {% set new_changes = release.newChanges %}
+        <div class="grid gap-6 lg:grid-cols-3">
+            <section class="card card-body">
+                <dl class="dl">
+                    <dt>Wersja</dt><dd class="font-semibold">Folwark FMS {{ release.version }}</dd>
+                    <dt>Ostatnia aktualizacja</dt><dd>{{ release.updatedAt|pl_datetime }}</dd>
+                    <dt>Zmiany z</dt><dd>{{ release.commitDate|pl_datetime }}</dd>
+                    <dt>Commit</dt><dd class="font-mono text-sm">{{ release.shortCommit }}</dd>
+                </dl>
+                <p class="mt-4 text-sm text-antracyt-500">Serwer sprawdza aktualizacje co noc około 3:15 i instaluje je samodzielnie.</p>
+            </section>
+
+            <section class="card lg:col-span-2">
+                <div class="card-header"><h2 class="card-title">{{ new_changes ? 'Co nowego w ostatniej aktualizacji' : 'Ostatnie zmiany' }}</h2></div>
+                <div class="card-body">
+                    <ul class="space-y-3">
+                        {% for change in release.changes %}
+                            <li class="flex gap-3">
+                                <span class="w-20 shrink-0 text-sm text-antracyt-500 tabular-nums">{{ change.date|pl_date }}</span>
+                                <span class="min-w-0 flex-1">{{ change.subject }}{% if change.new %} <twig:Badge tone="new">nowe</twig:Badge>{% endif %}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </section>
+        </div>
+    {% else %}
+        <section class="card">
+            <twig:EmptyState compact text="Brak informacji o wersji. Pojawi się po najbliższej aktualizacji serwera (albo po poleceniu php bin/console app:wersja)." icon="info" />
+        </section>
+    {% endif %}
+{% endblock %}

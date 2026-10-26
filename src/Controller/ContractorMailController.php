@@ -22,7 +22,7 @@ use Symfony\Component\String\Slugger\AsciiSlugger;
 
 /**
  * Podgląd maili kontrahenta ze skrzynki Gmail gospodarstwa (lista jest w zakładce
- * „Korespondencja” na karcie kontrahenta).
+ * „Maile” na karcie kontrahenta).
  */
 #[Route('/kontrahenci/{id}/poczta', requirements: ['id' => '\d+'])]
 #[IsGranted(Permission::CONTRACTOR_VIEW)]
@@ -56,9 +56,8 @@ final class ContractorMailController extends AbstractController
     }
 
     #[Route('/{uid}', name: 'app_contractor_mail', requirements: ['uid' => '\d+'], methods: ['GET'])]
-    public function show(Contractor $contractor, int $uid, Request $request): Response
+    public function show(Contractor $contractor, int $uid): Response
     {
-        $remoteImages = $request->query->getBoolean('obrazy');
         $error = null;
         $message = null;
         try {
@@ -71,8 +70,6 @@ final class ContractorMailController extends AbstractController
             'contractor' => $contractor,
             'message' => $message,
             'error' => $error,
-            'remote_images' => $remoteImages,
-            'has_remote_images' => null !== $message?->html && 1 === preg_match('/<img[^>]+src=["\']?https?:/i', $message->html),
             'mailbox_address' => $this->mailbox->address(),
         ]);
     }

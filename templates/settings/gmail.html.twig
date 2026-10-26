@@ -4,13 +4,13 @@
 {% block active_menu %}settings{% endblock %}
 
 {% block content %}
-    <twig:PageHeader title="Gmail" subtitle="Korespondencja z kontrahentami – tylko odczyt" back="{{ path('app_settings') }}" backLabel="Ustawienia">
+    <twig:PageHeader title="Gmail" subtitle="Maile z kontrahentami – tylko odczyt" back="{{ path('app_settings') }}" backLabel="Ustawienia">
         {% if configured %}
             <form method="post" action="{{ path('app_settings_gmail_test') }}">
                 <input type="hidden" name="_token" value="{{ csrf_token('gmail-settings') }}">
                 <button type="submit" class="btn btn-secondary">{{ ux_icon('lucide:plug') }} Test połączenia</button>
             </form>
-            <form method="post" action="{{ path('app_settings_gmail_disconnect') }}" data-turbo-confirm="Odłączyć skrzynkę? Zakładka „Korespondencja” zniknie z kart kontrahentów.">
+            <form method="post" action="{{ path('app_settings_gmail_disconnect') }}" data-turbo-confirm="Odłączyć skrzynkę? Zakładka „Maile” zniknie z kart kontrahentów.">
                 <input type="hidden" name="_token" value="{{ csrf_token('gmail-settings') }}">
                 <button type="submit" class="btn btn-ghost">{{ ux_icon('lucide:unplug') }} Odłącz</button>
             </form>
@@ -27,7 +27,7 @@
 
         <aside class="card card-body text-sm space-y-3">
             <h2 class="card-title">Jak to działa</h2>
-            <p>Na karcie kontrahenta pojawia się zakładka <strong>„Korespondencja”</strong>: maile od i do adresu z pola „E-mail” kontrahenta. Kliknięcie otwiera podgląd wiadomości z załącznikami – bez obrazków ze stopek.</p>
+            <p>Na karcie kontrahenta pojawia się zakładka <strong>„Maile”</strong>: maile od i do adresu z pola „E-mail” kontrahenta. Kliknięcie otwiera podgląd wiadomości z załącznikami – bez obrazków ze stopek.</p>
             <p>Folwark tylko czyta skrzynkę: niczego nie wysyła, nie usuwa i nie oznacza jako przeczytane. Wiadomości nie są kopiowane do bazy – pobierają się z Gmaila przy otwarciu zakładki.</p>
             <h3 class="font-semibold">Hasło do aplikacji</h3>
             <ol class="list-decimal pl-5 space-y-1">

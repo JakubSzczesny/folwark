@@ -78,17 +78,19 @@ final class GmailTest extends FunctionalTestCase
         $this->fakeMailbox()->add(42, (string) file_get_contents(__DIR__.'/../fixtures/gmail/faktura.eml'));
 
         $this->client->request('GET', \sprintf('/kontrahenci/%d?zakladka=poczta', $contractor->getId()));
-        self::assertSelectorTextContains('[data-mail-tab]', 'Poczta nie była jeszcze synchronizowana');
+        self::assertSelectorTextContains('[data-mail-tab]', 'Maile nie były jeszcze synchronizowane');
 
         $this->client->submitForm('Odśwież');
         self::assertResponseRedirects(\sprintf('/kontrahenci/%d?zakladka=poczta', $contractor->getId()));
         $crawler = $this->client->followRedirect();
         self::assertSelectorTextContains('body', 'Dopisano 1 wiadomość.');
-        self::assertSelectorTextContains('a.tab-active', 'Korespondencja (1)');
+        self::assertSelectorTextContains('a.tab-active', 'Maile (1)');
         $link = $crawler->filter(\sprintf('a[href="/kontrahenci/%d/poczta/42"]', $contractor->getId()));
         self::assertCount(1, $link);
         self::assertStringContainsString('Faktura za październik', $link->text());
         self::assertStringContainsString('od Jan Kowalski – Agro', $link->text());
+        self::assertStringContainsString('09:15', $link->text());
+        self::assertStringEndsWith('20 października', $crawler->filter('[data-mail-day]')->text());
 
         $crawler = $this->client->request('GET', \sprintf('/kontrahenci/%d/poczta/42', $contractor->getId()));
         self::assertResponseIsSuccessful();
@@ -96,14 +98,11 @@ final class GmailTest extends FunctionalTestCase
         $frame = $crawler->filter('iframe[data-controller="mail-frame"]');
         self::assertSame('allow-same-origin allow-popups allow-popups-to-escape-sandbox', $frame->attr('sandbox'));
         $document = (string) $frame->attr('srcdoc');
-        self::assertStringContainsString('img-src data:"', $document, 'zdalne obrazy domyślnie zablokowane');
+        self::assertStringContainsString('img-src data: https: http:', $document, 'obrazy z maila pokazujemy od razu');
         self::assertStringNotContainsString('<script', $document);
         self::assertSelectorTextContains('[data-mail-attachments]', 'FV_10_2026.pdf');
         self::assertSelectorTextNotContains('[data-mail-attachments]', 'image001.png');
         self::assertSelectorExists('a[href*="rfc822msgid%3Aabc123%40agro-kowalski.pl"]');
-
-        $crawler = $this->client->request('GET', \sprintf('/kontrahenci/%d/poczta/42?obrazy=1', $contractor->getId()));
-        self::assertStringContainsString('img-src data: https: http:', (string) $crawler->filter('iframe')->attr('srcdoc'));
 
         $this->client->request('GET', \sprintf('/kontrahenci/%d/poczta/42/zalacznik/1', $contractor->getId()));
         self::assertResponseIsSuccessful();
@@ -122,7 +121,7 @@ final class GmailTest extends FunctionalTestCase
         $this->client->request('GET', \sprintf('/kontrahenci/%d/poczta/42', $other->getId()));
         self::assertResponseStatusCodeSame(404);
         $crawler = $this->client->request('GET', \sprintf('/kontrahenci/%d?zakladka=poczta', $other->getId()));
-        self::assertSelectorTextContains('[data-mail-tab]', 'Brak wiadomości');
+        self::assertSelectorTextContains('[data-mail-tab]', 'Brak maili');
     }
 
     public function testIndexFollowsMailboxAndContractorAddresses(): void

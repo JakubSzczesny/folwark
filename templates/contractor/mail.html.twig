@@ -26,13 +26,8 @@
                     </dl>
                 </div>
                 {% if message.html %}
-                    {% if has_remote_images and not remote_images %}
-                        <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm bg-szary-100 border-b border-szary-200">
-                            <span class="text-antracyt-500">{{ ux_icon('lucide:eye-off') }} Obrazy z internetu są zablokowane (mogą zdradzać nadawcy, że wiadomość została otwarta).</span>
-                            <a href="{{ path('app_contractor_mail', {id: contractor.id, uid: summary.uid, obrazy: 1}) }}" class="btn btn-ghost btn-sm">{{ ux_icon('lucide:image') }} Pokaż obrazy</a>
-                        </div>
-                    {% endif %}
-                    {% set csp = "default-src 'none'; style-src 'unsafe-inline'; font-src data:; img-src data:" ~ (remote_images ? ' https: http:') %}
+                    {# Obrazy (także z internetu) pokazujemy od razu; skrypty, formularze i ramki są zablokowane. #}
+                    {% set csp = "default-src 'none'; style-src 'unsafe-inline'; font-src data:; img-src data: https: http:" %}
                     {% set document %}<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="{{ csp }}"><base target="_blank"><style>body{margin:0;padding:16px;font:14px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#1f2933;overflow-wrap:anywhere}img{max-width:100%;height:auto}table{max-width:100%}blockquote{margin:0 0 0 .5rem;padding-left:.75rem;border-left:3px solid #d5d9de;color:#52606d}</style></head><body>{{ message.html|raw }}</body></html>{% endset %}
                     {# Bez allow-scripts: treść maila nie uruchomi żadnego skryptu; allow-same-origin pozwala tylko dopasować wysokość ramki. #}
                     <iframe class="block w-full border-0" style="height: 60vh" title="Treść wiadomości"

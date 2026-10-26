@@ -23,6 +23,15 @@ final class FormatExtension
         1 => 'sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru',
     ];
 
+    /** Dopełniacz – „20 października”. */
+    private const array MONTHS_GENITIVE = [
+        1 => 'stycznia', 'lutego', 'marca', 'kwietnia', 'maja', 'czerwca',
+        'lipca', 'sierpnia', 'września', 'października', 'listopada', 'grudnia',
+    ];
+
+    private const array WEEKDAYS = [1 => 'poniedziałek', 'wtorek', 'środa', 'czwartek', 'piątek', 'sobota', 'niedziela'];
+
+
     public static function number(float|int|string|null $value, int $decimals = 2): string
     {
         if (null === $value || '' === $value) {
@@ -79,7 +88,30 @@ final class FormatExtension
         return $date?->format('d.m.Y') ?? '';
     }
 
+    /**
+     * Nagłówek dnia na liście: „Dziś”, „Wczoraj”, „wtorek, 20 października” (z rokiem, gdy nie bieżący).
+     */
+    #[AsTwigFilter('pl_day')]
+    public static function day(?\DateTimeInterface $date, ?\DateTimeInterface $now = null): string
+    {
+        if (null === $date) {
+            return '';
+        }
+
+        $date = self::local($date);
+        $today = self::local($now ?? new \DateTimeImmutable())->setTime(0, 0);
+        $days = (int) $today->diff($date->setTime(0, 0))->format('%r%a');
+
+        return match (true) {
+            0 === $days => 'Dziś',
+            -1 === $days => 'Wczoraj',
+            default => \sprintf('%s, %d %s', self::WEEKDAYS[(int) $date->format('N')], (int) $date->format('j'), self::MONTHS_GENITIVE[(int) $date->format('n')])
+                .($date->format('Y') !== $today->format('Y') ? ' '.$date->format('Y') : ''),
+        };
+    }
+
     #[AsTwigFilter('pl_datetime')]
+
     public static function dateTime(?\DateTimeInterface $date): string
     {
         return null === $date ? '' : self::local($date)->format('d.m.Y H:i');

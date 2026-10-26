@@ -93,7 +93,7 @@ final class GmailSettingsController extends AbstractController
     private function testConnection(GmailMailbox $mailbox): bool
     {
         try {
-            $this->addFlash('success', $mailbox->test().' Korespondencja z kontrahentami zsynchronizuje się w tle w ciągu minuty.');
+            $this->addFlash('success', $mailbox->test().' Maile kontrahentów zsynchronizują się w tle w ciągu minuty.');
 
             return true;
         } catch (GmailException $e) {

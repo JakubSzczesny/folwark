@@ -8,7 +8,6 @@ use App\Crypto\SecretBox;
 use App\Settings\SettingKey;
 use App\Settings\Settings;
 use App\Ui\Pager;
-use Illuminate\Support\Collection;
 use Symfony\Contracts\Service\ResetInterface;
 use Webklex\PHPIMAP\Client;
 use Webklex\PHPIMAP\ClientManager;
@@ -17,7 +16,6 @@ use Webklex\PHPIMAP\Connection\Protocols\ImapProtocol;
 use Webklex\PHPIMAP\Exceptions\AuthFailedException;
 use Webklex\PHPIMAP\Exceptions\ConnectionFailedException;
 use Webklex\PHPIMAP\Message;
-use Webklex\PHPIMAP\Query\WhereQuery;
 
 /**
  * Skrzynka Gmail gospodarstwa przez IMAP z hasłem do aplikacji – tylko do odczytu.
@@ -89,16 +87,22 @@ class GmailMailbox implements ResetInterface
         }
 
         $withAttachments = array_flip($this->search($filter.' has:attachment'));
-        $messages = $this->query()->setFetchBody(false)->setFetchOrderAsc()->limit(self::PER_PAGE)->curate_messages(new Collection($pager->items));
+        // Same nagłówki przez BODY.PEEK i własne parsowanie – zapytania biblioteki po pobraniu
+        // wiadomości ustawiają flagę \Seen (STORE), a skrzynki nie zmieniamy.
+        $headers = $this->connection()->fetch(['UID', 'BODY.PEEK[HEADER]'], $pager->items)->validatedData();
+        $config = Config::make(['decoding' => self::DECODING]);
 
-        $byUid = [];
-        foreach ($messages as $message) {
-            /** @var Message $message */
-            $uid = (int) $message->getUid();
-            $byUid[$uid] = $this->parser->summary($message, $addresses, isset($withAttachments[$uid]));
+        $summaries = [];
+        foreach ($pager->items as $uid) {
+            $header = $headers[$uid]['BODY[HEADER]'] ?? null;
+            if (!\is_string($header) || '' === trim($header)) {
+                continue;
+            }
+            $message = Message::fromString(rtrim($header)."\r\n\r\n", $config)->setUid($uid);
+            $summaries[] = $this->parser->summary($message, $addresses, isset($withAttachments[$uid]));
         }
 
-        return $pager->withItems(array_values(array_filter(array_map(static fn (int $uid): ?MailSummary => $byUid[$uid] ?? null, $pager->items))));
+        return $pager->withItems($summaries);
     }
 
     /**
@@ -155,11 +159,6 @@ class GmailMailbox implements ResetInterface
         $uids = $this->connection()->search(['X-GM-RAW', $this->quote($gmailFilter)])->validatedData();
 
         return array_values(array_map('intval', (array) $uids));
-    }
-
-    private function query(): WhereQuery
-    {
-        return new WhereQuery($this->client(), []);
     }
 
     /**

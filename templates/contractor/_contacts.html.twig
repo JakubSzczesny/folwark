@@ -7,12 +7,11 @@
         {% endif %}
     </div>
     {% if contractor.contacts is empty %}
-        <twig:EmptyState
-            text="Brak osób."
-            icon="users"
-            actionLabel="{{ is_granted('CONTRACTOR_EDIT') ? 'Dodaj osobę' : null }}"
-            actionUrl="{{ is_granted('CONTRACTOR_EDIT') ? path('app_contact_person_new', {id: contractor.id}) : null }}"
-            data-turbo-frame="modal" />
+        <twig:EmptyState text="Brak osób." icon="users">
+            {% if is_granted('CONTRACTOR_EDIT') %}
+                <a href="{{ path('app_contact_person_new', {id: contractor.id}) }}" class="btn btn-primary" data-turbo-frame="modal">Dodaj osobę</a>
+            {% endif %}
+        </twig:EmptyState>
     {% else %}
         <ul class="divide-y divide-szary-200">
             {% for person in contractor.contacts %}

@@ -81,7 +81,11 @@ final class ContactPersonController extends AbstractController
             }
         }
 
-        return $this->render('contractor/contact_person.html.twig', ['person' => $person, 'errors' => $errors], new Response(null, [] !== $errors ? 422 : 200));
+        return $this->render('contractor/contact_person.html.twig', [
+            'person' => $person,
+            'errors' => $errors,
+            'modal' => 'modal' === $request->headers->get('Turbo-Frame'),
+        ], new Response(null, [] !== $errors ? 422 : 200));
     }
 
     private function tabUrl(Contractor $contractor): string

@@ -21,8 +21,16 @@ final class ContactPersonTest extends FunctionalTestCase
         self::assertResponseIsSuccessful();
         self::assertSelectorTextContains('a.tab-active', 'Osoby');
         self::assertSelectorTextContains('[data-contacts-tab]', 'Brak osób');
+        self::assertCount(0, $this->client->getCrawler()->filter('[data-contacts-tab] a[href$="/osoby/nowa"]:not([data-turbo-frame="modal"])'), 'każdy link „Dodaj osobę” otwiera okno');
+
+        // W oknie dialogowym sam formularz, bez okna – pełna strona z układem i stylami.
+        $this->client->request('GET', \sprintf('/kontrahenci/%d/osoby/nowa', $contractor->getId()), [], [], ['HTTP_TURBO_FRAME' => 'modal']);
+        self::assertSelectorExists('turbo-frame#modal form[data-turbo-frame="modal"]');
+        self::assertSelectorNotExists('link[rel="stylesheet"]');
 
         $this->client->request('GET', \sprintf('/kontrahenci/%d/osoby/nowa', $contractor->getId()));
+        self::assertSelectorExists('link[rel="stylesheet"]');
+        self::assertSelectorTextContains('h1', 'Nowa osoba');
         $this->client->submitForm('Zapisz', ['name' => 'Jan Nowak', 'position' => 'handlowiec', 'phone' => '600 123 456', 'email' => 'zly-adres']);
         self::assertResponseStatusCodeSame(422);
         self::assertSelectorTextContains('.form-error', 'To nie jest poprawny adres e-mail.');

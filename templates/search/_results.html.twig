@@ -1,6 +1,6 @@
 {% if query|length < min_length %}
     <p class="px-4 py-6 text-sm text-antracyt-500">Wpisz co najmniej {{ min_length }} znaki.</p>
-{% elseif groups is empty %}
+{% elseif groups is empty and not mail_search|default(false) %}
     <twig:EmptyState compact text="Nic nie znaleziono dla „{{ query }}”." icon="search" />
 {% else %}
     <div role="listbox" aria-label="Wyniki wyszukiwania">
@@ -13,5 +13,12 @@
                 </a>
             {% endfor %}
         {% endfor %}
+        {% if mail_search|default(false) %}
+            {# Gmail odpowiada wolniej niż baza – poczta doczytuje się osobno, gdy reszta wyników już jest. #}
+            <turbo-frame id="search-mail" src="{{ path('app_search_mail', {q: query, limit: limit}) }}" target="_top">
+                <div class="px-4 pt-3 pb-1 text-xs font-semibold uppercase tracking-wide text-antracyt-500">Poczta</div>
+                <p class="flex items-center gap-2 px-4 py-2 text-sm text-antracyt-500">{{ ux_icon('lucide:mail') }} Szukam w Gmailu…</p>
+            </turbo-frame>
+        {% endif %}
     </div>
 {% endif %}

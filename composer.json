@@ -34,6 +34,7 @@
         "symfony/flex": "^2",
         "symfony/form": "7.4.*",
         "symfony/framework-bundle": "7.4.*",
+        "symfony/html-sanitizer": "7.4.*",
         "symfony/http-client": "7.4.*",
         "symfony/lock": "7.4.*",
         "symfony/mailer": "7.4.*",
@@ -58,7 +59,8 @@
         "symfony/ux-twig-component": "^2.36",
         "symfony/validator": "7.4.*",
         "symfony/yaml": "7.4.*",
-        "symfonycasts/tailwind-bundle": "^1.0"
+        "symfonycasts/tailwind-bundle": "^1.0",
+        "webklex/php-imap": "6.2"
     },
     "require-dev": {
         "dama/doctrine-test-bundle": "^8.7",

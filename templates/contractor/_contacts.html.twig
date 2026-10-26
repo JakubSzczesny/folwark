@@ -1,0 +1,40 @@
+{# Zakładka „Osoby”: osoby u kontrahenta z telefonem i e-mailem (App\Entity\ContactPerson). #}
+<section class="card" data-contacts-tab>
+    <div class="card-header">
+        <h2 class="card-title">Osoby</h2>
+        {% if is_granted('CONTRACTOR_EDIT') %}
+            <a href="{{ path('app_contact_person_new', {id: contractor.id}) }}" class="btn btn-ghost btn-sm" data-turbo-frame="modal">{{ ux_icon('lucide:plus') }} Dodaj osobę</a>
+        {% endif %}
+    </div>
+    {% if contractor.contacts is empty %}
+        <twig:EmptyState text="Brak osób." icon="users">
+            {% if is_granted('CONTRACTOR_EDIT') %}
+                <a href="{{ path('app_contact_person_new', {id: contractor.id}) }}" class="btn btn-primary" data-turbo-frame="modal">Dodaj osobę</a>
+            {% endif %}
+        </twig:EmptyState>
+    {% else %}
+        <ul class="divide-y divide-szary-200">
+            {% for person in contractor.contacts %}
+                <li class="flex flex-wrap items-center gap-x-6 gap-y-1 px-4 py-3" data-contact-person>
+                    <span class="min-w-0 flex-1 basis-56">
+                        <span class="block font-semibold text-sm">{{ person.name }}</span>
+                        {% if person.position or person.note %}
+                            <span class="block text-xs text-antracyt-500">{{ [person.position, person.note]|filter(v => v)|join(' · ') }}</span>
+                        {% endif %}
+                    </span>
+                    <span class="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm">
+                        {% if person.phone %}
+                            <a href="tel:{{ person.phone|replace({' ': '', '-': '', '/': ''}) }}" class="inline-flex items-center gap-1.5 tabular-nums whitespace-nowrap">{{ ux_icon('lucide:phone') }} {{ person.phone }}</a>
+                        {% endif %}
+                        {% if person.email %}
+                            <a href="mailto:{{ person.email }}" class="inline-flex items-center gap-1.5 break-all">{{ ux_icon('lucide:mail') }} {{ person.email }}</a>
+                        {% endif %}
+                    </span>
+                    {% if is_granted('CONTRACTOR_EDIT') %}
+                        <a href="{{ path('app_contact_person_edit', {id: contractor.id, person: person.id}) }}" class="btn btn-ghost btn-icon btn-sm" data-turbo-frame="modal" aria-label="Edytuj {{ person.name }}" title="Edytuj">{{ ux_icon('lucide:pencil') }}</a>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+</section>

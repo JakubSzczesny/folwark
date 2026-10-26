@@ -1,0 +1,17 @@
+{% extends modal ? 'calendar/_frame.html.twig' : 'layout.html.twig' %}
+
+{% block title %}{{ person.id ? 'Edycja osoby' : 'Nowa osoba' }} · {{ person.contractor.displayName }}{% endblock %}
+{% block active_menu %}contractors{% endblock %}
+
+{% block modal %}
+    <twig:Modal title="{{ person.id ? 'Edycja osoby' : 'Nowa osoba – ' ~ person.contractor.displayName }}">
+        {{ include('contractor/_contact_person_form.html.twig') }}
+    </twig:Modal>
+{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="{{ person.id ? 'Edycja osoby' : 'Nowa osoba' }}" back="{{ path('app_contractor_show', {id: person.contractor.id, zakladka: 'osoby'}) }}" backLabel="{{ person.contractor.displayName }}" />
+    <div class="card card-body max-w-2xl">
+        {{ include('contractor/_contact_person_form.html.twig') }}
+    </div>
+{% endblock %}

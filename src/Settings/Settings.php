@@ -98,7 +98,7 @@ class Settings implements ResetInterface
         $setting->setValue($value);
 
         if ($old !== $value && !\in_array($key, SettingKey::INTERNAL, true)) {
-            $secret = SettingKey::KSEF_TOKEN === $key;
+            $secret = \in_array($key, SettingKey::SECRET, true);
             $this->audit->log('Setting', $key, 'change', [
                 'old' => $secret ? '***' : $old,
                 'new' => $secret ? '***' : $value,

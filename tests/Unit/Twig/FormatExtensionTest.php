@@ -30,6 +30,18 @@ final class FormatExtensionTest extends TestCase
         self::assertSame('03.10.2026', FormatExtension::date(new \DateTimeImmutable('2026-10-03')));
     }
 
+    public function testDayHeading(): void
+    {
+        $now = new \DateTimeImmutable('2026-10-26 20:00', new \DateTimeZone('Europe/Warsaw'));
+        $at = static fn (string $date): \DateTimeImmutable => new \DateTimeImmutable($date, new \DateTimeZone('Europe/Warsaw'));
+
+        self::assertSame('Dziś', FormatExtension::day($at('2026-10-26 00:05'), $now));
+        self::assertSame('Wczoraj', FormatExtension::day($at('2026-10-25 23:59'), $now));
+        self::assertSame('wtorek, 20 października', FormatExtension::day($at('2026-10-20 09:15'), $now));
+        self::assertSame('środa, 31 grudnia 2025', FormatExtension::day($at('2025-12-31 12:00'), $now));
+        self::assertSame('', FormatExtension::day(null));
+    }
+
     public function testDeadlineTone(): void
     {
         $today = new \DateTimeImmutable('today');

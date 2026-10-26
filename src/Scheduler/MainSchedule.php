@@ -7,6 +7,7 @@ namespace App\Scheduler;
 use App\Message\GenerateDeadlineNotifications;
 use App\Message\RecalculateOrders;
 use App\Message\SendDailyDigest;
+use App\Message\SyncGmailIndex;
 use App\Message\SyncKsefMetadata;
 use Symfony\Component\Scheduler\Attribute\AsSchedule;
 use Symfony\Component\Scheduler\RecurringMessage;
@@ -33,6 +34,7 @@ final class MainSchedule implements ScheduleProviderInterface
             ->processOnlyLastMissedRun(true)
             ->add(
                 RecurringMessage::every('5 minutes', new SyncKsefMetadata()),
+                RecurringMessage::every('5 minutes', new SyncGmailIndex()),
                 RecurringMessage::cron('30 5 * * *', new RecalculateOrders(), $tz),
                 RecurringMessage::cron('0 6 * * *', new GenerateDeadlineNotifications(), $tz),
                 RecurringMessage::cron('5 6 * * *', new SendDailyDigest(), $tz),

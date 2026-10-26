@@ -1,0 +1,60 @@
+{# Zakładka „Maile”: maile od i do adresów kontrahenta z indeksu w bazie (App\Gmail\MailIndexer), pogrupowane po dniach. #}
+<section class="card" data-mail-tab>
+    <div class="card-header">
+        <h2 class="card-title">Maile</h2>
+        <div class="flex items-center gap-3 min-w-0">
+            <span class="text-xs text-antracyt-500 truncate">
+                {{ contractor.emailAddresses|join(', ') }}{% if mail_synced_at %} · odświeżono {{ mail_synced_at|pl_datetime }}{% endif %}
+            </span>
+            <form method="post" action="{{ path('app_contractor_mail_refresh', {id: contractor.id}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('contractor-mail') }}">
+                <button type="submit" class="btn btn-ghost btn-sm">{{ ux_icon('lucide:refresh-cw') }} Odśwież</button>
+            </form>
+        </div>
+    </div>
+    {% if mail_error %}
+        <div class="px-4 pt-4">
+            <div class="alert alert-danger" role="alert">
+                Ostatnia synchronizacja z Gmailem nie powiodła się: {{ mail_error }}
+                {% if is_granted('SETTINGS') %}<a href="{{ path('app_settings_gmail') }}">Ustawienia Gmaila</a>{% endif %}
+            </div>
+        </div>
+    {% endif %}
+    {% if contractor.emailAddresses is empty %}
+        <twig:EmptyState
+            text="Ani kontrahent, ani jego osoby nie mają adresu e-mail – uzupełnij go albo dodaj osobę z e-mailem, żeby zobaczyć maile."
+            icon="mail"
+            actionLabel="{{ is_granted('CONTRACTOR_EDIT') ? 'Uzupełnij e-mail' : null }}"
+            actionUrl="{{ is_granted('CONTRACTOR_EDIT') ? path('app_contractor_edit', {id: contractor.id}) : null }}" />
+    {% elseif mails.total == 0 %}
+        <twig:EmptyState text="{{ mail_synced_at ? 'Brak maili od i do tego kontrahenta w skrzynce.' : 'Maile nie były jeszcze synchronizowane – kliknij „Odśwież”.' }}" icon="mail" />
+    {% else %}
+        {{ include('_partials/pagination.html.twig', {pager: mails, top: true}) }}
+        <ul>
+            {% set previous_day = null %}
+            {% for mail in mails.items %}
+                {% set day = mail.sentAt ? mail.sentAt|pl_day : 'Bez daty' %}
+                {% if day != previous_day %}
+                    <li class="px-4 pt-4 pb-1.5 text-xs font-semibold uppercase tracking-wide text-antracyt-500 border-b border-szary-200 {{ not loop.first ? 'border-t' }}" data-mail-day>{{ day }}</li>
+                    {% set previous_day = day %}
+                {% endif %}
+                <li class="border-b border-szary-100 last:border-b-0">
+                    <a href="{{ path('app_contractor_mail', {id: contractor.id, uid: mail.uid}) }}" class="grid grid-cols-[3.25rem_1.25rem_minmax(0,1fr)_auto] items-center gap-3 px-4 py-2.5 text-tekst hover:bg-szary-100 hover:text-tekst">
+                        <span class="text-sm tabular-nums text-antracyt-500">{{ mail.sentAt ? mail.sentAt|date('H:i') : '—' }}</span>
+                        <span class="{{ mail.incoming ? 'text-zielen-600' : 'text-antracyt-400' }}" title="{{ mail.incoming ? 'Odebrany' : 'Wysłany' }}">
+                            {{ ux_icon(mail.incoming ? 'lucide:arrow-down-left' : 'lucide:arrow-up-right') }}
+                        </span>
+                        <span class="min-w-0">
+                            <span class="block truncate text-sm font-semibold">{{ mail.subject }}</span>
+                            <span class="block truncate text-xs text-antracyt-500">
+                                {% if mail.incoming %}od {{ mail.fromName }}{% else %}do {{ mail.recipients }}{% endif %}
+                            </span>
+                        </span>
+                        <span class="text-antracyt-500 w-5">{% if mail.hasAttachments %}<span title="Z załącznikami">{{ ux_icon('lucide:paperclip') }}</span>{% endif %}</span>
+                    </a>
+                </li>
+            {% endfor %}
+        </ul>
+        {{ include('_partials/pagination.html.twig', {pager: mails}) }}
+    {% endif %}
+</section>

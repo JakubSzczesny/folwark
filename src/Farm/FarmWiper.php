@@ -6,9 +6,11 @@ namespace App\Farm;
 
 use App\Entity\AuditLog;
 use App\Entity\CalendarEvent;
+use App\Entity\ContactPerson;
 use App\Entity\Contract;
 use App\Entity\ContractAttachment;
 use App\Entity\Contractor;
+use App\Entity\ContractorMail;
 use App\Entity\CostCategory;
 use App\Entity\CostCenter;
 use App\Entity\CropSeason;
@@ -66,6 +68,8 @@ final class FarmWiper
         RecentChoice::class,
         CalendarEvent::class,
         Note::class,
+        ContractorMail::class,
+        ContactPerson::class,
         InvoiceRule::class,
         KsefSync::class,
         OrderCycle::class,

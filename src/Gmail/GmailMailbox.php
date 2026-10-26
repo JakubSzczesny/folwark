@@ -30,6 +30,9 @@ class GmailMailbox implements ResetInterface
 
     private const string HOST = 'imap.gmail.com';
 
+    /** Dłuższego filtra adresów nie wysyłamy do Gmaila – szukamy wtedy bez niego. */
+    private const int MAX_FILTER_LENGTH = 6000;
+
     /** Nagłówki bez polskich znaków dekodujemy przez iconv – rozszerzenie imap nie jest wymagane. */
     public const array DECODING = ['options' => ['header' => 'iconv', 'message' => 'iconv', 'attachment' => 'iconv']];
 
@@ -80,29 +83,52 @@ class GmailMailbox implements ResetInterface
 
         $this->open();
         $filter = self::gmailFilter($addresses);
-        $uids = array_reverse($this->search($filter));
-        $pager = Pager::fromArray($uids, $page, self::PER_PAGE);
+        $pager = Pager::fromArray(array_reverse($this->gmailSearch($filter)), $page, self::PER_PAGE);
         if ([] === $pager->items) {
             return $pager->withItems([]);
         }
 
-        $withAttachments = array_flip($this->search($filter.' has:attachment'));
-        // Same nagłówki przez BODY.PEEK i własne parsowanie – zapytania biblioteki po pobraniu
-        // wiadomości ustawiają flagę \Seen (STORE), a skrzynki nie zmieniamy.
-        $headers = $this->connection()->fetch(['UID', 'BODY.PEEK[HEADER]'], $pager->items)->validatedData();
-        $config = Config::make(['decoding' => self::DECODING]);
+        $withAttachments = array_flip($this->gmailSearch($filter.' has:attachment'));
 
-        $summaries = [];
-        foreach ($pager->items as $uid) {
-            $header = $headers[$uid]['BODY[HEADER]'] ?? null;
-            if (!\is_string($header) || '' === trim($header)) {
-                continue;
-            }
-            $message = Message::fromString(rtrim($header)."\r\n\r\n", $config)->setUid($uid);
-            $summaries[] = $this->parser->summary($message, $addresses, isset($withAttachments[$uid]));
+        return $pager->withItems(array_map(
+            fn (Message $message): MailSummary => $this->parser->summary($message, $addresses, isset($withAttachments[(int) $message->getUid()])),
+            $this->headers($pager->items),
+        ));
+    }
+
+    /**
+     * Wyszukiwanie w korespondencji z podanymi adresami (składnia wyszukiwarki Gmaila), od najnowszych.
+     *
+     * @param list<string> $addresses
+     *
+     * @return list<MailSummary>
+     */
+    public function search(string $query, array $addresses, int $limit): array
+    {
+        $query = trim(str_replace(['{', '}'], ' ', $query));
+        if ('' === $query || [] === $addresses) {
+            return [];
         }
 
-        return $pager->withItems($summaries);
+        $this->open();
+        $filter = self::gmailFilter($addresses);
+        // Bardzo długiego filtra Gmail nie przyjmie – wtedy szukamy w całej skrzynce
+        // i zostawiamy tylko wiadomości kontrahentów.
+        $long = \strlen($filter) > self::MAX_FILTER_LENGTH;
+        $uids = \array_slice(array_reverse($this->gmailSearch($long ? $query : $filter.' '.$query)), 0, $long ? $limit * 5 : $limit);
+
+        $results = [];
+        foreach ($this->headers($uids) as $message) {
+            if ($long && !$this->parser->involves($message, $addresses)) {
+                continue;
+            }
+            $results[] = $this->parser->summary($message, $addresses);
+            if (\count($results) >= $limit) {
+                break;
+            }
+        }
+
+        return $results;
     }
 
     /**
@@ -154,11 +180,43 @@ class GmailMailbox implements ResetInterface
     /**
      * @return list<int>
      */
-    private function search(string $gmailFilter): array
+    private function gmailSearch(string $gmailQuery): array
     {
-        $uids = $this->connection()->search(['X-GM-RAW', $this->quote($gmailFilter)])->validatedData();
+        // Zapytanie z polskimi znakami musi iść jako literał IMAP ({długość} + dane) z CHARSET UTF-8.
+        $argument = 1 === preg_match('/[^\x20-\x7E]/', $gmailQuery)
+            ? ['{'.\strlen($gmailQuery).'}', $gmailQuery]
+            : $this->quote($gmailQuery);
+        $uids = $this->connection()->search(['CHARSET', 'UTF-8', 'X-GM-RAW', $argument])->validatedData();
 
         return array_values(array_map('intval', (array) $uids));
+    }
+
+    /**
+     * Same nagłówki przez BODY.PEEK i własne parsowanie – zapytania biblioteki po pobraniu
+     * wiadomości ustawiają flagę \Seen (STORE), a skrzynki nie zmieniamy. Kolejność jak w $uids.
+     *
+     * @param list<int> $uids
+     *
+     * @return list<Message>
+     */
+    private function headers(array $uids): array
+    {
+        if ([] === $uids) {
+            return [];
+        }
+
+        $headers = $this->connection()->fetch(['UID', 'BODY.PEEK[HEADER]'], $uids)->validatedData();
+        $config = Config::make(['decoding' => self::DECODING]);
+
+        $messages = [];
+        foreach ($uids as $uid) {
+            $header = $headers[$uid]['BODY[HEADER]'] ?? null;
+            if (\is_string($header) && '' !== trim($header)) {
+                $messages[] = Message::fromString(rtrim($header)."\r\n\r\n", $config)->setUid($uid);
+            }
+        }
+
+        return $messages;
     }
 
     /**

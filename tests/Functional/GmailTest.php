@@ -117,6 +117,36 @@ final class GmailTest extends FunctionalTestCase
         self::assertSelectorTextContains('[data-mail-tab]', 'Brak wiadomości');
     }
 
+    public function testGlobalSearchFindsMailsAndContractorByEmail(): void
+    {
+        $contractor = ContractorFactory::createOne(['email' => 'jan@agro-kowalski.pl', 'name' => 'Agro Kowalski']);
+        ContractorFactory::createOne(['email' => 'ktos@inny.pl', 'name' => 'Inny']);
+        $this->loginAs(UserFactory::owner());
+        $mailbox = $this->fakeMailbox();
+        $mailbox->configured = false;
+
+        // Bez skrzynki: po adresie e-mail znajduje się kontrahent, a poczty nie ma.
+        $crawler = $this->client->request('GET', '/szukaj?q=agro-kowalski.pl', [], [], ['HTTP_X_REQUESTED_WITH' => 'fetch']);
+        self::assertResponseIsSuccessful();
+        self::assertCount(1, $crawler->filter(\sprintf('a[href="/kontrahenci/%d"]', $contractor->getId())));
+        self::assertCount(0, $crawler->filter('turbo-frame#search-mail'));
+
+        $mailbox->configured = true;
+        $mailbox->add(42, (string) file_get_contents(__DIR__.'/../fixtures/gmail/faktura.eml'));
+        $crawler = $this->client->request('GET', '/szukaj?q=październik', [], [], ['HTTP_X_REQUESTED_WITH' => 'fetch']);
+        self::assertSame('/szukaj/poczta?q=pa%C5%BAdziernik&limit=5', $crawler->filter('turbo-frame#search-mail')->attr('src'));
+
+        $crawler = $this->client->request('GET', '/szukaj/poczta?q=październik&limit=5');
+        self::assertResponseIsSuccessful();
+        $link = $crawler->filter(\sprintf('turbo-frame#search-mail a[href="/kontrahenci/%d/poczta/42"]', $contractor->getId()));
+        self::assertCount(1, $link);
+        self::assertStringContainsString('Faktura za październik', $link->text());
+        self::assertStringContainsString('Agro Kowalski', $link->text());
+
+        $this->client->request('GET', '/szukaj/poczta?q=nieistniejace&limit=5');
+        self::assertSelectorTextContains('turbo-frame#search-mail', 'Brak maili kontrahentów');
+    }
+
     public function testContractorWithoutEmail(): void
     {
         $contractor = ContractorFactory::createOne(['email' => null]);

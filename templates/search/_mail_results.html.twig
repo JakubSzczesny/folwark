@@ -1,0 +1,15 @@
+<turbo-frame id="search-mail" target="_top">
+    <div class="px-4 pt-3 pb-1 text-xs font-semibold uppercase tracking-wide text-antracyt-500">Poczta</div>
+    {% if error %}
+        <p class="px-4 py-2 text-sm text-blad">{{ error }}</p>
+    {% elseif results is empty %}
+        <p class="px-4 py-2 text-sm text-antracyt-500">Brak maili kontrahentów pasujących do zapytania.</p>
+    {% else %}
+        {% for result in results %}
+            <a href="{{ result.url }}" data-search-item role="option" class="flex items-baseline justify-between gap-3 px-4 py-2 text-tekst hover:bg-szary-100 hover:text-tekst">
+                <span class="truncate font-semibold text-sm">{{ result.title }}</span>
+                <span class="truncate text-sm text-antracyt-500">{{ result.subtitle }}</span>
+            </a>
+        {% endfor %}
+    {% endif %}
+</turbo-frame>

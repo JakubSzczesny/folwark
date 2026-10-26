@@ -31,9 +31,11 @@ final class FakeGmailMailbox extends GmailMailbox
         $this->messages[$uid] = Message::fromString($eml, Config::make(['decoding' => self::DECODING]))->setUid($uid);
     }
 
+    public bool $configured = true;
+
     public function isConfigured(): bool
     {
-        return true;
+        return $this->configured;
     }
 
     public function address(): string
@@ -56,6 +58,19 @@ final class FakeGmailMailbox extends GmailMailbox
         }
 
         return Pager::fromArray($items, $page, self::PER_PAGE);
+    }
+
+    public function search(string $query, array $addresses, int $limit): array
+    {
+        $results = [];
+        foreach (array_reverse($this->messages, true) as $message) {
+            $text = mb_strtolower($message->getSubject().' '.$message->getTextBody());
+            if ($this->mailParser->involves($message, $addresses) && str_contains($text, mb_strtolower($query))) {
+                $results[] = $this->mailParser->summary($message, $addresses);
+            }
+        }
+
+        return \array_slice($results, 0, $limit);
     }
 
     public function message(int $uid, array $addresses): ?MailMessage

@@ -52,6 +52,10 @@ final class MailParser
             date: $date,
             incoming: null !== $from && \in_array(mb_strtolower($from->mail), $contractorAddresses, true),
             hasAttachments: $hasAttachments,
+            participants: array_values(array_unique(array_map(
+                static fn (Address $address): string => mb_strtolower($address->mail),
+                [...$this->addresses($message, 'from'), ...$this->addresses($message, 'to'), ...$this->addresses($message, 'cc')],
+            ))),
         );
     }
 

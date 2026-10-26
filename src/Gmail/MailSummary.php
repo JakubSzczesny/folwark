@@ -11,6 +11,7 @@ final readonly class MailSummary
 {
     /**
      * @param list<string> $to
+     * @param list<string> $participants
      */
     public function __construct(
         public int $uid,
@@ -22,6 +23,8 @@ final readonly class MailSummary
         /** true – przyszła od kontrahenta, false – wysłana do niego */
         public bool $incoming,
         public bool $hasAttachments,
+        /** adresy z Od, Do i DW, małymi literami */
+        public array $participants = [],
     ) {
     }
 }

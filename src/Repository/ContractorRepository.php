@@ -54,7 +54,7 @@ class ContractorRepository extends ServiceEntityRepository
 
         if (null !== $text) {
             $digits = preg_replace('/\D+/', '', $text) ?? '';
-            $qb->andWhere('LOWER(c.name) LIKE :q OR LOWER(c.shortName) LIKE :q'.('' !== $digits ? ' OR c.nip LIKE :nip' : ''))
+            $qb->andWhere('LOWER(c.name) LIKE :q OR LOWER(c.shortName) LIKE :q OR LOWER(c.email) LIKE :q'.('' !== $digits ? ' OR c.nip LIKE :nip' : ''))
                 ->setParameter('q', GlobalSearch::likePattern($text));
             if ('' !== $digits) {
                 $qb->setParameter('nip', '%'.$digits.'%');
@@ -78,5 +78,19 @@ class ContractorRepository extends ServiceEntityRepository
     public function search(string $query, int $limit): array
     {
         return $this->createListQuery($query, null)->setMaxResults($limit)->getQuery()->getResult();
+    }
+
+    /**
+     * Kontrahenci z wpisanym adresem e-mail – do szukania w ich korespondencji.
+     *
+     * @return list<Contractor>
+     */
+    public function findWithEmail(): array
+    {
+        return $this->createQueryBuilder('c')
+            ->andWhere("c.email IS NOT NULL AND c.email != ''")
+            ->orderBy('c.active', 'DESC')
+            ->addOrderBy('c.name')
+            ->getQuery()->getResult();
     }
 }

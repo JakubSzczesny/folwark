@@ -6,6 +6,7 @@ namespace App\Farm;
 
 use App\Entity\AuditLog;
 use App\Entity\CalendarEvent;
+use App\Entity\ContactPerson;
 use App\Entity\Contract;
 use App\Entity\ContractAttachment;
 use App\Entity\Contractor;
@@ -68,6 +69,7 @@ final class FarmWiper
         CalendarEvent::class,
         Note::class,
         ContractorMail::class,
+        ContactPerson::class,
         InvoiceRule::class,
         KsefSync::class,
         OrderCycle::class,

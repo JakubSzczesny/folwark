@@ -44,7 +44,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 final class ContractorController extends AbstractController
 {
     private const array EDITABLE_FIELDS = ['name', 'shortName', 'nip', 'street', 'postalCode', 'city', 'country', 'email', 'phone', 'contactPerson'];
-    private const array TABS = ['faktury', 'zakupy', 'umowy', 'kalendarz', 'poczta', 'historia', 'notatki'];
+    private const array TABS = ['faktury', 'zakupy', 'umowy', 'osoby', 'kalendarz', 'poczta', 'historia', 'notatki'];
 
     public function __construct(
         private readonly ContractorRepository $contractors,

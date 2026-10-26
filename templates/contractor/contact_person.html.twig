@@ -1,0 +1,41 @@
+<twig:Modal title="{{ person.id ? 'Edycja osoby' : 'Nowa osoba – ' ~ person.contractor.displayName }}">
+    <form method="post" action="{{ app.request.requestUri }}" data-turbo-frame="modal">
+        <input type="hidden" name="_token" value="{{ csrf_token('contact-person') }}">
+        <div class="form-grid">
+            <div class="field">
+                <label class="label" for="person-name">Imię i nazwisko</label>
+                <input id="person-name" name="name" class="input" required maxlength="120" autofocus value="{{ person.name }}">
+                {% if errors.name is defined %}<p class="form-error">{{ errors.name }}</p>{% endif %}
+            </div>
+            <div class="field">
+                <label class="label" for="person-position">Stanowisko / rola</label>
+                <input id="person-position" name="position" class="input" maxlength="120" value="{{ person.position }}" placeholder="np. handlowiec, księgowość, kierowca">
+            </div>
+            <div class="field">
+                <label class="label" for="person-phone">Telefon</label>
+                <input id="person-phone" name="phone" type="tel" class="input" maxlength="40" value="{{ person.phone }}" placeholder="np. 600 123 456">
+                {% if errors.phone is defined %}<p class="form-error">{{ errors.phone }}</p>{% endif %}
+            </div>
+            <div class="field">
+                <label class="label" for="person-email">E-mail</label>
+                <input id="person-email" name="email" type="email" class="input" maxlength="180" value="{{ person.email }}" placeholder="np. jan.kowalski@gmail.com">
+                {% if errors.email is defined %}<p class="form-error">{{ errors.email }}</p>{% endif %}
+            </div>
+        </div>
+        <div class="field">
+            <label class="label" for="person-note">Uwagi</label>
+            <input id="person-note" name="note" class="input" maxlength="255" value="{{ person.note }}" placeholder="np. dzwonić po 15:00">
+        </div>
+        <p class="text-xs text-antracyt-500 mb-4">Maile od i do tego adresu pokażą się w zakładce „Maile” kontrahenta.</p>
+        <div class="flex flex-wrap gap-2">
+            <button type="submit" class="btn btn-primary">Zapisz</button>
+            <button type="button" class="btn btn-ghost" data-action="modal#close">Anuluj</button>
+            {% if person.id %}<button type="submit" form="delete-person" class="btn btn-ghost text-danger ml-auto">{{ ux_icon('lucide:trash-2') }} Usuń</button>{% endif %}
+        </div>
+    </form>
+    {% if person.id %}
+        <form id="delete-person" method="post" action="{{ path('app_contact_person_delete', {id: person.contractor.id, person: person.id}) }}" data-turbo-frame="modal" data-turbo-confirm="Usunąć osobę „{{ person.name }}”?">
+            <input type="hidden" name="_token" value="{{ csrf_token('contact-person') }}">
+        </form>
+    {% endif %}
+</twig:Modal>

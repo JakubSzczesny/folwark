@@ -22,7 +22,7 @@
     {% endif %}
     {% if contractor.emailAddresses is empty %}
         <twig:EmptyState
-            text="Kontrahent nie ma adresu e-mail – uzupełnij go, żeby zobaczyć maile."
+            text="Ani kontrahent, ani jego osoby nie mają adresu e-mail – uzupełnij go albo dodaj osobę z e-mailem, żeby zobaczyć maile."
             icon="mail"
             actionLabel="{{ is_granted('CONTRACTOR_EDIT') ? 'Uzupełnij e-mail' : null }}"
             actionUrl="{{ is_granted('CONTRACTOR_EDIT') ? path('app_contractor_edit', {id: contractor.id}) : null }}" />

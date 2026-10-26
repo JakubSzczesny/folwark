@@ -95,9 +95,25 @@ class Contractor implements \Stringable, FarmScoped
     #[ORM\OneToMany(targetEntity: ContractorBankAccount::class, mappedBy: 'contractor', cascade: ['persist'], orphanRemoval: true)]
     private Collection $bankAccounts;
 
+    /** @var Collection<int, ContactPerson> */
+    #[ORM\OneToMany(targetEntity: ContactPerson::class, mappedBy: 'contractor')]
+    #[ORM\OrderBy(['name' => 'ASC'])]
+    private Collection $contacts;
+
     public function __construct()
     {
         $this->bankAccounts = new ArrayCollection();
+        $this->contacts = new ArrayCollection();
+    }
+
+    /**
+     * Osoby u kontrahenta (zakładka „Osoby”).
+     *
+     * @return Collection<int, ContactPerson>
+     */
+    public function getContacts(): Collection
+    {
+        return $this->contacts;
     }
 
     public function getId(): ?int
@@ -219,15 +235,20 @@ class Contractor implements \Stringable, FarmScoped
     }
 
     /**
-     * Poprawne adresy z pola e-mail, małymi literami. Pole może zawierać kilka
-     * adresów rozdzielonych przecinkiem, średnikiem albo spacją.
+     * Poprawne adresy kontrahenta i jego osób, małymi literami – po nich maile trafiają
+     * do zakładki „Maile”. Pole e-mail może zawierać kilka adresów rozdzielonych
+     * przecinkiem, średnikiem albo spacją.
      *
      * @return list<string>
      */
     public function getEmailAddresses(): array
     {
         $addresses = [];
-        foreach (preg_split('/[\s,;]+/', (string) $this->email, -1, \PREG_SPLIT_NO_EMPTY) ?: [] as $candidate) {
+        $candidates = preg_split('/[\s,;]+/', (string) $this->email, -1, \PREG_SPLIT_NO_EMPTY) ?: [];
+        foreach ($this->contacts as $contact) {
+            $candidates[] = (string) $contact->getEmail();
+        }
+        foreach ($candidates as $candidate) {
             $candidate = mb_strtolower(trim($candidate, '<>'));
             if (false !== filter_var($candidate, \FILTER_VALIDATE_EMAIL)) {
                 $addresses[$candidate] = true;

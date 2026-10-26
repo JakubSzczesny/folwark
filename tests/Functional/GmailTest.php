@@ -197,7 +197,7 @@ final class GmailTest extends FunctionalTestCase
 
         $this->client->request('GET', \sprintf('/kontrahenci/%d?zakladka=poczta', $contractor->getId()));
         self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('[data-mail-tab]', 'Kontrahent nie ma adresu e-mail');
+        self::assertSelectorTextContains('[data-mail-tab]', 'Ani kontrahent, ani jego osoby nie mają adresu e-mail');
     }
 
     private function fakeMailbox(): FakeGmailMailbox

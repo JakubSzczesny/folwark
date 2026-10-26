@@ -28,7 +28,7 @@
                 {% if message.html %}
                     {# Obrazy (także z internetu) pokazujemy od razu; skrypty, formularze i ramki są zablokowane. #}
                     {% set csp = "default-src 'none'; style-src 'unsafe-inline'; font-src data:; img-src data: https: http:" %}
-                    {% set document %}<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="{{ csp }}"><base target="_blank"><style>body{margin:0;padding:16px;font:14px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#1f2933;overflow-wrap:anywhere}img{max-width:100%;height:auto}table{max-width:100%}blockquote{margin:0 0 0 .5rem;padding-left:.75rem;border-left:3px solid #d5d9de;color:#52606d}</style></head><body>{{ message.html|raw }}</body></html>{% endset %}
+                    {% set document %}<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="{{ csp }}"><base target="_blank">{# Domyślne style jak w Gmailu (Arial 14 px) – style samego maila są niżej, więc mają pierwszeństwo. #}<style>body{margin:0;padding:12px 16px;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#222}img{max-width:100%}</style><style>{{ message.styles|raw }}</style></head><body>{{ message.html|raw }}</body></html>{% endset %}
                     {# Bez allow-scripts: treść maila nie uruchomi żadnego skryptu; allow-same-origin pozwala tylko dopasować wysokość ramki. #}
                     <iframe class="block w-full border-0" style="height: 60vh" title="Treść wiadomości"
                             sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"

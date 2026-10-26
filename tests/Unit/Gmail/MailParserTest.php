@@ -59,6 +59,21 @@ final class MailParserTest extends TestCase
         self::assertStringContainsString('target="_blank"', $html);
     }
 
+    public function testKeepsMailStylesAndBodyAttributes(): void
+    {
+        $eml = "From: Apple <no_reply@email.apple.com>\r\nTo: a@b.pl\r\nSubject: Faktura\r\nContent-Type: text/html; charset=UTF-8\r\n\r\n"
+            .'<html><head><style>@import url(https://x/y.css); .aapl-header{font-size:24px} td{width:expression(alert(1))}</style></head>'
+            .'<body bgcolor="#f5f5f7" style="margin:0"><p class="aapl-header">Faktura</p></body></html>';
+        $mail = (new MailParser())->message(Message::fromString($eml, Config::make(['decoding' => GmailMailbox::DECODING])), ['no_reply@email.apple.com']);
+
+        self::assertStringContainsString('.aapl-header{font-size:24px}', $mail->styles);
+        self::assertStringNotContainsString('@import', $mail->styles);
+        self::assertStringNotContainsString('expression(', $mail->styles);
+        self::assertStringContainsString('bgcolor="#f5f5f7"', (string) $mail->html);
+        self::assertStringContainsString('class="aapl-header"', (string) $mail->html);
+        self::assertSame('', MailParser::styles('<p>bez stylów</p>'));
+    }
+
     public function testInvolvesChecksAllAddressFields(): void
     {
         $parser = new MailParser();

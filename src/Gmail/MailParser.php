@@ -24,7 +24,7 @@ final class MailParser
     /** Obrazki z cid: wstawiamy do treści jako data: tylko do tego rozmiaru. */
     private const int INLINE_DATA_MAX_BYTES = 2 * 1024 * 1024;
 
-    private const array LAYOUT_ATTRIBUTES = ['style', 'class', 'width', 'height', 'align', 'valign', 'bgcolor', 'border', 'cellpadding', 'cellspacing', 'color', 'face', 'size', 'dir'];
+    private const array LAYOUT_ATTRIBUTES = ['style', 'class', 'width', 'height', 'align', 'valign', 'bgcolor', 'background', 'border', 'cellpadding', 'cellspacing', 'color', 'face', 'size', 'dir', 'nowrap', 'role'];
 
     private ?HtmlSanitizer $sanitizer = null;
 
@@ -107,12 +107,19 @@ final class MailParser
             );
         }
 
-        $html = $message->hasHTMLBody() ? $this->sanitize($this->inlineImages($message->getHTMLBody(), $cid)) : null;
+        $html = null;
+        $styles = '';
+        if ($message->hasHTMLBody()) {
+            $raw = $this->inlineImages($message->getHTMLBody(), $cid);
+            $styles = self::styles($raw);
+            $html = $this->sanitize(self::wrapBody($raw));
+        }
 
         return new MailMessage(
             summary: $this->summary($message, $contractorAddresses, [] !== $attachments),
             cc: array_map(self::label(...), $this->addresses($message, 'cc')),
             html: null === $html || '' === trim(strip_tags($html, '<img>')) ? null : $html,
+            styles: $styles,
             text: $message->hasTextBody() ? $message->getTextBody() : '',
             attachments: $attachments,
             messageId: trim((string) $message->getMessageId(), '<> ') ?: null,
@@ -142,6 +149,35 @@ final class MailParser
         }
 
         return (string) preg_replace_callback('/cid:([^"\'\s>)]+)/i', static fn (array $m): string => $cid[$m[1]] ?? $cid[urldecode($m[1])] ?? $m[0], $html);
+    }
+
+    /**
+     * Arkusze <style> z maila – sanitizer usuwa je razem z <head>, a bez nich np. faktury
+     * Apple wyglądają inaczej niż w Gmailu. CSS nie uruchomi kodu (ramka bez skryptów,
+     * CSP blokuje @import i zewnętrzne czcionki); wycinamy tylko to, co mogłoby wyjść poza <style>.
+     */
+    public static function styles(string $html): string
+    {
+        if (0 === preg_match_all('~<style\b[^>]*>(.*?)</style\s*>~is', $html, $matches)) {
+            return '';
+        }
+
+        $css = implode("\n", $matches[1]);
+        $css = (string) preg_replace(['~<!--|-->~', '~</?\s*style~i', '~@import[^;]*;?~i', '~expression\s*\(~i', '~javascript:~i', '~-moz-binding~i', '~behavior\s*:~i'], '', $css);
+
+        return str_replace('<', '', $css);
+    }
+
+    /**
+     * Atrybuty <body> (tło, styl, klasa) przenosimy na <div>, bo sanitizer zostawia tylko zawartość body.
+     */
+    private static function wrapBody(string $html): string
+    {
+        if (1 !== preg_match('~<body\b([^>]*)>(.*?)(?:</body\s*>|$)~is', $html, $body)) {
+            return $html;
+        }
+
+        return '<div data-mail-body'.$body[1].'>'.$body[2].'</div>';
     }
 
     private function sanitize(string $html): string

@@ -22,6 +22,8 @@ final readonly class MailMessage
         public array $attachments,
         /** Nagłówek Message-ID bez nawiasów – do linku „Otwórz w Gmailu”. */
         public ?string $messageId = null,
+        /** CSS z bloków <style> maila (App\Gmail\MailParser::styles). */
+        public string $styles = '',
     ) {
     }
 

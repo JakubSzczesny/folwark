@@ -8,7 +8,7 @@
     </div>
     {% if contractor.contacts is empty %}
         <twig:EmptyState
-            text="Brak osób. Dodaj handlowca, księgową albo kierowcę – z telefonem i e-mailem pod ręką."
+            text="Brak osób."
             icon="users"
             actionLabel="{{ is_granted('CONTRACTOR_EDIT') ? 'Dodaj osobę' : null }}"
             actionUrl="{{ is_granted('CONTRACTOR_EDIT') ? path('app_contact_person_new', {id: contractor.id}) : null }}"

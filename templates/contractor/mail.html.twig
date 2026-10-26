@@ -1,0 +1,78 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}{{ message ? message.summary.subject : 'Wiadomość' }} · {{ contractor.displayName }}{% endblock %}
+{% block active_menu %}contractors{% endblock %}
+
+{% block content %}
+    {% set back = path('app_contractor_show', {id: contractor.id, zakladka: 'poczta'}) %}
+    <twig:PageHeader title="{{ message ? message.summary.subject : 'Wiadomość' }}" back="{{ back }}" backLabel="{{ contractor.displayName }}">
+        {% if message and message.gmailUrl(mailbox_address) %}
+            <a href="{{ message.gmailUrl(mailbox_address) }}" class="btn btn-secondary" target="_blank" rel="noopener">{{ ux_icon('lucide:external-link') }} Otwórz w Gmailu</a>
+        {% endif %}
+    </twig:PageHeader>
+
+    {% if error %}
+        <div class="alert alert-danger" role="alert">{{ error }}</div>
+    {% else %}
+        {% set summary = message.summary %}
+        <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+            <section class="card min-w-0">
+                <div class="card-body border-b border-szary-200">
+                    <dl class="dl">
+                        <dt>Od</dt><dd>{{ summary.from }}{% if summary.fromAddress and summary.fromAddress != summary.from %} <span class="text-antracyt-500">&lt;{{ summary.fromAddress }}&gt;</span>{% endif %}</dd>
+                        <dt>Do</dt><dd class="break-words">{{ summary.to|join(', ') ?: '—' }}</dd>
+                        {% if message.cc is not empty %}<dt>DW</dt><dd class="break-words">{{ message.cc|join(', ') }}</dd>{% endif %}
+                        <dt>Data</dt><dd class="tabular-nums">{{ summary.date ? summary.date|pl_datetime : '—' }}</dd>
+                    </dl>
+                </div>
+                {% if message.html %}
+                    {% if has_remote_images and not remote_images %}
+                        <div class="flex flex-wrap items-center justify-between gap-2 px-4 py-2 text-sm bg-szary-100 border-b border-szary-200">
+                            <span class="text-antracyt-500">{{ ux_icon('lucide:eye-off') }} Obrazy z internetu są zablokowane (mogą zdradzać nadawcy, że wiadomość została otwarta).</span>
+                            <a href="{{ path('app_contractor_mail', {id: contractor.id, uid: summary.uid, obrazy: 1}) }}" class="btn btn-ghost btn-sm">{{ ux_icon('lucide:image') }} Pokaż obrazy</a>
+                        </div>
+                    {% endif %}
+                    {% set csp = "default-src 'none'; style-src 'unsafe-inline'; font-src data:; img-src data:" ~ (remote_images ? ' https: http:') %}
+                    {% set document %}<!DOCTYPE html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="{{ csp }}"><base target="_blank"><style>body{margin:0;padding:16px;font:14px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#1f2933;overflow-wrap:anywhere}img{max-width:100%;height:auto}table{max-width:100%}blockquote{margin:0 0 0 .5rem;padding-left:.75rem;border-left:3px solid #d5d9de;color:#52606d}</style></head><body>{{ message.html|raw }}</body></html>{% endset %}
+                    {# Bez allow-scripts: treść maila nie uruchomi żadnego skryptu; allow-same-origin pozwala tylko dopasować wysokość ramki. #}
+                    <iframe class="block w-full border-0" style="height: 60vh" title="Treść wiadomości"
+                            sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+                            referrerpolicy="no-referrer"
+                            srcdoc="{{ document|e('html_attr') }}"
+                            data-controller="mail-frame"></iframe>
+                {% elseif message.text %}
+                    <div class="card-body"><pre class="whitespace-pre-wrap break-words font-sans text-sm">{{ message.text }}</pre></div>
+                {% else %}
+                    <twig:EmptyState compact text="Wiadomość nie ma treści." icon="mail" />
+                {% endif %}
+            </section>
+
+            <aside class="card self-start" data-mail-attachments>
+                <div class="card-header"><h2 class="card-title">Załączniki</h2></div>
+                {% if message.attachments is empty %}
+                    <twig:EmptyState compact text="Brak załączników." icon="paperclip" />
+                {% else %}
+                    <ul class="divide-y divide-szary-200">
+                        {% for attachment in message.attachments %}
+                            {% set url = path('app_contractor_mail_attachment', {id: contractor.id, uid: summary.uid, index: attachment.index}) %}
+                            <li class="flex items-center gap-2 px-4 py-3">
+                                <span class="flex-1 min-w-0">
+                                    {% if attachment.previewable %}
+                                        <a href="{{ url }}" target="_blank" rel="noopener" data-turbo="false" class="block truncate text-sm font-semibold" title="{{ attachment.name }}">{{ attachment.name }}</a>
+                                    {% else %}
+                                        <span class="block truncate text-sm font-semibold" title="{{ attachment.name }}">{{ attachment.name }}</span>
+                                    {% endif %}
+                                    <span class="block text-xs text-antracyt-500 tabular-nums">{{ attachment.size > 1048576 ? (attachment.size / 1048576)|number_format(1, ',') ~ ' MB' : max(1, (attachment.size / 1024)|round) ~ ' kB' }}</span>
+                                </span>
+                                {% if attachment.previewable %}
+                                    <a href="{{ url }}" target="_blank" rel="noopener" data-turbo="false" class="btn btn-ghost btn-icon btn-sm" aria-label="Podgląd" title="Podgląd">{{ ux_icon('lucide:eye') }}</a>
+                                {% endif %}
+                                <a href="{{ path('app_contractor_mail_attachment', {id: contractor.id, uid: summary.uid, index: attachment.index, pobierz: 1}) }}" data-turbo="false" class="btn btn-ghost btn-icon btn-sm" aria-label="Pobierz" title="Pobierz">{{ ux_icon('lucide:download') }}</a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            </aside>
+        </div>
+    {% endif %}
+{% endblock %}

@@ -218,6 +218,25 @@ class Contractor implements \Stringable, FarmScoped
         return $this;
     }
 
+    /**
+     * Poprawne adresy z pola e-mail, małymi literami. Pole może zawierać kilka
+     * adresów rozdzielonych przecinkiem, średnikiem albo spacją.
+     *
+     * @return list<string>
+     */
+    public function getEmailAddresses(): array
+    {
+        $addresses = [];
+        foreach (preg_split('/[\s,;]+/', (string) $this->email, -1, \PREG_SPLIT_NO_EMPTY) ?: [] as $candidate) {
+            $candidate = mb_strtolower(trim($candidate, '<>'));
+            if (false !== filter_var($candidate, \FILTER_VALIDATE_EMAIL)) {
+                $addresses[$candidate] = true;
+            }
+        }
+
+        return array_keys($addresses);
+    }
+
     public function getPhone(): ?string
     {
         return $this->phone;

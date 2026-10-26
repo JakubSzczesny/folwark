@@ -43,6 +43,10 @@ final class SettingKey
     public const string BSPAY_TITLE = 'bspay.title';
     public const string BSPAY_SPLIT_PAYMENT = 'bspay.split_payment';
 
+    public const string GMAIL_ADDRESS = 'gmail.address';
+    /** Hasło do aplikacji Google, zaszyfrowane App\Crypto\SecretBox. */
+    public const string GMAIL_APP_PASSWORD = 'gmail.app_password';
+
     /** Klucze wyłączonych modułów (App\Module\Modules). */
     public const string MODULES_DISABLED = 'modules.disabled';
 
@@ -78,9 +82,14 @@ final class SettingKey
         self::BSPAY_BANK_URL => 'https://i24.bsbydgoszcz.pl/',
         self::BSPAY_TITLE => 'Faktura {numer}',
         self::BSPAY_SPLIT_PAYMENT => true,
+        self::GMAIL_ADDRESS => null,
+        self::GMAIL_APP_PASSWORD => null,
         self::MODULES_DISABLED => [],
     ];
 
     /** Klucze zapisywane przez system, a nie przez użytkownika; ich zmian nie logujemy. */
     public const array INTERNAL = [self::KSEF_CURSORS, self::KSEF_BLOCKED_UNTIL];
+
+    /** Sekrety – w dzienniku zdarzeń zamiast wartości jest „***”. */
+    public const array SECRET = [self::KSEF_TOKEN, self::GMAIL_APP_PASSWORD];
 }

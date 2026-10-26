@@ -59,6 +59,20 @@ final class Pager
         return new self(\array_slice($items, ($page - 1) * $perPage, $perPage), $total, $page, $perPage);
     }
 
+    /**
+     * Ta sama strona z innymi elementami – np. identyfikatory zamienione na wczytane obiekty.
+     *
+     * @template I
+     *
+     * @param list<I> $items
+     *
+     * @return self<I>
+     */
+    public function withItems(array $items): self
+    {
+        return new self($items, $this->total, $this->page, $this->perPage);
+    }
+
     public function pages(): int
     {
         return max(1, (int) ceil($this->total / $this->perPage));

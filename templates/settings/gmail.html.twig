@@ -1,0 +1,41 @@
+{% extends 'layout.html.twig' %}
+
+{% block title %}Gmail · Ustawienia{% endblock %}
+{% block active_menu %}settings{% endblock %}
+
+{% block content %}
+    <twig:PageHeader title="Gmail" subtitle="Korespondencja z kontrahentami – tylko odczyt" back="{{ path('app_settings') }}" backLabel="Ustawienia">
+        {% if configured %}
+            <form method="post" action="{{ path('app_settings_gmail_test') }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('gmail-settings') }}">
+                <button type="submit" class="btn btn-secondary">{{ ux_icon('lucide:plug') }} Test połączenia</button>
+            </form>
+            <form method="post" action="{{ path('app_settings_gmail_disconnect') }}" data-turbo-confirm="Odłączyć skrzynkę? Zakładka „Korespondencja” zniknie z kart kontrahentów.">
+                <input type="hidden" name="_token" value="{{ csrf_token('gmail-settings') }}">
+                <button type="submit" class="btn btn-ghost">{{ ux_icon('lucide:unplug') }} Odłącz</button>
+            </form>
+        {% endif %}
+    </twig:PageHeader>
+
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,42rem)_1fr]">
+        <div class="card card-body">
+            {{ form_start(form) }}
+                {{ form_widget(form) }}
+                <button type="submit" class="btn btn-primary">Zapisz</button>
+            {{ form_end(form) }}
+        </div>
+
+        <aside class="card card-body text-sm space-y-3">
+            <h2 class="card-title">Jak to działa</h2>
+            <p>Na karcie kontrahenta pojawia się zakładka <strong>„Korespondencja”</strong>: maile od i do adresu z pola „E-mail” kontrahenta. Kliknięcie otwiera podgląd wiadomości z załącznikami – bez obrazków ze stopek.</p>
+            <p>Folwark tylko czyta skrzynkę: niczego nie wysyła, nie usuwa i nie oznacza jako przeczytane. Wiadomości nie są kopiowane do bazy – pobierają się z Gmaila przy otwarciu zakładki.</p>
+            <h3 class="font-semibold">Hasło do aplikacji</h3>
+            <ol class="list-decimal pl-5 space-y-1">
+                <li>Zaloguj się na konto Google skrzynki gospodarstwa i włącz <a href="https://myaccount.google.com/signinoptions/twosv" target="_blank" rel="noopener">weryfikację dwuetapową</a> (bez niej hasła do aplikacji są niedostępne).</li>
+                <li>Otwórz <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">Hasła do aplikacji</a>, wpisz nazwę, np. „Folwark”, i kliknij „Utwórz”.</li>
+                <li>Skopiuj 16 liter do pola obok i zapisz – Folwark od razu sprawdzi połączenie.</li>
+            </ol>
+            <p class="text-antracyt-500">Hasło jest zapisane zaszyfrowane. Żeby odebrać dostęp, kliknij „Odłącz” albo usuń hasło w koncie Google.</p>
+        </aside>
+    </div>
+{% endblock %}

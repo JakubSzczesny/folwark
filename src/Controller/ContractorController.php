@@ -15,6 +15,8 @@ use App\Enum\ContractorKind;
 use App\Enum\DataSource;
 use App\Enum\InvoiceKind;
 use App\Form\ContractorType;
+use App\Gmail\GmailException;
+use App\Gmail\GmailMailbox;
 use App\Product\ProductPurchases;
 use App\Repository\CalendarEventRepository;
 use App\Repository\ContractorHistoryRepository;
@@ -41,7 +43,7 @@ use Symfony\Component\Security\Http\Attribute\IsGranted;
 final class ContractorController extends AbstractController
 {
     private const array EDITABLE_FIELDS = ['name', 'shortName', 'nip', 'street', 'postalCode', 'city', 'country', 'email', 'phone', 'contactPerson'];
-    private const array TABS = ['faktury', 'zakupy', 'umowy', 'kalendarz', 'historia', 'notatki'];
+    private const array TABS = ['faktury', 'zakupy', 'umowy', 'kalendarz', 'poczta', 'historia', 'notatki'];
 
     public function __construct(
         private readonly ContractorRepository $contractors,
@@ -108,13 +110,14 @@ final class ContractorController extends AbstractController
         ProductPurchases $purchases,
         OrderCycleRepository $cycles,
         CalendarEventRepository $events,
+        GmailMailbox $mailbox,
         #[CurrentUser] User $user,
     ): Response {
         $tab = \in_array($tab = $request->query->getString('zakladka', 'faktury'), self::TABS, true) ? $tab : 'faktury';
         $years = $invoices->yearsForContractor($contractor);
         $year = QueryParam::id($request->query, 'rok') ?? ($years[0] ?? (int) date('Y'));
 
-        $context = ['contractor' => $contractor, 'tab' => $tab, 'year' => $year, 'years' => $years];
+        $context = ['contractor' => $contractor, 'tab' => $tab, 'year' => $year, 'years' => $years, 'mail_enabled' => $mailbox->isConfigured()];
 
         if ('faktury' === $tab && $this->isGranted(Permission::INVOICE_VIEW)) {
             $context['cost_invoices'] = $invoices->findForContractor($contractor, InvoiceKind::Cost, $year);
@@ -132,6 +135,16 @@ final class ContractorController extends AbstractController
         }
         if ('kalendarz' === $tab && $this->isGranted(Permission::CALENDAR_VIEW)) {
             $context['calendar'] = $this->calendarRows($events->findForContractor($contractor, $user));
+        }
+        if ('poczta' === $tab && $context['mail_enabled']) {
+            $context['mail_error'] = null;
+            try {
+                $context['mails'] = $mailbox->conversation($contractor->getEmailAddresses(), $request->query->getInt('strona', 1));
+            } catch (GmailException $e) {
+                $context['mail_error'] = $e->getMessage();
+            } catch (\Throwable $e) {
+                $context['mail_error'] = 'Nie udało się pobrać wiadomości z Gmaila: '.$e->getMessage();
+            }
         }
         if ('historia' === $tab) {
             $context['history'] = $history->findBy(['contractor' => $contractor], ['changedAt' => 'DESC', 'id' => 'DESC'], 200);

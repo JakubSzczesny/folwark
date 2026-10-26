@@ -1,0 +1,48 @@
+From: =?UTF-8?Q?Jan_Kowalski_=E2=80=93_Agro?= <Jan@Agro-Kowalski.pl>
+To: Folwark <folwark@gmail.com>
+Cc: biuro@agro-kowalski.pl
+Subject: =?UTF-8?Q?Faktura_za_pa=C5=BAdziernik?=
+Date: Tue, 20 Oct 2026 09:15:00 +0200
+Message-ID: <abc123@agro-kowalski.pl>
+MIME-Version: 1.0
+Content-Type: multipart/mixed; boundary="mixed"
+
+--mixed
+Content-Type: multipart/related; boundary="related"
+
+--related
+Content-Type: multipart/alternative; boundary="alt"
+
+--alt
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Dzień dobry, w załączniku faktura.
+Pozdrawiam, Jan
+
+--alt
+Content-Type: text/html; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+<html><head><style>p{color:red}</style><script>alert(1)</script></head><body><p style="margin:0">Dzień dobry, w załączniku <b>faktura</b>.</p><a href="https://agro-kowalski.pl" onclick="x()">strona</a><img src="cid:logo@agro" alt="logo"><img src="https://tracker.example/pixel.gif"></body></html>
+
+--alt--
+
+--related
+Content-Type: image/png; name="image001.png"
+Content-Transfer-Encoding: base64
+Content-ID: <logo@agro>
+Content-Disposition: inline; filename="image001.png"
+
+iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==
+
+--related--
+
+--mixed
+Content-Type: application/pdf; name="FV_10_2026.pdf"
+Content-Transfer-Encoding: base64
+Content-Disposition: attachment; filename="FV_10_2026.pdf"
+
+JVBERi0xLjQKJcOkw7zDtsOfCjEgMCBvYmoKPDw+PgplbmRvYmoKdHJhaWxlcgo8PD4+CiUlRU9GCg==
+
+--mixed--

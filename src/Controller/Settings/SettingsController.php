@@ -41,6 +41,7 @@ final class SettingsController extends AbstractController
         ['route' => 'app_settings_notifications', 'title' => 'Powiadomienia', 'text' => 'Progi dni, dzienny skrót e-mail.'],
         ['route' => 'app_settings_warehouse', 'title' => 'Magazyn', 'text' => 'Numeracja dokumentów, domyślne „Utwórz też PZ”.'],
         ['route' => 'app_settings_bspay', 'title' => 'BS Pay', 'text' => 'Przelewy za faktury w bankowości BS Bydgoszcz.'],
+        ['route' => 'app_settings_gmail', 'title' => 'Gmail', 'text' => 'Skrzynka gospodarstwa – korespondencja na kartach kontrahentów.'],
         ['route' => 'app_settings_rules', 'title' => 'Reguły faktur', 'text' => 'Automatyczne „tylko koszt” dla wybranych dostawców.'],
         ['route' => 'admin', 'title' => 'Słowniki', 'text' => 'Kategorie, jednostki, magazyny, ośrodki kosztów, pola, rodzaje serwisu…'],
         ['route' => 'app_settings_audit', 'title' => 'Dziennik zdarzeń', 'text' => 'Kto, co i kiedy zmienił.'],

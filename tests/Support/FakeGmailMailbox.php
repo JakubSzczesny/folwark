@@ -9,7 +9,6 @@ use App\Gmail\GmailMailbox;
 use App\Gmail\MailMessage;
 use App\Gmail\MailParser;
 use App\Settings\Settings;
-use App\Ui\Pager;
 use Webklex\PHPIMAP\Config;
 use Webklex\PHPIMAP\Message;
 
@@ -18,6 +17,10 @@ use Webklex\PHPIMAP\Message;
  */
 final class FakeGmailMailbox extends GmailMailbox
 {
+    public bool $configured = true;
+
+    public int $validity = 1;
+
     /** @var array<int, Message> UID => wiadomość */
     private array $messages = [];
 
@@ -29,9 +32,13 @@ final class FakeGmailMailbox extends GmailMailbox
     public function add(int $uid, string $eml): void
     {
         $this->messages[$uid] = Message::fromString($eml, Config::make(['decoding' => self::DECODING]))->setUid($uid);
+        ksort($this->messages);
     }
 
-    public bool $configured = true;
+    public function remove(int $uid): void
+    {
+        unset($this->messages[$uid]);
+    }
 
     public function isConfigured(): bool
     {
@@ -48,16 +55,33 @@ final class FakeGmailMailbox extends GmailMailbox
         return 'Połączono (test).';
     }
 
-    public function conversation(array $addresses, int $page = 1): Pager
+    public function uidValidity(): int
     {
-        $items = [];
-        foreach (array_reverse($this->messages, true) as $message) {
-            if ($this->mailParser->involves($message, $addresses)) {
-                $items[] = $this->mailParser->summary($message, $addresses, $message->hasAttachments());
+        return $this->validity;
+    }
+
+    public function uids(array $addresses, string $extra = ''): array
+    {
+        $uids = [];
+        foreach ($this->messages as $uid => $message) {
+            if ($this->mailParser->involves($message, $addresses) && ('has:attachment' !== $extra || $message->hasAttachments())) {
+                $uids[] = $uid;
             }
         }
 
-        return Pager::fromArray($items, $page, self::PER_PAGE);
+        return $uids;
+    }
+
+    public function summaries(array $uids, array $addresses, array $withAttachments = []): array
+    {
+        $summaries = [];
+        foreach ($uids as $uid) {
+            if (isset($this->messages[$uid])) {
+                $summaries[] = $this->mailParser->summary($this->messages[$uid], $addresses, \in_array($uid, $withAttachments, true));
+            }
+        }
+
+        return $summaries;
     }
 
     public function search(string $query, array $addresses, int $limit): array

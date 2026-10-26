@@ -1,26 +1,33 @@
-{# Zakładka „Korespondencja”: maile od i do adresów kontrahenta ze skrzynki Gmail gospodarstwa. #}
+{# Zakładka „Korespondencja”: maile od i do adresów kontrahenta z indeksu w bazie (App\Gmail\MailIndexer). #}
 <section class="card" data-mail-tab>
     <div class="card-header">
         <h2 class="card-title">Korespondencja</h2>
-        {% if contractor.emailAddresses is not empty %}
-            <span class="text-sm text-antracyt-500 truncate">{{ contractor.emailAddresses|join(', ') }}</span>
-        {% endif %}
+        <div class="flex items-center gap-3 min-w-0">
+            <span class="text-xs text-antracyt-500 truncate">
+                {{ contractor.emailAddresses|join(', ') }}{% if mail_synced_at %} · odświeżono {{ mail_synced_at|pl_datetime }}{% endif %}
+            </span>
+            <form method="post" action="{{ path('app_contractor_mail_refresh', {id: contractor.id}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('contractor-mail') }}">
+                <button type="submit" class="btn btn-ghost btn-sm">{{ ux_icon('lucide:refresh-cw') }} Odśwież</button>
+            </form>
+        </div>
     </div>
+    {% if mail_error %}
+        <div class="px-4 pt-4">
+            <div class="alert alert-danger" role="alert">
+                Ostatnia synchronizacja z Gmailem nie powiodła się: {{ mail_error }}
+                {% if is_granted('SETTINGS') %}<a href="{{ path('app_settings_gmail') }}">Ustawienia Gmaila</a>{% endif %}
+            </div>
+        </div>
+    {% endif %}
     {% if contractor.emailAddresses is empty %}
         <twig:EmptyState
             text="Kontrahent nie ma adresu e-mail – uzupełnij go, żeby zobaczyć korespondencję."
             icon="mail"
             actionLabel="{{ is_granted('CONTRACTOR_EDIT') ? 'Uzupełnij e-mail' : null }}"
             actionUrl="{{ is_granted('CONTRACTOR_EDIT') ? path('app_contractor_edit', {id: contractor.id}) : null }}" />
-    {% elseif mail_error %}
-        <div class="p-4">
-            <div class="alert alert-danger" role="alert">
-                {{ mail_error }}
-                {% if is_granted('SETTINGS') %}<a href="{{ path('app_settings_gmail') }}">Ustawienia Gmaila</a>{% endif %}
-            </div>
-        </div>
     {% elseif mails.total == 0 %}
-        <twig:EmptyState text="Brak wiadomości od i do tego kontrahenta w skrzynce." icon="mail" />
+        <twig:EmptyState text="{{ mail_synced_at ? 'Brak wiadomości od i do tego kontrahenta w skrzynce.' : 'Poczta nie była jeszcze synchronizowana – kliknij „Odśwież”.' }}" icon="mail" />
     {% else %}
         {{ include('_partials/pagination.html.twig', {pager: mails, top: true}) }}
         <ul class="divide-y divide-szary-200">
@@ -33,11 +40,11 @@
                         <span class="flex-1 min-w-0">
                             <span class="block truncate text-sm font-semibold">{{ mail.subject }}</span>
                             <span class="block truncate text-xs text-antracyt-500">
-                                {% if mail.incoming %}od {{ mail.from }}{% else %}do {{ mail.to|join(', ') }}{% endif %}
+                                {% if mail.incoming %}od {{ mail.fromName }}{% else %}do {{ mail.recipients }}{% endif %}
                             </span>
                         </span>
                         {% if mail.hasAttachments %}<span class="shrink-0 text-antracyt-500" title="Z załącznikami">{{ ux_icon('lucide:paperclip') }}</span>{% endif %}
-                        <span class="shrink-0 text-sm whitespace-nowrap tabular-nums">{{ mail.date ? mail.date|pl_datetime : '—' }}</span>
+                        <span class="shrink-0 text-sm whitespace-nowrap tabular-nums">{{ mail.sentAt ? mail.sentAt|pl_datetime : '—' }}</span>
                     </a>
                 </li>
             {% endfor %}

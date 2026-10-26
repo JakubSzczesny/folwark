@@ -46,6 +46,8 @@ final class SettingKey
     public const string GMAIL_ADDRESS = 'gmail.address';
     /** Hasło do aplikacji Google, zaszyfrowane App\Crypto\SecretBox. */
     public const string GMAIL_APP_PASSWORD = 'gmail.app_password';
+    /** Stan indeksu korespondencji (AppGmailMailIndexer): podpis, czas ostatniej synchronizacji, błąd. */
+    public const string GMAIL_INDEX = 'gmail.index';
 
     /** Klucze wyłączonych modułów (App\Module\Modules). */
     public const string MODULES_DISABLED = 'modules.disabled';
@@ -84,11 +86,12 @@ final class SettingKey
         self::BSPAY_SPLIT_PAYMENT => true,
         self::GMAIL_ADDRESS => null,
         self::GMAIL_APP_PASSWORD => null,
+        self::GMAIL_INDEX => [],
         self::MODULES_DISABLED => [],
     ];
 
     /** Klucze zapisywane przez system, a nie przez użytkownika; ich zmian nie logujemy. */
-    public const array INTERNAL = [self::KSEF_CURSORS, self::KSEF_BLOCKED_UNTIL];
+    public const array INTERNAL = [self::KSEF_CURSORS, self::KSEF_BLOCKED_UNTIL, self::GMAIL_INDEX];
 
     /** Sekrety – w dzienniku zdarzeń zamiast wartości jest „***”. */
     public const array SECRET = [self::KSEF_TOKEN, self::GMAIL_APP_PASSWORD];

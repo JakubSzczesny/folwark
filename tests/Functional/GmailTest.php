@@ -6,8 +6,11 @@ namespace App\Tests\Functional;
 
 use App\Crypto\SecretBox;
 use App\Entity\AuditLog;
+use App\Entity\Contractor;
 use App\Gmail\GmailMailbox;
+use App\Gmail\MailIndexer;
 use App\Gmail\MailParser;
+use App\Repository\ContractorMailRepository;
 use App\Settings\SettingKey;
 use App\Settings\Settings;
 use App\Tests\Factory\ContractorFactory;
@@ -74,9 +77,14 @@ final class GmailTest extends FunctionalTestCase
         $this->loginAs(UserFactory::accountant());
         $this->fakeMailbox()->add(42, (string) file_get_contents(__DIR__.'/../fixtures/gmail/faktura.eml'));
 
-        $crawler = $this->client->request('GET', \sprintf('/kontrahenci/%d?zakladka=poczta', $contractor->getId()));
-        self::assertResponseIsSuccessful();
-        self::assertSelectorTextContains('a.tab-active', 'Korespondencja');
+        $this->client->request('GET', \sprintf('/kontrahenci/%d?zakladka=poczta', $contractor->getId()));
+        self::assertSelectorTextContains('[data-mail-tab]', 'Poczta nie była jeszcze synchronizowana');
+
+        $this->client->submitForm('Odśwież');
+        self::assertResponseRedirects(\sprintf('/kontrahenci/%d?zakladka=poczta', $contractor->getId()));
+        $crawler = $this->client->followRedirect();
+        self::assertSelectorTextContains('body', 'Dopisano 1 wiadomość.');
+        self::assertSelectorTextContains('a.tab-active', 'Korespondencja (1)');
         $link = $crawler->filter(\sprintf('a[href="/kontrahenci/%d/poczta/42"]', $contractor->getId()));
         self::assertCount(1, $link);
         self::assertStringContainsString('Faktura za październik', $link->text());
@@ -115,6 +123,41 @@ final class GmailTest extends FunctionalTestCase
         self::assertResponseStatusCodeSame(404);
         $crawler = $this->client->request('GET', \sprintf('/kontrahenci/%d?zakladka=poczta', $other->getId()));
         self::assertSelectorTextContains('[data-mail-tab]', 'Brak wiadomości');
+    }
+
+    public function testIndexFollowsMailboxAndContractorAddresses(): void
+    {
+        $agro = ContractorFactory::createOne(['email' => 'jan@agro-kowalski.pl']);
+        $biuro = ContractorFactory::createOne(['email' => null]);
+        $this->loginAs(UserFactory::owner());
+        $mailbox = $this->fakeMailbox();
+        $eml = (string) file_get_contents(__DIR__.'/../fixtures/gmail/faktura.eml');
+        $mailbox->add(42, $eml);
+        $mailbox->add(43, str_replace('abc123@', 'def456@', $eml));
+
+        $this->useFarm();
+        $indexer = $this->service(MailIndexer::class);
+        $mails = $this->service(ContractorMailRepository::class);
+        self::assertSame(2, $indexer->sync());
+        self::assertSame(0, $indexer->sync(), 'kolejna synchronizacja nie dubluje wpisów');
+        self::assertSame(2, $mails->countForContractor($agro));
+        self::assertTrue($mails->findOneBy(['uid' => 42])?->isIncoming());
+        self::assertTrue($mails->findOneBy(['uid' => 42])?->hasAttachments());
+
+        // Mail skasowany w Gmailu znika z indeksu.
+        $mailbox->remove(43);
+        $indexer->sync();
+        self::assertSame(1, $mails->countForContractor($agro));
+
+        // Nowy adres kontrahenta (tu: z DW) – indeks budujemy od nowa i mail trafia też do niego.
+        $em = $this->service(EntityManagerInterface::class);
+        $em->find(Contractor::class, $biuro->getId())?->setEmail('biuro@agro-kowalski.pl');
+        $em->flush();
+        self::assertSame(2, $indexer->sync());
+        $copy = $mails->findOneBy(['contractor' => $biuro->getId()]);
+        self::assertNotNull($copy);
+        self::assertFalse($copy->isIncoming(), 'kontrahent tylko w DW – mail nie jest od niego');
+        self::assertNotNull($indexer->syncedAt());
     }
 
     public function testGlobalSearchFindsMailsAndContractorByEmail(): void

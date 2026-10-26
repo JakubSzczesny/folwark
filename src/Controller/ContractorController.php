@@ -15,11 +15,12 @@ use App\Enum\ContractorKind;
 use App\Enum\DataSource;
 use App\Enum\InvoiceKind;
 use App\Form\ContractorType;
-use App\Gmail\GmailException;
 use App\Gmail\GmailMailbox;
+use App\Gmail\MailIndexer;
 use App\Product\ProductPurchases;
 use App\Repository\CalendarEventRepository;
 use App\Repository\ContractorHistoryRepository;
+use App\Repository\ContractorMailRepository;
 use App\Repository\ContractorRepository;
 use App\Repository\ContractRepository;
 use App\Repository\InvoiceRepository;
@@ -111,6 +112,8 @@ final class ContractorController extends AbstractController
         OrderCycleRepository $cycles,
         CalendarEventRepository $events,
         GmailMailbox $mailbox,
+        MailIndexer $indexer,
+        ContractorMailRepository $contractorMails,
         #[CurrentUser] User $user,
     ): Response {
         $tab = \in_array($tab = $request->query->getString('zakladka', 'faktury'), self::TABS, true) ? $tab : 'faktury';
@@ -118,6 +121,7 @@ final class ContractorController extends AbstractController
         $year = QueryParam::id($request->query, 'rok') ?? ($years[0] ?? (int) date('Y'));
 
         $context = ['contractor' => $contractor, 'tab' => $tab, 'year' => $year, 'years' => $years, 'mail_enabled' => $mailbox->isConfigured()];
+        $context['mail_count'] = $context['mail_enabled'] ? $contractorMails->countForContractor($contractor) : 0;
 
         if ('faktury' === $tab && $this->isGranted(Permission::INVOICE_VIEW)) {
             $context['cost_invoices'] = $invoices->findForContractor($contractor, InvoiceKind::Cost, $year);
@@ -137,14 +141,9 @@ final class ContractorController extends AbstractController
             $context['calendar'] = $this->calendarRows($events->findForContractor($contractor, $user));
         }
         if ('poczta' === $tab && $context['mail_enabled']) {
-            $context['mail_error'] = null;
-            try {
-                $context['mails'] = $mailbox->conversation($contractor->getEmailAddresses(), $request->query->getInt('strona', 1));
-            } catch (GmailException $e) {
-                $context['mail_error'] = $e->getMessage();
-            } catch (\Throwable $e) {
-                $context['mail_error'] = 'Nie udało się pobrać wiadomości z Gmaila: '.$e->getMessage();
-            }
+            $context['mails'] = Pager::fromQuery($contractorMails->createForContractorQuery($contractor), $request->query->getInt('strona', 1), 25);
+            $context['mail_synced_at'] = $indexer->syncedAt();
+            $context['mail_error'] = $indexer->lastError();
         }
         if ('historia' === $tab) {
             $context['history'] = $history->findBy(['contractor' => $contractor], ['changedAt' => 'DESC', 'id' => 'DESC'], 200);

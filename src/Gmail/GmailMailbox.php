@@ -7,7 +7,6 @@ namespace App\Gmail;
 use App\Crypto\SecretBox;
 use App\Settings\SettingKey;
 use App\Settings\Settings;
-use App\Ui\Pager;
 use Symfony\Contracts\Service\ResetInterface;
 use Webklex\PHPIMAP\Client;
 use Webklex\PHPIMAP\ClientManager;
@@ -26,8 +25,6 @@ use Webklex\PHPIMAP\Message;
  */
 class GmailMailbox implements ResetInterface
 {
-    public const int PER_PAGE = 25;
-
     private const string HOST = 'imap.gmail.com';
 
     /** Dłuższego filtra adresów nie wysyłamy do Gmaila – szukamy wtedy bez niego. */
@@ -69,31 +66,64 @@ class GmailMailbox implements ResetInterface
     }
 
     /**
-     * Wiadomości od i do podanych adresów, od najnowszych.
+     * UIDVALIDITY folderu „Wszystkie” – gdy się zmieni, dotychczasowe UID-y są nieważne.
+     */
+    public function uidValidity(): int
+    {
+        $status = $this->connection()->examineFolder($this->open())->validatedData();
+
+        return (int) ($status['uidvalidity'] ?? 0);
+    }
+
+    /**
+     * UID-y wiadomości od, do i DW podanych adresów (rosnąco). Adresy dzielimy na porcje,
+     * żeby filtr nie przekroczył długości, którą przyjmuje Gmail.
      *
      * @param list<string> $addresses
      *
-     * @return Pager<MailSummary>
+     * @return list<int>
      */
-    public function conversation(array $addresses, int $page = 1): Pager
+    public function uids(array $addresses, string $extra = ''): array
     {
-        if ([] === $addresses) {
-            return Pager::fromArray([], 1, self::PER_PAGE);
-        }
-
         $this->open();
-        $filter = self::gmailFilter($addresses);
-        $pager = Pager::fromArray(array_reverse($this->gmailSearch($filter)), $page, self::PER_PAGE);
-        if ([] === $pager->items) {
-            return $pager->withItems([]);
+        $uids = [];
+        $chunk = [];
+        foreach ($addresses as $address) {
+            $chunk[] = $address;
+            if (\strlen(self::gmailFilter($chunk)) > self::MAX_FILTER_LENGTH) {
+                array_pop($chunk);
+                $uids = [...$uids, ...$this->gmailSearch(trim(self::gmailFilter($chunk).' '.$extra))];
+                $chunk = [$address];
+            }
+        }
+        if ([] !== $chunk) {
+            $uids = [...$uids, ...$this->gmailSearch(trim(self::gmailFilter($chunk).' '.$extra))];
         }
 
-        $withAttachments = array_flip($this->gmailSearch($filter.' has:attachment'));
+        $uids = array_values(array_unique($uids));
+        sort($uids);
 
-        return $pager->withItems(array_map(
-            fn (Message $message): MailSummary => $this->parser->summary($message, $addresses, isset($withAttachments[(int) $message->getUid()])),
-            $this->headers($pager->items),
-        ));
+        return $uids;
+    }
+
+    /**
+     * Nagłówki wiadomości o podanych UID-ach (bez treści, bez zmiany flag).
+     *
+     * @param list<int>    $uids
+     * @param list<string> $addresses adresy kontrahentów – do pola „przyszła od kontrahenta”
+     * @param list<int>    $withAttachments
+     *
+     * @return list<MailSummary>
+     */
+    public function summaries(array $uids, array $addresses, array $withAttachments = []): array
+    {
+        $this->open();
+        $attachments = array_flip($withAttachments);
+
+        return array_map(
+            fn (Message $message): MailSummary => $this->parser->summary($message, $addresses, isset($attachments[(int) $message->getUid()])),
+            $this->headers($uids),
+        );
     }
 
     /**

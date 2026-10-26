@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Controller\Settings;
 
 use App\Crypto\SecretBox;
+use App\Farm\FarmContext;
 use App\Form\Settings\GmailSettingsType;
 use App\Gmail\GmailException;
 use App\Gmail\GmailMailbox;
+use App\Gmail\MailIndexer;
+use App\Message\SyncGmailIndex;
 use App\Security\Permission;
 use App\Settings\SettingKey;
 use App\Settings\Settings;
@@ -16,6 +19,7 @@ use Doctrine\ORM\EntityManagerInterface;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Security\Http\Attribute\IsGranted;
 
@@ -33,7 +37,7 @@ final class GmailSettingsController extends AbstractController
     }
 
     #[Route('', name: 'app_settings_gmail', methods: ['GET', 'POST'])]
-    public function index(Request $request, SettingsForm $settingsForm, SecretBox $secrets, GmailMailbox $mailbox): Response
+    public function index(Request $request, SettingsForm $settingsForm, SecretBox $secrets, GmailMailbox $mailbox, MessageBusInterface $bus, FarmContext $context): Response
     {
         $form = $this->createForm(GmailSettingsType::class, $settingsForm->data(GmailSettingsType::KEYS), [
             'password_set' => null !== $this->settings->string(SettingKey::GMAIL_APP_PASSWORD),
@@ -52,8 +56,8 @@ final class GmailSettingsController extends AbstractController
             $this->em->flush();
             $this->addFlash('success', 'Zapisano ustawienia Gmaila.');
 
-            if ($mailbox->isConfigured()) {
-                $this->testConnection($mailbox);
+            if ($mailbox->isConfigured() && $this->testConnection($mailbox)) {
+                $bus->dispatch(new SyncGmailIndex($context->farmId()));
             }
 
             return $this->redirectToRoute('app_settings_gmail', [], Response::HTTP_SEE_OTHER);
@@ -75,9 +79,10 @@ final class GmailSettingsController extends AbstractController
     }
 
     #[Route('/odlacz', name: 'app_settings_gmail_disconnect', methods: ['POST'])]
-    public function disconnect(Request $request): Response
+    public function disconnect(Request $request, MailIndexer $indexer): Response
     {
         $this->assertToken($request);
+        $indexer->clear();
         $this->settings->set(SettingKey::GMAIL_APP_PASSWORD, null, false);
         $this->settings->set(SettingKey::GMAIL_ADDRESS, null);
         $this->addFlash('success', 'Odłączono skrzynkę Gmail. Hasło do aplikacji możesz też unieważnić w koncie Google.');
@@ -85,15 +90,21 @@ final class GmailSettingsController extends AbstractController
         return $this->redirectToRoute('app_settings_gmail', [], Response::HTTP_SEE_OTHER);
     }
 
-    private function testConnection(GmailMailbox $mailbox): void
+    private function testConnection(GmailMailbox $mailbox): bool
     {
         try {
-            $this->addFlash('success', $mailbox->test());
+            $this->addFlash('success', $mailbox->test().' Korespondencja z kontrahentami zsynchronizuje się w tle w ciągu minuty.');
+
+            return true;
         } catch (GmailException $e) {
             $this->addFlash('error', $e->getMessage());
         } catch (\Throwable $e) {
             $this->addFlash('error', 'Test połączenia nieudany: '.$e->getMessage());
+        } finally {
+            $mailbox->reset();
         }
+
+        return false;
     }
 
     private function assertToken(Request $request): void

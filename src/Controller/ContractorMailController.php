@@ -7,8 +7,10 @@ namespace App\Controller;
 use App\Entity\Contractor;
 use App\Gmail\GmailException;
 use App\Gmail\GmailMailbox;
+use App\Gmail\MailIndexer;
 use App\Gmail\MailMessage;
 use App\Security\Permission;
+use App\Twig\FormatExtension;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\HeaderUtils;
 use Symfony\Component\HttpFoundation\Request;
@@ -29,6 +31,28 @@ final class ContractorMailController extends AbstractController
     public function __construct(
         private readonly GmailMailbox $mailbox,
     ) {
+    }
+
+    /**
+     * „Odśwież teraz” – synchronizacja indeksu od razu, bez czekania na harmonogram.
+     */
+    #[Route('/odswiez', name: 'app_contractor_mail_refresh', methods: ['POST'])]
+    public function refresh(Contractor $contractor, Request $request, MailIndexer $indexer): Response
+    {
+        if (!$this->isCsrfTokenValid('contractor-mail', $request->getPayload()->getString('_token'))) {
+            throw $this->createAccessDeniedException();
+        }
+
+        try {
+            $added = $indexer->sync();
+            $this->addFlash('success', 0 === $added ? 'Poczta jest aktualna.' : \sprintf('Dopisano %d %s.', $added, FormatExtension::plural($added, 'wiadomość', 'wiadomości', 'wiadomości')));
+        } catch (\Throwable $e) {
+            $this->addFlash('error', 'Nie udało się odświeżyć poczty: '.$e->getMessage());
+        } finally {
+            $this->mailbox->reset();
+        }
+
+        return $this->redirectToRoute('app_contractor_show', ['id' => $contractor->getId(), 'zakladka' => 'poczta'], Response::HTTP_SEE_OTHER);
     }
 
     #[Route('/{uid}', name: 'app_contractor_mail', requirements: ['uid' => '\d+'], methods: ['GET'])]

@@ -71,7 +71,7 @@
 
     <nav class="tabs" aria-label="Sekcje kontrahenta">
         {% set note_count = notes_count(contractor) %}
-        {% set tabs = {faktury: 'Faktury', zakupy: 'Zakupy', umowy: 'Umowy', historia: 'Historia danych', kalendarz: 'Kalendarz', poczta: 'Korespondencja', notatki: 'Notatki' ~ (note_count ? ' (' ~ note_count ~ ')')} %}
+        {% set tabs = {faktury: 'Faktury', zakupy: 'Zakupy', umowy: 'Umowy', historia: 'Historia danych', kalendarz: 'Kalendarz', poczta: 'Korespondencja' ~ (mail_count|default(0) ? ' (' ~ mail_count ~ ')'), notatki: 'Notatki' ~ (note_count ? ' (' ~ note_count ~ ')')} %}
         {% for key, label in tabs %}
             {% if (key != 'faktury' or is_granted('INVOICE_VIEW')) and (key != 'zakupy' or route_exists('app_product_index')) and (key != 'kalendarz' or is_granted('CALENDAR_VIEW')) and (key != 'poczta' or mail_enabled) %}
                 <a href="{{ path('app_contractor_show', {id: contractor.id, zakladka: key}) }}" class="tab {{ tab == key ? 'tab-active' }}">{{ label }}</a>

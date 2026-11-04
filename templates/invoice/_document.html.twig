@@ -60,12 +60,16 @@
         <dt>Netto</dt><dd class="tabular-nums">{{ invoice.net|money(invoice.currency) }}</dd>
         <dt>VAT</dt><dd class="tabular-nums">{{ invoice.vat|money('PLN') }}</dd>
         <dt>Brutto</dt><dd class="tabular-nums font-semibold">{{ invoice.gross|money(invoice.currency) }}</dd>
+        {% if invoice.settlement %}<dt>Do zapłaty</dt><dd class="tabular-nums font-semibold">{{ invoice.amountDue|money(invoice.currency) }}</dd>{% endif %}
     </dl>
 {% endif %}
+
+{{ include('invoice/_settlement.html.twig') }}
 
 <section class="mt-6">
     <h3 class="font-semibold mb-2">Płatność</h3>
     <dl class="dl">
+        {% if invoice.settlement %}<dt>{{ invoice.amountDue < 0 ? 'Nadpłata' : 'Do zapłaty' }}</dt><dd class="tabular-nums font-semibold">{{ (invoice.amountDue < 0 ? 0 - invoice.amountDue : invoice.amountDue)|money(invoice.currency) }}</dd>{% endif %}
         <dt>Termin</dt><dd>{{ invoice.paymentDue ? invoice.paymentDue|pl_date : '—' }}</dd>
         <dt>Forma</dt><dd>{{ parsed and parsed.paymentForm ? parsed.paymentForm : '—' }}</dd>
         {% if parsed and parsed.bankAccounts is not empty %}

@@ -21,6 +21,7 @@ use App\Ksef\KsefClientSelector;
 use App\Ksef\KsefException;
 use App\Ksef\KsefIdentity;
 use App\Ksef\SubjectType;
+use App\Payment\TransferData;
 use App\Settings\SettingKey;
 use App\Settings\Settings;
 use App\Tests\Factory\FarmFactory;
@@ -76,6 +77,35 @@ final class KsefSyncTest extends FunctionalTestCase
         self::assertResponseIsSuccessful();
         $this->client->request('GET', '/powiadomienia/dzwonek');
         self::assertSelectorNotExists('.dot-new', 'Odczytanie faktury gasi jej powiadomienie');
+    }
+
+    public function testSettlementChargesChangeAmountDueAndAreShown(): void
+    {
+        $owner = UserFactory::owner();
+        $this->addInvoice($this->costInvoice('AGRO/5/2026', '2026-05-04')
+            ->item('Nawóz', 't', 2, 1000, '8')
+            ->charge(150, 'Kaucja za palety')
+            ->deduction(300, 'Zaliczka'));
+
+        $this->syncKsef();
+
+        $invoice = $this->em->getRepository(Invoice::class)->findOneBy(['number' => 'AGRO/5/2026']);
+        self::assertNotNull($invoice);
+        self::assertSame('2160.00', $invoice->getGross(), 'Brutto zostaje z P_15');
+        self::assertSame('2010.00', $invoice->getAmountDue());
+        self::assertTrue($invoice->hasSettlement());
+        self::assertSame('2010.00', $this->service(TransferData::class)->forInvoice($invoice)['amount']);
+
+        $this->loginAs($owner);
+        $this->client->request('GET', '/faktury/'.$invoice->getId());
+        self::assertResponseIsSuccessful();
+        self::assertSelectorTextContains('body', 'Rozliczenie');
+        self::assertSelectorTextContains('body', 'Obciążenie: Kaucja za palety');
+        self::assertSelectorTextContains('body', 'Odliczenie: Zaliczka');
+        self::assertSelectorTextContains('.page-subtitle', 'do zapłaty');
+
+        $this->client->request('GET', '/faktury?rodzaj=zakupowe');
+        self::assertSelectorTextContains('tbody', 'do zapłaty');
     }
 
     public function testRepeatedSyncDoesNotDuplicateInvoices(): void

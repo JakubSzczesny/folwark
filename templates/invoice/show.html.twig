@@ -27,7 +27,7 @@
                 {% if invoice.type.value != 'invoice' %}<twig:Badge tone="info">{{ invoice.type.label }}</twig:Badge>{% endif %}
             </div>
             <h1 class="page-title break-all">{{ invoice.number }}</h1>
-            <p class="page-subtitle">{{ invoice.contractorLabel }} · {{ invoice.issueDate|pl_date }} · {{ invoice.gross|money(invoice.currency) }}</p>
+            <p class="page-subtitle">{{ invoice.contractorLabel }} · {{ invoice.issueDate|pl_date }} · {{ invoice.gross|money(invoice.currency) }}{% if invoice.settlement %} · do zapłaty {{ invoice.amountDue|money(invoice.currency) }}{% endif %}</p>
         </div>
         <div class="flex flex-wrap gap-2">
             <a href="{{ path('app_invoice_xml', {id: invoice.id}) }}" class="btn btn-ghost" data-turbo="false">{{ ux_icon('lucide:file-code') }} Pobierz XML</a>

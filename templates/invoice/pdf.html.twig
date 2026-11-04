@@ -79,7 +79,18 @@
         {% endif %}
         <tr><td class="muted">Netto</td><td class="num" colspan="2">{{ invoice.net|money(invoice.currency) }}</td></tr>
         <tr><td class="muted">VAT</td><td class="num" colspan="2">{{ invoice.vat|money('PLN') }}</td></tr>
-        <tr class="grand"><td>Do zapłaty</td><td class="num" colspan="2">{{ invoice.gross|money(invoice.currency) }}</td></tr>
+        {% if invoice.settlement %}
+            <tr><td class="muted">Brutto</td><td class="num" colspan="2">{{ invoice.gross|money(invoice.currency) }}</td></tr>
+            {% if parsed %}
+                {% for row in parsed.charges %}<tr><td class="muted">Obciążenie: {{ row.reason }}</td><td class="num" colspan="2">+{{ row.amount|money(invoice.currency) }}</td></tr>{% endfor %}
+                {% for row in parsed.deductions %}<tr><td class="muted">Odliczenie: {{ row.reason }}</td><td class="num" colspan="2">−{{ row.amount|money(invoice.currency) }}</td></tr>{% endfor %}
+            {% endif %}
+        {% endif %}
+        {% if invoice.amountDue < 0 %}
+            <tr class="grand"><td>Nadpłata do rozliczenia</td><td class="num" colspan="2">{{ (0 - invoice.amountDue)|money(invoice.currency) }}</td></tr>
+        {% else %}
+            <tr class="grand"><td>Do zapłaty</td><td class="num" colspan="2">{{ invoice.amountDue|money(invoice.currency) }}</td></tr>
+        {% endif %}
     </table>
 
     <table class="meta" style="margin-top:5mm">

@@ -83,6 +83,7 @@ main() {
     fi
 
     console_as_app cache:clear || echo "Nie udało się wyczyścić cache – sprawdź: php bin/console cache:clear." >&2
+    console_as_app app:faktury:rozliczenia || echo "Nie udało się uzupełnić kwot do zapłaty – sprawdź: php bin/console app:faktury:rozliczenia." >&2
     start_services
     echo "Zaktualizowano do $(describe "$new")."
 }

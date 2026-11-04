@@ -57,7 +57,7 @@ final class InvoiceDeadlines implements DeadlineSource, AttentionSource, MenuBad
                 NotificationType::PaymentDue,
                 $priority,
                 \sprintf('Faktura %s – %s: %s', $invoice->getNumber(), $invoice->getContractorLabel(), self::dueLabel($days)),
-                \sprintf('%s do zapłaty, termin %s', FormatExtension::money($invoice->getGross(), $invoice->getCurrency()), FormatExtension::date($invoice->getPaymentDue())),
+                \sprintf('%s do zapłaty, termin %s', FormatExtension::money($invoice->getAmountDue(), $invoice->getCurrency()), FormatExtension::date($invoice->getPaymentDue())),
                 $this->urls->generate('app_invoice_show', ['id' => $invoice->getId()]),
                 \sprintf('payment:%d:%s', $invoice->getId(), $stage),
             );
@@ -103,7 +103,7 @@ final class InvoiceDeadlines implements DeadlineSource, AttentionSource, MenuBad
                 'Płatność',
                 \sprintf('%s – %s', $invoice->getNumber(), $invoice->getContractorLabel()),
                 $this->urls->generate('app_invoice_show', ['id' => $invoice->getId()]),
-                ucfirst(self::dueLabel($days)).($canSeeAmounts ? ' · '.FormatExtension::money($invoice->getGross(), $invoice->getCurrency()) : ''),
+                ucfirst(self::dueLabel($days)).($canSeeAmounts ? ' · '.FormatExtension::money($invoice->getAmountDue(), $invoice->getCurrency()) : ''),
                 $this->paymentActions($invoice),
             );
         }

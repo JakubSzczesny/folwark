@@ -13,6 +13,9 @@ final readonly class ParsedInvoice
      * @param list<array{number: ?string, ksefNumber: ?string, date: ?string}> $correctedInvoices
      * @param list<string>                                                     $annotations
      * @param list<array{key: string, value: string}>                          $additionalInfo
+     * @param list<array{reason: string, amount: string}>                      $charges        Rozliczenie/Obciazenia – kwoty doliczane do P_15
+     * @param list<array{reason: string, amount: string}>                      $deductions     Rozliczenie/Odliczenia – kwoty odliczane od P_15
+     * @param ?string                                                          $amountDue      kwota do zapłaty po rozliczeniu (ujemna = nadpłata do zwrotu), null gdy faktura nie ma sekcji Rozliczenie
      */
     public function __construct(
         public string $formCode,
@@ -37,7 +40,15 @@ final readonly class ParsedInvoice
         public ?string $correctionReason,
         public array $annotations,
         public array $additionalInfo,
+        public array $charges = [],
+        public array $deductions = [],
+        public ?string $amountDue = null,
     ) {
+    }
+
+    public function hasSettlement(): bool
+    {
+        return [] !== $this->charges || [] !== $this->deductions || null !== $this->amountDue;
     }
 
     public function isRr(): bool

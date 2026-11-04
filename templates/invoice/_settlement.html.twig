@@ -1,0 +1,27 @@
+{# Sekcja Rozliczenie z XML: obciążenia i odliczenia zmieniają kwotę do zapłaty, a nie brutto (P_15). #}
+{% if parsed and parsed.settlement %}
+    <section class="mt-6">
+        <h3 class="font-semibold mb-2">Rozliczenie</h3>
+        <div class="table-wrap">
+            <table class="table">
+                <thead><tr><th>Powód</th><th class="text-right">Kwota</th></tr></thead>
+                <tbody>
+                    <tr><td>Brutto faktury</td><td class="num">{{ invoice.gross|amount }}</td></tr>
+                    {% for row in parsed.charges %}
+                        <tr><td>Obciążenie: {{ row.reason }}</td><td class="num">+{{ row.amount|amount }}</td></tr>
+                    {% endfor %}
+                    {% for row in parsed.deductions %}
+                        <tr><td>Odliczenie: {{ row.reason }}</td><td class="num">−{{ row.amount|amount }}</td></tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    {% if invoice.amountDue < 0 %}
+                        <tr><td>Nadpłata do rozliczenia ({{ invoice.currency }})</td><td class="num">{{ (0 - invoice.amountDue)|amount }}</td></tr>
+                    {% else %}
+                        <tr><td>Do zapłaty ({{ invoice.currency }})</td><td class="num">{{ invoice.amountDue|amount }}</td></tr>
+                    {% endif %}
+                </tfoot>
+            </table>
+        </div>
+    </section>
+{% endif %}

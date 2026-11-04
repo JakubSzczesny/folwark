@@ -44,6 +44,49 @@ final class InvoiceXmlParserTest extends TestCase
         self::assertFalse($parsed->paid);
     }
 
+    public function testSettlementChargesAndDeductionsChangeAmountDueNotGross(): void
+    {
+        $xml = Fa3Builder::invoice('7311000000', 'AGRO', '5841000001', 'Gospodarstwo', 'AG/1/2026', new \DateTimeImmutable('2026-05-04'))
+            ->item('Nawóz', 't', 2, 1000, '8')
+            ->charge(150, 'Kaucja za palety')
+            ->charge(50.5, 'Opłata transportowa')
+            ->deduction(300, 'Zaliczka')
+            ->toXml();
+
+        $parsed = (new InvoiceXmlParser())->parse($xml);
+
+        self::assertSame('2160.00', $parsed->gross);
+        self::assertSame([['reason' => 'Kaucja za palety', 'amount' => '150.00'], ['reason' => 'Opłata transportowa', 'amount' => '50.50']], $parsed->charges);
+        self::assertSame([['reason' => 'Zaliczka', 'amount' => '300.00']], $parsed->deductions);
+        self::assertSame('2060.50', $parsed->amountDue);
+        self::assertTrue($parsed->hasSettlement());
+    }
+
+    public function testSettlementWithoutDeclaredTotalIsComputedAndOverpaymentIsNegative(): void
+    {
+        $xml = Fa3Builder::invoice('7311000000', 'AGRO', '5841000001', 'Gospodarstwo', 'AG/2/2026', new \DateTimeImmutable('2026-05-04'))
+            ->item('Usługa', 'szt', 1, 100, '23')
+            ->deduction(200, 'Nadpłata z faktury AG/1/2026')
+            ->toXml();
+        $parsed = (new InvoiceXmlParser())->parse($xml);
+        self::assertSame('-77.00', $parsed->amountDue);
+
+        // Bez DoZaplaty/DoRozliczenia i sum – kwotę liczymy z wierszy.
+        $stripped = preg_replace('#<(SumaOdliczen|DoZaplaty|DoRozliczenia)>[^<]*</\1>#', '', $xml);
+        self::assertSame('-77.00', (new InvoiceXmlParser())->parse((string) $stripped)->amountDue);
+    }
+
+    public function testInvoiceWithoutSettlementHasNoAmountDue(): void
+    {
+        $xml = Fa3Builder::invoice('7311000000', 'AGRO', '5841000001', 'Gospodarstwo', 'AG/3/2026', new \DateTimeImmutable('2026-05-04'))
+            ->item('Usługa', 'szt', 1, 100, '23')
+            ->toXml();
+        $parsed = (new InvoiceXmlParser())->parse($xml);
+
+        self::assertNull($parsed->amountDue);
+        self::assertFalse($parsed->hasSettlement());
+    }
+
     public function testCorrectionRowsBeforeAreNegative(): void
     {
         $xml = Fa3Builder::invoice('7311000000', 'PETROMEX', '5841000001', 'Gospodarstwo', 'KOR/1/2026', new \DateTimeImmutable('2026-05-20'))

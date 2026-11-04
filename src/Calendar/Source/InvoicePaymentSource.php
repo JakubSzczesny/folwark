@@ -64,7 +64,7 @@ final class InvoicePaymentSource implements CalendarSource
                 $due,
                 $this->label(),
                 $this->urls->generate('app_invoice_show', ['id' => $invoice->getId()]),
-                $invoice->getNumber().($amounts ? ' · '.FormatExtension::money($invoice->getGross(), $invoice->getCurrency()) : ''),
+                $invoice->getNumber().($amounts ? ' · '.FormatExtension::money($invoice->getAmountDue(), $invoice->getCurrency()) : ''),
             );
         }
 

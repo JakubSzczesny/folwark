@@ -100,6 +100,10 @@ class Invoice implements \Stringable, FarmScoped
     #[ORM\Column(type: Types::DECIMAL, precision: 14, scale: 2)]
     private string $gross = '0.00';
 
+    /** Kwota do zapłaty z sekcji Rozliczenie XML (P_15 + obciążenia − odliczenia); null = równa brutto. */
+    #[ORM\Column(type: Types::DECIMAL, precision: 14, scale: 2, nullable: true)]
+    private ?string $amountDue = null;
+
     #[ORM\Column(length: 3)]
     private string $currency = 'PLN';
 
@@ -432,6 +436,34 @@ class Invoice implements \Stringable, FarmScoped
         $this->vat = $vat;
         $this->gross = $gross;
         $this->currency = strtoupper($currency);
+
+        return $this;
+    }
+
+    /**
+     * Kwota należności do zapłaty: brutto (P_15) powiększone o obciążenia i pomniejszone o odliczenia
+     * z sekcji Rozliczenie. Ujemna oznacza nadpłatę do zwrotu.
+     */
+    public function getAmountDue(): string
+    {
+        return $this->amountDue ?? $this->gross;
+    }
+
+    /** Czy kwota do zapłaty różni się od brutto (faktura ma obciążenia lub odliczenia). */
+    public function hasSettlement(): bool
+    {
+        return null !== $this->amountDue && abs((float) $this->amountDue - (float) $this->gross) >= 0.005;
+    }
+
+    /** Kwota z XML bez zastępowania brutto (null = faktura bez sekcji Rozliczenie). */
+    public function getAmountDueRaw(): ?string
+    {
+        return $this->amountDue;
+    }
+
+    public function setAmountDue(?string $amountDue): static
+    {
+        $this->amountDue = $amountDue;
 
         return $this;
     }

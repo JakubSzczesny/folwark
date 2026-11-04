@@ -121,6 +121,9 @@ final class InvoiceXmlParser
             ];
         }
 
+        $gross = $this->decimal($fa.'/f:P_15');
+        [$charges, $deductions, $amountDue] = $this->settlement($fa.'/f:Rozliczenie', $gross);
+
         $paymentForm = $this->text($fa.'/f:Platnosc/f:FormaPlatnosci');
         $paidAt = $this->text($fa.'/f:Platnosc/f:DataZaplaty');
 
@@ -135,7 +138,7 @@ final class InvoiceXmlParser
             buyer: $this->party('/f:Faktura/f:Podmiot2'),
             net: [] === $vatSummary ? null : number_format($netTotal, 2, '.', ''),
             vat: [] === $vatSummary ? null : number_format($vatTotal, 2, '.', ''),
-            gross: $this->decimal($fa.'/f:P_15'),
+            gross: $gross,
             items: $items,
             vatSummary: $vatSummary,
             paymentDue: $this->date($fa.'/f:Platnosc/f:TerminPlatnosci/f:Termin'),
@@ -147,7 +150,68 @@ final class InvoiceXmlParser
             correctionReason: $this->text($fa.'/f:PrzyczynaKorekty'),
             annotations: $annotations,
             additionalInfo: $this->additionalInfo($fa.'/f:DodatkowyOpis'),
+            charges: $charges,
+            deductions: $deductions,
+            amountDue: $amountDue,
         );
+    }
+
+    /**
+     * Sekcja Rozliczenie (FA(2)/FA(3)): obciążenia i odliczenia nie zmieniają P_15, ale zmieniają kwotę do zapłaty.
+     * Według schematu DoZaplaty = P_15 + obciążenia − odliczenia, a DoRozliczenia to nadpłata do zwrotu.
+     * Gdy wystawca nie podał żadnej z tych kwot, liczymy ją sami.
+     *
+     * @return array{list<array{reason: string, amount: string}>, list<array{reason: string, amount: string}>, ?string}
+     */
+    private function settlement(string $path, ?string $gross): array
+    {
+        if (!$this->exists($path)) {
+            return [[], [], null];
+        }
+
+        $charges = $this->settlementRows($path.'/f:Obciazenia');
+        $deductions = $this->settlementRows($path.'/f:Odliczenia');
+
+        $toPay = $this->decimal($path.'/f:DoZaplaty');
+        if (null !== $toPay) {
+            return [$charges, $deductions, self::money((float) $toPay)];
+        }
+        $toSettle = $this->decimal($path.'/f:DoRozliczenia');
+        if (null !== $toSettle) {
+            return [$charges, $deductions, self::money(-(float) $toSettle)];
+        }
+        if ([] === $charges && [] === $deductions) {
+            return [[], [], null];
+        }
+
+        $sum = static fn (array $rows): float => array_sum(array_map(static fn (array $row): float => (float) $row['amount'], $rows));
+        $chargeTotal = $this->decimal($path.'/f:SumaObciazen') ?? $sum($charges);
+        $deductionTotal = $this->decimal($path.'/f:SumaOdliczen') ?? $sum($deductions);
+
+        return [$charges, $deductions, self::money((float) $gross + (float) $chargeTotal - (float) $deductionTotal)];
+    }
+
+    /**
+     * @return list<array{reason: string, amount: string}>
+     */
+    private function settlementRows(string $path): array
+    {
+        $rows = [];
+        foreach ($this->nodes($path) as $node) {
+            $amount = $this->decimal('f:Kwota', $node);
+            if (null !== $amount) {
+                $rows[] = ['reason' => $this->text('f:Powod', $node) ?? '—', 'amount' => $amount];
+            }
+        }
+
+        return $rows;
+    }
+
+    private static function money(float $value): string
+    {
+        $value = round($value, 2);
+
+        return number_format(0.0 === $value ? 0.0 : $value, 2, '.', '');
     }
 
     private function parseRr(): ParsedInvoice

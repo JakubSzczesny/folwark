@@ -34,6 +34,10 @@ final class Fa3Builder
     private ?\DateTimeImmutable $paidAt = null;
     /** @var array{number: string, ksefNumber: ?string, date: \DateTimeImmutable}|null */
     private ?array $corrected = null;
+    /** @var list<array{float, string}> */
+    private array $charges = [];
+    /** @var list<array{float, string}> */
+    private array $deductions = [];
 
     private function __construct(
         private readonly string $sellerNip,
@@ -106,6 +110,22 @@ final class Fa3Builder
     {
         $this->kind = 'KOR';
         $this->corrected = ['number' => $number, 'ksefNumber' => $ksefNumber, 'date' => $date];
+
+        return $this;
+    }
+
+    /** Obciążenie w sekcji Rozliczenie (kwota doliczana do P_15, np. kaucja za opakowania). */
+    public function charge(float $amount, string $reason): self
+    {
+        $this->charges[] = [$amount, $reason];
+
+        return $this;
+    }
+
+    /** Odliczenie w sekcji Rozliczenie (kwota odliczana od P_15, np. zaliczka). */
+    public function deduction(float $amount, string $reason): self
+    {
+        $this->deductions[] = [$amount, $reason];
 
         return $this;
     }
@@ -216,6 +236,32 @@ final class Fa3Builder
             if ($item['before']) {
                 $this->append($row, 'StanPrzed', '1');
             }
+        }
+
+        if ([] !== $this->charges || [] !== $this->deductions) {
+            $settlement = $this->append($fa, 'Rozliczenie');
+            $chargeTotal = 0.0;
+            foreach ($this->charges as [$amount, $reason]) {
+                $row = $this->append($settlement, 'Obciazenia');
+                $this->append($row, 'Kwota', self::amount($amount));
+                $this->append($row, 'Powod', $reason);
+                $chargeTotal += $amount;
+            }
+            if ([] !== $this->charges) {
+                $this->append($settlement, 'SumaObciazen', self::amount($chargeTotal));
+            }
+            $deductionTotal = 0.0;
+            foreach ($this->deductions as [$amount, $reason]) {
+                $row = $this->append($settlement, 'Odliczenia');
+                $this->append($row, 'Kwota', self::amount($amount));
+                $this->append($row, 'Powod', $reason);
+                $deductionTotal += $amount;
+            }
+            if ([] !== $this->deductions) {
+                $this->append($settlement, 'SumaOdliczen', self::amount($deductionTotal));
+            }
+            $due = $gross + $chargeTotal - $deductionTotal;
+            $this->append($settlement, $due >= 0 ? 'DoZaplaty' : 'DoRozliczenia', self::amount(abs($due)));
         }
 
         if (null !== $this->paymentDue || null !== $this->paidAt || null !== $this->bankAccount) {

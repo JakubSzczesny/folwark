@@ -32,6 +32,7 @@
         <dt>Netto</dt><dd class="tabular-nums">{{ invoice.net|money(invoice.currency) }}</dd>
         <dt>VAT</dt><dd class="tabular-nums">{{ invoice.vat|money('PLN') }}</dd>
         <dt>Brutto</dt><dd class="tabular-nums font-semibold">{{ invoice.gross|money(invoice.currency) }}</dd>
+        {% if invoice.settlement %}<dt>Do zapłaty</dt><dd class="tabular-nums font-semibold" title="Brutto z obciążeniami i odliczeniami z sekcji Rozliczenie">{{ invoice.amountDue|money(invoice.currency) }}</dd>{% endif %}
         {% if invoice.contract %}
             <dt>Umowa</dt><dd><a href="{{ path('app_contract_show', {id: invoice.contract.id}) }}" data-turbo-frame="_top">{{ invoice.contract.number }}</a> – {{ invoice.contract.subject }}</dd>
         {% endif %}

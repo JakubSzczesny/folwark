@@ -66,7 +66,7 @@ final class TransferData
 
         $splitPayment = $this->settings->bool(SettingKey::BSPAY_SPLIT_PAYMENT) && \in_array(self::SPLIT_PAYMENT, $parsed->annotations ?? [], true);
         $nip = $contractor?->getNip() ?? $invoice->getContractorNip();
-        $amount = number_format((float) $invoice->getGross(), 2, '.', '');
+        $amount = number_format((float) $invoice->getAmountDue(), 2, '.', '');
         $vat = number_format((float) $invoice->getVat(), 2, '.', '');
 
         $title = strtr($this->settings->string(SettingKey::BSPAY_TITLE) ?: 'Faktura {numer}', [
@@ -83,6 +83,11 @@ final class TransferData
         }
         if ('PLN' !== $invoice->getCurrency()) {
             $warnings[] = \sprintf('Faktura w walucie %s – sprawdź kwotę i rodzaj przelewu.', $invoice->getCurrency());
+        }
+        if ($invoice->hasSettlement()) {
+            $warnings[] = (float) $invoice->getAmountDue() <= 0
+                ? 'Po obciążeniach i odliczeniach z faktury nie ma nic do zapłaty (nadpłata do rozliczenia).'
+                : \sprintf('Kwota przelewu uwzględnia obciążenia i odliczenia z faktury (brutto %s).', number_format((float) $invoice->getGross(), 2, ',', ' '));
         }
         if ($invoice->isPaid()) {
             $warnings[] = 'Faktura jest już oznaczona jako opłacona.';

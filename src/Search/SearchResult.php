@@ -10,6 +10,8 @@ final readonly class SearchResult
         public string $title,
         public string $url,
         public ?string $subtitle = null,
+        /** Adres poza Folwarkiem – otwiera się w nowej karcie. */
+        public bool $external = false,
     ) {
     }
 }

@@ -6,6 +6,7 @@ namespace App\Entity;
 
 use App\Farm\BelongsToFarm;
 use App\Farm\FarmScoped;
+use App\Gmail\GmailLink;
 use App\Gmail\MailSummary;
 use App\Repository\ContractorMailRepository;
 use Doctrine\DBAL\Types\Types;
@@ -48,6 +49,10 @@ class ContractorMail implements FarmScoped
     #[ORM\Column]
     private bool $hasAttachments;
 
+    /** Nagłówek Message-ID – do linku „Otwórz w Gmailu”. */
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $messageId;
+
     public function __construct(
         #[ORM\ManyToOne]
         #[ORM\JoinColumn(nullable: false, onDelete: 'CASCADE')]
@@ -66,6 +71,12 @@ class ContractorMail implements FarmScoped
         $this->sentAt = $summary->date;
         $this->incoming = $incoming;
         $this->hasAttachments = $summary->hasAttachments;
+        $this->messageId = null !== $summary->messageId && mb_strlen($summary->messageId) <= 255 ? $summary->messageId : null;
+    }
+
+    public function gmailUrl(?string $mailbox): ?string
+    {
+        return GmailLink::message($this->messageId, $mailbox);
     }
 
     public function getId(): ?int

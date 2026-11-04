@@ -21,6 +21,8 @@ final class FakeGmailMailbox extends GmailMailbox
 
     public int $validity = 1;
 
+    public bool $preview = false;
+
     /** @var array<int, Message> UID => wiadomość */
     private array $messages = [];
 
@@ -43,6 +45,11 @@ final class FakeGmailMailbox extends GmailMailbox
     public function isConfigured(): bool
     {
         return $this->configured;
+    }
+
+    public function previewEnabled(): bool
+    {
+        return $this->preview;
     }
 
     public function address(): string

@@ -54,7 +54,7 @@ class ContractorRepository extends ServiceEntityRepository
 
         if (null !== $text) {
             $digits = preg_replace('/\D+/', '', $text) ?? '';
-            $qb->andWhere('LOWER(c.name) LIKE :q OR LOWER(c.shortName) LIKE :q OR LOWER(c.email) LIKE :q'
+            $qb->andWhere('LOWER(c.name) LIKE :q OR LOWER(c.shortName) LIKE :q OR LOWER(c.email) LIKE :q OR LOWER(c.mailDomains) LIKE :q'
                 .' OR EXISTS (SELECT 1 FROM App\Entity\ContactPerson q_p WHERE q_p.contractor = c AND (LOWER(q_p.name) LIKE :q OR LOWER(q_p.email) LIKE :q))'.('' !== $digits ? ' OR c.nip LIKE :nip' : ''))
                 ->setParameter('q', GlobalSearch::likePattern($text));
             if ('' !== $digits) {
@@ -82,14 +82,14 @@ class ContractorRepository extends ServiceEntityRepository
     }
 
     /**
-     * Kontrahenci z adresem e-mail (własnym albo którejś z osób) – do szukania w ich mailach.
+     * Kontrahenci z adresem e-mail (własnym albo którejś z osób) lub domeną – do szukania w ich mailach.
      *
      * @return list<Contractor>
      */
     public function findWithEmail(): array
     {
         return $this->createQueryBuilder('c')
-            ->andWhere("(c.email IS NOT NULL AND c.email != '') OR EXISTS (SELECT 1 FROM App\\Entity\\ContactPerson e_p WHERE e_p.contractor = c AND e_p.email IS NOT NULL)")
+            ->andWhere("(c.email IS NOT NULL AND c.email != '') OR c.mailDomains IS NOT NULL OR EXISTS (SELECT 1 FROM App\\Entity\\ContactPerson e_p WHERE e_p.contractor = c AND e_p.email IS NOT NULL)")
             ->orderBy('c.active', 'DESC')
             ->addOrderBy('c.name')
             ->getQuery()->getResult();

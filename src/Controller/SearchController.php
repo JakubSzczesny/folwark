@@ -6,7 +6,7 @@ namespace App\Controller;
 
 use App\Farm\FarmContext;
 use App\Gmail\GmailMailbox;
-use App\Repository\ContractorRepository;
+use App\Gmail\MailIndexer;
 use App\Search\GlobalSearch;
 use App\Search\SearchResult;
 use App\Security\Permission;
@@ -46,7 +46,7 @@ final class SearchController extends AbstractController
      */
     #[Route('/szukaj/poczta', name: 'app_search_mail', methods: ['GET'])]
     #[IsGranted(Permission::CONTRACTOR_VIEW)]
-    public function mail(Request $request, GmailMailbox $mailbox, ContractorRepository $contractors, CacheInterface $cache, FarmContext $context): Response
+    public function mail(Request $request, GmailMailbox $mailbox, MailIndexer $indexer, CacheInterface $cache, FarmContext $context): Response
     {
         $query = trim($request->query->getString('q'));
         $limit = min(20, max(1, $request->query->getInt('limit', 5)));
@@ -56,11 +56,11 @@ final class SearchController extends AbstractController
         if (mb_strlen($query) >= self::MAIL_MIN_LENGTH && $mailbox->isConfigured()) {
             try {
                 // Krótka pamięć podręczna – pisanie i kasowanie liter nie pyta Gmaila za każdym razem.
-                $key = \sprintf('search_mail_%d_%s', $context->farmId(), hash('xxh128', $limit.'|'.mb_strtolower($query)));
-                $results = $cache->get($key, function (ItemInterface $item) use ($query, $limit, $mailbox, $contractors): array {
+                $key = \sprintf('search_mail_%d_%s', $context->farmId(), hash('xxh128', (int) $mailbox->previewEnabled().'|'.$limit.'|'.mb_strtolower($query)));
+                $results = $cache->get($key, function (ItemInterface $item) use ($query, $limit, $mailbox, $indexer): array {
                     $item->expiresAfter(120);
 
-                    return $this->mailResults($query, $limit, $mailbox, $contractors);
+                    return $this->mailResults($query, $limit, $mailbox, $indexer);
                 });
             } catch (\Throwable $e) {
                 $error = 'Nie udało się przeszukać Gmaila: '.$e->getMessage();
@@ -73,31 +73,22 @@ final class SearchController extends AbstractController
     /**
      * @return list<SearchResult>
      */
-    private function mailResults(string $query, int $limit, GmailMailbox $mailbox, ContractorRepository $contractors): array
+    private function mailResults(string $query, int $limit, GmailMailbox $mailbox, MailIndexer $indexer): array
     {
-        $byAddress = [];
-        foreach ($contractors->findWithEmail() as $contractor) {
-            foreach ($contractor->getEmailAddresses() as $address) {
-                $byAddress[$address] ??= $contractor;
-            }
-        }
+        $byMatcher = $indexer->contractorsByMatcher();
 
         $results = [];
-        foreach ($mailbox->search($query, array_map('strval', array_keys($byAddress)), $limit) as $mail) {
-            $contractor = null;
-            foreach ($mail->participants as $address) {
-                if (isset($byAddress[$address])) {
-                    $contractor = $byAddress[$address];
-                    break;
-                }
-            }
+        foreach ($mailbox->search($query, array_map('strval', array_keys($byMatcher)), $limit) as $mail) {
+            $contractor = array_values(MailIndexer::contractorsOf($byMatcher, $mail->participants))[0] ?? null;
             if (null === $contractor) {
                 continue;
             }
+            $gmailUrl = $mailbox->previewEnabled() ? null : $mail->gmailUrl($mailbox->address());
             $results[] = new SearchResult(
                 $mail->subject,
-                $this->generateUrl('app_contractor_mail', ['id' => $contractor->getId(), 'uid' => $mail->uid]),
+                $gmailUrl ?? $this->generateUrl('app_contractor_mail', ['id' => $contractor->getId(), 'uid' => $mail->uid]),
                 $contractor->getDisplayName().($mail->date ? ' · '.FormatExtension::date($mail->date) : ''),
+                null !== $gmailUrl,
             );
         }
 

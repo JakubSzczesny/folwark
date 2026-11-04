@@ -6,7 +6,7 @@
         <p class="px-4 py-2 text-sm text-antracyt-500">Brak maili kontrahentów pasujących do zapytania.</p>
     {% else %}
         {% for result in results %}
-            <a href="{{ result.url }}" data-search-item role="option" class="flex items-baseline justify-between gap-3 px-4 py-2 text-tekst hover:bg-szary-100 hover:text-tekst">
+            <a href="{{ result.url }}"{% if result.external %} target="_blank" rel="noopener" data-turbo="false"{% endif %} data-search-item role="option" class="flex items-baseline justify-between gap-3 px-4 py-2 text-tekst hover:bg-szary-100 hover:text-tekst">
                 <span class="truncate font-semibold text-sm">{{ result.title }}</span>
                 <span class="truncate text-sm text-antracyt-500">{{ result.subtitle }}</span>
             </a>

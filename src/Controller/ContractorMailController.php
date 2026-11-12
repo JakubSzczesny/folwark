@@ -58,6 +58,12 @@ final class ContractorMailController extends AbstractController
     #[Route('/{uid}', name: 'app_contractor_mail', requirements: ['uid' => '\d+'], methods: ['GET'])]
     public function show(Contractor $contractor, int $uid): Response
     {
+        if ($this->mailbox->isConfigured() && !$this->mailbox->previewEnabled()) {
+            $this->addFlash('warning', 'Podgląd maili w Folwarku jest wyłączony (Ustawienia → Gmail). Otwórz mail w Gmailu.');
+
+            return $this->redirectToRoute('app_contractor_show', ['id' => $contractor->getId(), 'zakladka' => 'poczta'], Response::HTTP_SEE_OTHER);
+        }
+
         $error = null;
         $message = null;
         try {
@@ -103,13 +109,13 @@ final class ContractorMailController extends AbstractController
 
     private function load(Contractor $contractor, int $uid): MailMessage
     {
-        if (!$this->mailbox->isConfigured()) {
-            throw $this->createNotFoundException('Skrzynka Gmail nie jest podłączona.');
+        if (!$this->mailbox->isConfigured() || !$this->mailbox->previewEnabled()) {
+            throw $this->createNotFoundException('Skrzynka Gmail nie jest podłączona albo podgląd jest wyłączony.');
         }
 
         // Wiadomość, która nie dotyczy adresów kontrahenta, traktujemy jak nieistniejącą –
         // przez adres karty kontrahenta nie da się przeczytać reszty skrzynki.
-        return $this->mailbox->message($uid, $contractor->getEmailAddresses())
+        return $this->mailbox->message($uid, $contractor->getMailMatchers())
             ?? throw $this->createNotFoundException('Nie znaleziono wiadomości.');
     }
 }

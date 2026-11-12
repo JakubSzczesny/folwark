@@ -27,16 +27,9 @@ final readonly class MailMessage
     ) {
     }
 
-    /**
-     * Link do tej wiadomości w Gmailu (wyszukanie po Message-ID na koncie skrzynki).
-     */
     public function gmailUrl(?string $mailbox): ?string
     {
-        if (null === $this->messageId) {
-            return null;
-        }
-
-        return 'https://mail.google.com/mail/'.(null !== $mailbox ? '?authuser='.rawurlencode($mailbox) : '').'#search/'.rawurlencode('rfc822msgid:'.$this->messageId);
+        return GmailLink::message($this->messageId, $mailbox);
     }
 
     public function attachment(int $index): ?MailAttachment

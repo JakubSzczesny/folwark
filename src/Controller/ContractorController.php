@@ -144,6 +144,8 @@ final class ContractorController extends AbstractController
             $context['mails'] = Pager::fromQuery($contractorMails->createForContractorQuery($contractor), $request->query->getInt('strona', 1), 25);
             $context['mail_synced_at'] = $indexer->syncedAt();
             $context['mail_error'] = $indexer->lastError();
+            $context['mail_preview'] = $mailbox->previewEnabled();
+            $context['mailbox_address'] = $mailbox->address();
         }
         if ('historia' === $tab) {
             $context['history'] = $history->findBy(['contractor' => $contractor], ['changedAt' => 'DESC', 'id' => 'DESC'], 200);

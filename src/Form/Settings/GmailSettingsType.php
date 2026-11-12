@@ -7,6 +7,7 @@ namespace App\Form\Settings;
 use App\Settings\SettingKey;
 use App\Settings\SettingsForm;
 use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\CheckboxType;
 use Symfony\Component\Form\Extension\Core\Type\EmailType;
 use Symfony\Component\Form\Extension\Core\Type\PasswordType;
 use Symfony\Component\Form\FormBuilderInterface;
@@ -18,7 +19,7 @@ use Symfony\Component\Validator\Constraints as Assert;
  */
 final class GmailSettingsType extends AbstractType
 {
-    public const array KEYS = [SettingKey::GMAIL_ADDRESS];
+    public const array KEYS = [SettingKey::GMAIL_ADDRESS, SettingKey::GMAIL_PREVIEW];
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
     {
@@ -38,6 +39,11 @@ final class GmailSettingsType extends AbstractType
                     : '16 liter wygenerowanych w koncie Google – nie zwykłe hasło do Gmaila.',
                 'attr' => ['autocomplete' => 'new-password', 'placeholder' => 'xxxx xxxx xxxx xxxx'],
                 'constraints' => [new Assert\Regex(pattern: '/^[a-zA-Z\s]{16,24}$/', message: 'Hasło do aplikacji to 16 liter (spacje można zostawić).')],
+            ])
+            ->add(SettingsForm::field(SettingKey::GMAIL_PREVIEW), CheckboxType::class, [
+                'label' => 'Podgląd maili w Folwarku',
+                'required' => false,
+                'help' => 'Wyłączone: kliknięcie maila otwiera go w Gmailu. Włączone: treść i załączniki pobierają się do Folwarku przy każdym otwarciu, co trwa dłużej.',
             ]);
     }
 

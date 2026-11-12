@@ -25,6 +25,13 @@ final readonly class MailSummary
         public bool $hasAttachments,
         /** adresy z Od, Do i DW, małymi literami */
         public array $participants = [],
+        /** Nagłówek Message-ID bez nawiasów – do linku „Otwórz w Gmailu”. */
+        public ?string $messageId = null,
     ) {
+    }
+
+    public function gmailUrl(?string $mailbox): ?string
+    {
+        return GmailLink::message($this->messageId, $mailbox);
     }
 }

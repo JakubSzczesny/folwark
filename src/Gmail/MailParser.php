@@ -50,8 +50,9 @@ final class MailParser
             fromAddress: null === $from ? '' : mb_strtolower($from->mail),
             to: array_map(self::label(...), $this->addresses($message, 'to')),
             date: $date,
-            incoming: null !== $from && \in_array(mb_strtolower($from->mail), $contractorAddresses, true),
+            incoming: null !== $from && MailMatchers::matches($from->mail, $contractorAddresses),
             hasAttachments: $hasAttachments,
+            messageId: trim((string) $message->getMessageId(), '<> ') ?: null,
             participants: array_values(array_unique(array_map(
                 static fn (Address $address): string => mb_strtolower($address->mail),
                 [...$this->addresses($message, 'from'), ...$this->addresses($message, 'to'), ...$this->addresses($message, 'cc')],
@@ -68,7 +69,7 @@ final class MailParser
     {
         foreach (['from', 'to', 'cc', 'bcc', 'reply_to'] as $field) {
             foreach ($this->addresses($message, $field) as $address) {
-                if (\in_array(mb_strtolower($address->mail), $contractorAddresses, true)) {
+                if (MailMatchers::matches($address->mail, $contractorAddresses)) {
                     return true;
                 }
             }

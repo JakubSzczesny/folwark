@@ -94,7 +94,11 @@ export default class extends Controller {
             const item = items[this.index];
             if (item) {
                 this.close();
-                Turbo.visit(item.getAttribute('href'));
+                if (item.target === '_blank') {
+                    window.open(item.href, '_blank', 'noopener');
+                } else {
+                    Turbo.visit(item.getAttribute('href'));
+                }
             }
         }
     }

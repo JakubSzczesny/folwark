@@ -6,6 +6,7 @@ namespace App\Tests\Unit\Gmail;
 
 use App\Entity\Contractor;
 use App\Gmail\GmailMailbox;
+use App\Gmail\MailMatchers;
 use App\Gmail\MailParser;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -107,6 +108,24 @@ final class MailParserTest extends TestCase
     {
         self::assertSame('{from:a@b.pl to:a@b.pl cc:a@b.pl from:c@d.pl to:c@d.pl cc:c@d.pl}', GmailMailbox::gmailFilter(['a@b.pl', 'c@d.pl']));
         self::assertSame('{}', GmailMailbox::gmailFilter(['nie-adres', 'x"}@y.pl']));
+    }
+
+    public function testDomainMatching(): void
+    {
+        self::assertTrue(MailMatchers::matches('Jan@Agro.pl', ['@agro.pl']));
+        self::assertTrue(MailMatchers::matches('faktury@mail.agro.pl', ['@agro.pl']), 'subdomena');
+        self::assertFalse(MailMatchers::matches('jan@bioagro.pl', ['@agro.pl']));
+        self::assertFalse(MailMatchers::matches('jan@agro.pl.example.com', ['@agro.pl']));
+        self::assertTrue(MailMatchers::matches('jan@agro.pl', ['jan@agro.pl']));
+        self::assertFalse(MailMatchers::matches('anna@agro.pl', ['jan@agro.pl']));
+
+        self::assertSame(['agro.pl', 'firma.com'], MailMatchers::parseDomains(' @Agro.PL, firma.com;agro.pl '));
+        self::assertTrue(MailMatchers::isValidDomain('mail.agro-kowalski.pl'));
+        self::assertFalse(MailMatchers::isValidDomain('agro'));
+        self::assertFalse(MailMatchers::isValidDomain('jan@agro.pl'));
+        self::assertTrue(MailMatchers::isPublicDomain('gmail.com'));
+
+        self::assertSame('{from:@agro.pl to:@agro.pl cc:@agro.pl}', GmailMailbox::gmailFilter(['@agro.pl']));
     }
 
     public function testContractorEmailAddresses(): void

@@ -8,6 +8,7 @@ use App\Enum\ContractorKind;
 use App\Enum\DataSource;
 use App\Farm\BelongsToFarm;
 use App\Farm\FarmScoped;
+use App\Gmail\MailMatchers;
 use App\Repository\ContractorRepository;
 use App\Validator\ValidNip;
 use Doctrine\Common\Collections\ArrayCollection;
@@ -16,6 +17,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 #[ORM\Entity(repositoryClass: ContractorRepository::class)]
 #[ORM\Index(columns: ['farm_id', 'name'])]
@@ -58,6 +60,11 @@ class Contractor implements \Stringable, FarmScoped
     #[ORM\Column(length: 180, nullable: true)]
     #[Assert\Email]
     private ?string $email = null;
+
+    /** Domeny, po których maile trafiają do kontrahenta, np. „firma.pl, firma.com”. */
+    #[ORM\Column(length: 500, nullable: true)]
+    #[Assert\Length(max: 500)]
+    private ?string $mailDomains = null;
 
     #[ORM\Column(length: 40, nullable: true)]
     private ?string $phone = null;
@@ -256,6 +263,43 @@ class Contractor implements \Stringable, FarmScoped
         }
 
         return array_keys($addresses);
+    }
+
+    public function getMailDomains(): ?string
+    {
+        return $this->mailDomains;
+    }
+
+    public function setMailDomains(?string $mailDomains): static
+    {
+        $this->mailDomains = implode(', ', MailMatchers::parseDomains($mailDomains)) ?: null;
+
+        return $this;
+    }
+
+    /**
+     * Po czym mail trafia do tego kontrahenta: adresy i domeny (App\Gmail\MailMatchers).
+     *
+     * @return list<string>
+     */
+    public function getMailMatchers(): array
+    {
+        return [
+            ...$this->getEmailAddresses(),
+            ...array_map(static fn (string $domain): string => '@'.$domain, MailMatchers::parseDomains($this->mailDomains)),
+        ];
+    }
+
+    #[Assert\Callback]
+    public function validateMailDomains(ExecutionContextInterface $context): void
+    {
+        foreach (MailMatchers::parseDomains($this->mailDomains) as $domain) {
+            if (!MailMatchers::isValidDomain($domain)) {
+                $context->buildViolation(\sprintf('„%s” nie wygląda na domenę – wpisz końcówkę adresu, np. firma.pl.', $domain))->atPath('mailDomains')->addViolation();
+            } elseif (MailMatchers::isPublicDomain($domain)) {
+                $context->buildViolation(\sprintf('Domena „%s” jest wspólna dla wielu osób – przypisałaby maile obcych ludzi. Wpisz pełny adres w polu E-mail albo w zakładce Osoby.', $domain))->atPath('mailDomains')->addViolation();
+            }
+        }
     }
 
     public function getPhone(): ?string

@@ -41,6 +41,12 @@ final class ContractorType extends AbstractType
             ->add('city', TextType::class, ['label' => 'Miejscowość', 'required' => false])
             ->add('country', TextType::class, ['label' => 'Kraj (kod)', 'attr' => ['maxlength' => 2]])
             ->add('email', EmailType::class, ['label' => 'E-mail', 'required' => false])
+            ->add('mailDomains', TextType::class, [
+                'label' => 'Domeny e-mail',
+                'required' => false,
+                'help' => 'Maile z każdego adresu w tej domenie trafią do zakładki „Maile”, np. firma.pl (kilka po przecinku).',
+                'attr' => ['placeholder' => 'firma.pl'],
+            ])
             ->add('phone', TelType::class, ['label' => 'Telefon', 'required' => false])
             ->add('contactPerson', TextType::class, ['label' => 'Osoba kontaktowa', 'required' => false])
             ->add('deliveryDays', IntegerType::class, ['label' => 'Czas dostawy (dni)', 'required' => false, 'help' => 'Uwzględniany przy przypomnieniach o zamówieniach.'])

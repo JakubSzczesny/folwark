@@ -55,6 +55,15 @@ class GmailMailbox implements ResetInterface
     }
 
     /**
+     * Czy maile otwierają się w Folwarku; domyślnie w Gmailu, bo podgląd za każdym razem
+     * pobiera całą wiadomość ze skrzynki.
+     */
+    public function previewEnabled(): bool
+    {
+        return $this->settings->bool(SettingKey::GMAIL_PREVIEW);
+    }
+
+    /**
      * Logowanie i odszukanie folderu „Wszystkie”; zwraca opis do komunikatu.
      */
     public function test(): string
@@ -196,7 +205,8 @@ class GmailMailbox implements ResetInterface
     {
         $terms = [];
         foreach ($addresses as $address) {
-            if (false === filter_var($address, \FILTER_VALIDATE_EMAIL) || 1 === preg_match('/["\\\\{}\s]/', $address)) {
+            $isDomain = str_starts_with($address, '@') && MailMatchers::isValidDomain(substr($address, 1));
+            if ((!$isDomain && false === filter_var($address, \FILTER_VALIDATE_EMAIL)) || 1 === preg_match('/["\\\\{}\s]/', $address)) {
                 continue;
             }
             foreach (['from', 'to', 'cc'] as $field) {

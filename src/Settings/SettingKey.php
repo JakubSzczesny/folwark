@@ -46,6 +46,7 @@ final class SettingKey
     public const string GMAIL_ADDRESS = 'gmail.address';
     /** Hasło do aplikacji Google, zaszyfrowane App\Crypto\SecretBox. */
     public const string GMAIL_APP_PASSWORD = 'gmail.app_password';
+    public const string GMAIL_PREVIEW = 'gmail.preview';
     /** Stan indeksu korespondencji (App\Gmail\MailIndexer): podpis, czas ostatniej synchronizacji, błąd. */
     public const string GMAIL_INDEX = 'gmail.index';
 
@@ -86,6 +87,7 @@ final class SettingKey
         self::BSPAY_SPLIT_PAYMENT => true,
         self::GMAIL_ADDRESS => null,
         self::GMAIL_APP_PASSWORD => null,
+        self::GMAIL_PREVIEW => false,
         self::GMAIL_INDEX => [],
         self::MODULES_DISABLED => [],
     ];

@@ -10,6 +10,8 @@ use App\Entity\InvoiceItem;
 use App\Enum\InvoiceKind;
 use App\Enum\InvoiceStatus;
 use App\Enum\PaymentStatus;
+use App\Settings\SettingKey;
+use App\Settings\Settings;
 use App\Tests\Factory\ContractorFactory;
 use App\Tests\Factory\InvoiceFactory;
 use App\Tests\Factory\UserFactory;
@@ -231,6 +233,52 @@ final class InvoiceControllerTest extends FunctionalTestCase
         self::assertStringNotContainsString('sort', (string) $header->attr('href'), 'Klik w domyślną kolumnę wraca do domyślnego sortowania');
         self::assertStringContainsString('sort=kontrahent&kierunek=asc&sort2=data&kierunek2=desc', (string) $header->attr('data-sort-link-add-value'), 'Shift + klik – druga kolumna');
         self::assertSelectorExists('form.filter-bar input[type=hidden][name=sort][value=kontrahent]', 'Formularz filtrów nie gubi sortowania');
+    }
+
+    public function testSortIsNotRememberedAndDefaultsToNewestIssueDate(): void
+    {
+        InvoiceFactory::createOne(['number' => 'S-stara', 'issueDate' => new \DateTimeImmutable('-20 days')]);
+        InvoiceFactory::createOne(['number' => 'S-nowa', 'issueDate' => new \DateTimeImmutable('-1 day')]);
+        $this->loginAs(UserFactory::owner());
+
+        $this->client->request('GET', '/faktury?rodzaj=zakupowe&sort=numer&kierunek=desc');
+        self::assertSelectorTextContains('tbody tr:first-child', 'S-stara');
+
+        $this->client->request('GET', '/faktury');
+        self::assertResponseRedirects('/faktury?rodzaj=zakupowe', null, 'Sortowanie nie jest zapamiętywane');
+        $this->client->followRedirect();
+        self::assertSelectorTextContains('tbody tr:first-child', 'S-nowa', 'Domyślnie od najnowszej daty wystawienia');
+    }
+
+    public function testPreviewShowsNetOnlyByDefaultAndPaymentForm(): void
+    {
+        $invoice = InvoiceFactory::createOne(['number' => 'FV/NETTO/1', 'kind' => InvoiceKind::Cost]);
+        $invoice->setAmounts('1000.00', '230.00', '1230.00')->setPaymentForm('Gotówka');
+        $invoice->addItem((new InvoiceItem($invoice, 1, 'Nawóz'))->setValues('2', 't', '500.00', '1000.00', '23'));
+        $this->service(EntityManagerInterface::class)->flush();
+        $this->loginAs(UserFactory::owner());
+
+        $this->client->request('GET', '/faktury/'.$invoice->getId().'/podglad');
+        self::assertSelectorTextContains('#preview dl', 'Forma płatności');
+        self::assertSelectorTextContains('#preview dl', 'Gotówka');
+        self::assertSelectorTextNotContains('#preview dl', 'Brutto');
+        self::assertSelectorTextNotContains('#preview dl', 'VAT');
+        self::assertSelectorTextContains('#preview table', '23%', 'Stawka VAT na pozycji');
+        self::assertSelectorTextContains('#preview table', 'Brutto', 'Brutto pozycji w podglądzie zawsze');
+        self::assertSelectorTextContains('#preview table', '230,00');
+
+        $this->service(Settings::class)->set(SettingKey::INVOICE_PREVIEW_VAT, true);
+        $this->service(Settings::class)->set(SettingKey::INVOICE_PREVIEW_GROSS, true);
+        $this->client->request('GET', '/faktury/'.$invoice->getId().'/podglad');
+        self::assertSelectorTextContains('#preview dl', 'Brutto');
+        self::assertSelectorTextContains('#preview dl', 'VAT');
+
+        $this->client->request('GET', '/faktury/'.$invoice->getId());
+        self::assertSelectorTextContains('table', 'Stawka VAT');
+        self::assertSelectorTextContains('table', 'Wartość brutto');
+
+        $this->client->request('GET', '/faktury?rodzaj=zakupowe');
+        self::assertSelectorTextContains('tbody td[data-label="Status"] .badge:first-child', 'Gotówka', 'Forma płatności pierwsza w ostatniej kolumnie');
     }
 
     public function testBulkStatusChangeForSelectedAndAllMatching(): void

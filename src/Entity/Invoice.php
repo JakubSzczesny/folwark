@@ -100,6 +100,10 @@ class Invoice implements \Stringable, FarmScoped
     #[ORM\Column(type: Types::DECIMAL, precision: 14, scale: 2)]
     private string $gross = '0.00';
 
+    /** Forma płatności z XML (Przelew, Gotówka, Karta… albo opis płatności). */
+    #[ORM\Column(length: 100, nullable: true)]
+    private ?string $paymentForm = null;
+
     /** Kwota do zapłaty z sekcji Rozliczenie XML (P_15 + obciążenia − odliczenia); null = równa brutto. */
     #[ORM\Column(type: Types::DECIMAL, precision: 14, scale: 2, nullable: true)]
     private ?string $amountDue = null;
@@ -453,6 +457,18 @@ class Invoice implements \Stringable, FarmScoped
     public function hasSettlement(): bool
     {
         return null !== $this->amountDue && abs((float) $this->amountDue - (float) $this->gross) >= 0.005;
+    }
+
+    public function getPaymentForm(): ?string
+    {
+        return $this->paymentForm;
+    }
+
+    public function setPaymentForm(?string $paymentForm): static
+    {
+        $this->paymentForm = null !== $paymentForm ? mb_substr($paymentForm, 0, 100) : null;
+
+        return $this;
     }
 
     /** Kwota z XML bez zastępowania brutto (null = faktura bez sekcji Rozliczenie). */

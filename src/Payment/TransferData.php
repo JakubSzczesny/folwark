@@ -84,6 +84,9 @@ final class TransferData
         if ('PLN' !== $invoice->getCurrency()) {
             $warnings[] = \sprintf('Faktura w walucie %s – sprawdź kwotę i rodzaj przelewu.', $invoice->getCurrency());
         }
+        if (!$invoice->hasSettlement() && (float) $invoice->getAmountDue() <= 0) {
+            $warnings[] = 'Kwota faktury nie jest dodatnia (np. korekta in minus) – nie ma czego przelewać.';
+        }
         if ($invoice->hasSettlement()) {
             $warnings[] = (float) $invoice->getAmountDue() <= 0
                 ? 'Po obciążeniach i odliczeniach z faktury nie ma nic do zapłaty (nadpłata do rozliczenia).'

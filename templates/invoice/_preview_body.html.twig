@@ -29,10 +29,23 @@
         <dt>Data wystawienia</dt><dd>{{ invoice.issueDate|pl_date }}</dd>
         <dt>Przyjęta w KSeF</dt><dd>{{ invoice.ksefReceivedAt|pl_datetime }}</dd>
         <dt>Termin płatności</dt><dd>{{ m.deadline(invoice.paymentDue, 3, invoice.paid or not invoice.cost) }}{% if invoice.paid and invoice.paidAt %} · opłacona {{ invoice.paidAt|pl_date }}{% endif %}</dd>
-        <dt>Netto</dt><dd class="tabular-nums">{{ invoice.net|money(invoice.currency) }}</dd>
-        <dt>VAT</dt><dd class="tabular-nums">{{ invoice.vat|money('PLN') }}</dd>
-        <dt>Brutto</dt><dd class="tabular-nums font-semibold">{{ invoice.gross|money(invoice.currency) }}</dd>
-        {% if invoice.settlement %}<dt>Do zapłaty</dt><dd class="tabular-nums font-semibold" title="Brutto z obciążeniami i odliczeniami z sekcji Rozliczenie">{{ invoice.amountDue|money(invoice.currency) }}</dd>{% endif %}
+        {% set payment_form = invoice.paymentForm ?: (parsed.paymentForm ?? null) %}
+        {% if payment_form %}<dt>Forma płatności</dt><dd>{{ payment_form }}</dd>{% endif %}
+        {% set show_vat = preview_vat|default(false) %}
+        {% set show_gross = preview_gross|default(false) %}
+        <dt>Netto</dt><dd class="tabular-nums{{ not show_gross ? ' font-semibold' }}">{{ invoice.net|money(invoice.currency) }}</dd>
+        {% if show_vat %}<dt>VAT</dt><dd class="tabular-nums">{{ invoice.vat|money('PLN') }}</dd>{% endif %}
+        {% if show_gross %}<dt>Brutto</dt><dd class="tabular-nums font-semibold">{{ invoice.gross|money(invoice.currency) }}</dd>{% endif %}
+        {# Obciążenia i odliczenia zmieniają kwotę przelewu (BS Pay), więc pokazujemy je zawsze, niezależnie od ustawienia brutto. #}
+        {% if invoice.settlement %}
+            {% for row in parsed.charges ?? [] %}<dt>Obciążenie</dt><dd class="tabular-nums">+{{ row.amount|money(invoice.currency) }} <span class="text-antracyt-500">· {{ row.reason }}</span></dd>{% endfor %}
+            {% for row in parsed.deductions ?? [] %}<dt>Odliczenie</dt><dd class="tabular-nums">−{{ row.amount|money(invoice.currency) }} <span class="text-antracyt-500">· {{ row.reason }}</span></dd>{% endfor %}
+            {% if invoice.amountDue < 0 %}
+                <dt>Nadpłata</dt><dd class="tabular-nums font-semibold">{{ (0 - invoice.amountDue)|money(invoice.currency) }}</dd>
+            {% else %}
+                <dt>Do zapłaty</dt><dd class="tabular-nums font-semibold" title="Brutto {{ invoice.gross|money(invoice.currency) }} z obciążeniami i odliczeniami z faktury – tę kwotę wysyła BS Pay">{{ invoice.amountDue|money(invoice.currency) }}</dd>
+            {% endif %}
+        {% endif %}
         {% if invoice.contract %}
             <dt>Umowa</dt><dd><a href="{{ path('app_contract_show', {id: invoice.contract.id}) }}" data-turbo-frame="_top">{{ invoice.contract.number }}</a> – {{ invoice.contract.subject }}</dd>
         {% endif %}

@@ -16,11 +16,11 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
- * Uzupełnia kwotę do zapłaty (obciążenia i odliczenia z sekcji Rozliczenie) w fakturach, których XML
- * pobrano przed wprowadzeniem tego pola. Czyta tylko zapisane lokalnie pliki, nie łączy się z KSeF.
+ * Uzupełnia dane z XML dodane po pobraniu faktury: kwotę do zapłaty (obciążenia i odliczenia z sekcji
+ * Rozliczenie) i formę płatności. Czyta tylko zapisane lokalnie pliki, nie łączy się z KSeF.
  * Można uruchamiać wielokrotnie: zmienia tylko faktury, w których kwota się różni.
  */
-#[AsCommand(name: 'app:faktury:rozliczenia', description: 'Uzupełnia kwotę do zapłaty (obciążenia/odliczenia) z zapisanych plików XML faktur')]
+#[AsCommand(name: 'app:faktury:rozliczenia', description: 'Uzupełnia kwotę do zapłaty (obciążenia/odliczenia) i formę płatności z zapisanych plików XML faktur')]
 final class InvoiceSettlementCommand extends Command
 {
     private const int BATCH = 200;
@@ -56,13 +56,14 @@ final class InvoiceSettlementCommand extends Command
                     continue;
                 }
                 try {
-                    $amountDue = $this->parser->parse($this->storage->read($path))->amountDue;
+                    $parsed = $this->parser->parse($this->storage->read($path));
                 } catch (KsefException) {
                     ++$failed;
                     continue;
                 }
-                if ($invoice->getAmountDueRaw() !== $amountDue) {
-                    $invoice->setAmountDue($amountDue);
+                $paymentForm = null !== $parsed->paymentForm ? mb_substr($parsed->paymentForm, 0, 100) : null;
+                if ($invoice->getAmountDueRaw() !== $parsed->amountDue || $invoice->getPaymentForm() !== $paymentForm) {
+                    $invoice->setAmountDue($parsed->amountDue)->setPaymentForm($paymentForm);
                     ++$changed;
                 }
             }
@@ -71,7 +72,7 @@ final class InvoiceSettlementCommand extends Command
             $this->em->clear();
         } while (self::BATCH === \count($invoices));
 
-        $io->writeln(\sprintf('Kwota do zapłaty uzupełniona w %d fakturach%s.', $changed, $failed > 0 ? \sprintf(', nieczytelny XML: %d', $failed) : ''));
+        $io->writeln(\sprintf('Dane z XML (kwota do zapłaty, forma płatności) uzupełnione w %d fakturach%s.', $changed, $failed > 0 ? \sprintf(', nieczytelny XML: %d', $failed) : ''));
 
         return Command::SUCCESS;
     }

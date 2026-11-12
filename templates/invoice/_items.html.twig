@@ -21,7 +21,8 @@
                     <th class="text-right">Ilość</th>
                     {% if not compact %}<th class="text-right">Cena netto</th>{% endif %}
                     <th class="text-right">Wartość netto</th>
-                    {% if not compact %}<th class="text-right">VAT</th>{% endif %}
+                    <th class="text-right">{{ compact ? 'VAT' : 'Stawka VAT' }}</th>
+                    <th class="text-right">{{ compact ? 'Brutto' : 'Wartość brutto' }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -38,7 +39,8 @@
                         <td class="num">{{ item.quantity|qty }} {{ item.unit }}</td>
                         {% if not compact %}<td class="num">{{ item.unitPriceNet|amount(2) }}</td>{% endif %}
                         <td class="num">{{ item.netValue|amount }}</td>
-                        {% if not compact %}<td class="num">{{ item.vatRate }}{{ item.vatRate and item.vatRate matches '/^\\d+$/' ? '%' }}</td>{% endif %}
+                        <td class="num whitespace-nowrap">{{ item.vatRate ?? '—' }}{{ item.vatRate and item.vatRate matches '/^\\d+$/' ? '%' }}</td>
+                        <td class="num">{{ item.grossValue|amount }}</td>
                     </tr>
                 {% endfor %}
             </tbody>

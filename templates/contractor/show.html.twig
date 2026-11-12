@@ -33,6 +33,7 @@
                 <dt>Osoba kontaktowa</dt><dd>{{ contractor.contactPerson ?? '—' }}</dd>
                 <dt>Telefon</dt><dd>{% if contractor.phone %}<a href="tel:{{ contractor.phone|replace({' ': ''}) }}">{{ contractor.phone }}</a>{% else %}—{% endif %}</dd>
                 <dt>E-mail</dt><dd>{% if contractor.email %}<a href="mailto:{{ contractor.email }}">{{ contractor.email }}</a>{% else %}—{% endif %}</dd>
+                {% if contractor.autoPaid %}<dt>Faktury</dt><dd><twig:Badge tone="positive">Przychodzą opłacone</twig:Badge></dd>{% endif %}
                 <dt>Czas dostawy</dt><dd>{{ contractor.deliveryDays is not null ? contractor.deliveryDays ~ ' ' ~ contractor.deliveryDays|plural('dzień', 'dni', 'dni') : '—' }}</dd>
             </dl>
             <div>

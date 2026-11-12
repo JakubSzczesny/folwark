@@ -1,6 +1,4 @@
 {% set compact = compact|default(false) %}
-{# Brutto pozycji: zawsze w pełnym widoku, w podglądzie tylko gdy włączone w ustawieniach. #}
-{% set show_gross = not compact or show_gross|default(false) %}
 {% if invoice.items is empty %}
     {% if not invoice.hasXml %}
         <div class="rounded-ui border border-dashed border-szary-200 p-4 text-sm text-antracyt-500">
@@ -24,7 +22,7 @@
                     {% if not compact %}<th class="text-right">Cena netto</th>{% endif %}
                     <th class="text-right">Wartość netto</th>
                     <th class="text-right">{{ compact ? 'VAT' : 'Stawka VAT' }}</th>
-                    {% if show_gross %}<th class="text-right">Wartość brutto</th>{% endif %}
+                    <th class="text-right">{{ compact ? 'Brutto' : 'Wartość brutto' }}</th>
                 </tr>
             </thead>
             <tbody>
@@ -42,7 +40,7 @@
                         {% if not compact %}<td class="num">{{ item.unitPriceNet|amount(2) }}</td>{% endif %}
                         <td class="num">{{ item.netValue|amount }}</td>
                         <td class="num whitespace-nowrap">{{ item.vatRate ?? '—' }}{{ item.vatRate and item.vatRate matches '/^\\d+$/' ? '%' }}</td>
-                        {% if show_gross %}<td class="num">{{ item.grossValue|amount }}</td>{% endif %}
+                        <td class="num">{{ item.grossValue|amount }}</td>
                     </tr>
                 {% endfor %}
             </tbody>

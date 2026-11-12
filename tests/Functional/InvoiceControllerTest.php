@@ -264,15 +264,14 @@ final class InvoiceControllerTest extends FunctionalTestCase
         self::assertSelectorTextNotContains('#preview dl', 'Brutto');
         self::assertSelectorTextNotContains('#preview dl', 'VAT');
         self::assertSelectorTextContains('#preview table', '23%', 'Stawka VAT na pozycji');
-        self::assertSelectorTextNotContains('#preview table', 'brutto');
+        self::assertSelectorTextContains('#preview table', 'Brutto', 'Brutto pozycji w podglądzie zawsze');
+        self::assertSelectorTextContains('#preview table', '230,00');
 
         $this->service(Settings::class)->set(SettingKey::INVOICE_PREVIEW_VAT, true);
         $this->service(Settings::class)->set(SettingKey::INVOICE_PREVIEW_GROSS, true);
         $this->client->request('GET', '/faktury/'.$invoice->getId().'/podglad');
         self::assertSelectorTextContains('#preview dl', 'Brutto');
         self::assertSelectorTextContains('#preview dl', 'VAT');
-        self::assertSelectorTextContains('#preview table', 'Wartość brutto');
-        self::assertSelectorTextContains('#preview table', '230,00');
 
         $this->client->request('GET', '/faktury/'.$invoice->getId());
         self::assertSelectorTextContains('table', 'Stawka VAT');

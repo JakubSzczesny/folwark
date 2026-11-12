@@ -105,6 +105,12 @@ final class KsefSyncTest extends FunctionalTestCase
         self::assertSelectorTextContains('body', 'Odliczenie: Zaliczka');
         self::assertSelectorTextContains('.page-subtitle', 'do zapłaty');
 
+        $this->client->request('GET', '/faktury/'.$invoice->getId().'/podglad');
+        self::assertSelectorTextContains('#preview dl', 'Obciążenie');
+        self::assertSelectorTextContains('#preview dl', 'Kaucja za palety');
+        self::assertSelectorTextContains('#preview dl', 'Do zapłaty', 'Kwota z BS Pay widoczna w podglądzie bez włączania brutto');
+        self::assertSelectorTextContains('#preview dl', '010,00');
+
         $this->client->request('GET', '/faktury?rodzaj=zakupowe');
         self::assertSelectorTextContains('tbody', 'do zapłaty');
     }

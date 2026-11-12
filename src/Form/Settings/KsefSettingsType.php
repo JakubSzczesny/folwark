@@ -98,7 +98,7 @@ final class KsefSettingsType extends AbstractType
             ->add(SettingsForm::field(SettingKey::INVOICE_PREVIEW_GROSS), CheckboxType::class, [
                 'label' => 'Pokazuj brutto w podglądzie faktury',
                 'required' => false,
-                'help' => 'Razem z brutto pozycji i kwotą do zapłaty.',
+                'help' => 'Brutto pozycji oraz obciążenia, odliczenia i kwota do zapłaty są widoczne zawsze.',
             ]);
     }
 

@@ -106,6 +106,28 @@ class InvoiceItem
         return $this->vatRate;
     }
 
+    /**
+     * Stawka VAT w procentach, gdy da się ją odczytać (23, 8, 5, 0 KR…); null dla zw, np, oo i braku stawki.
+     */
+    public function getVatPercent(): ?int
+    {
+        return null !== $this->vatRate && 1 === preg_match('/^\d+/', trim($this->vatRate), $m) ? (int) $m[0] : null;
+    }
+
+    /**
+     * Wartość brutto pozycji wyliczona z netto i stawki (KSeF nie podaje jej w wierszu faktury liczonej od netto).
+     * Przy stawkach bez podatku (zw, np, oo) brutto równa się netto.
+     */
+    public function getGrossValue(): ?string
+    {
+        if (null === $this->netValue) {
+            return null;
+        }
+        $gross = (float) $this->netValue * (1 + ($this->getVatPercent() ?? 0) / 100);
+
+        return number_format(round($gross, 2), 2, '.', '');
+    }
+
     public function setValues(?string $quantity, ?string $unit, ?string $unitPriceNet, ?string $netValue, ?string $vatRate): static
     {
         $this->quantity = $quantity;

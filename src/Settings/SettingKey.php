@@ -19,6 +19,10 @@ final class SettingKey
 
     public const string WHITE_LIST_ENABLED = 'white_list.enabled';
 
+    /** Podgląd faktury na liście: czy pokazywać VAT i brutto (domyślnie tylko netto). */
+    public const string INVOICE_PREVIEW_VAT = 'invoice.preview_vat';
+    public const string INVOICE_PREVIEW_GROSS = 'invoice.preview_gross';
+
     public const string ORDERS_LEAD_DAYS = 'orders.lead_days';
     public const string ORDERS_MIN_ORDERS = 'orders.min_orders';
     public const string ORDERS_MERGE_DAYS = 'orders.merge_days';
@@ -64,6 +68,8 @@ final class SettingKey
         self::KSEF_CURSORS => [],
         self::KSEF_BLOCKED_UNTIL => null,
         self::WHITE_LIST_ENABLED => false,
+        self::INVOICE_PREVIEW_VAT => false,
+        self::INVOICE_PREVIEW_GROSS => false,
         self::ORDERS_LEAD_DAYS => 7,
         self::ORDERS_MIN_ORDERS => 3,
         self::ORDERS_MERGE_DAYS => 3,

@@ -5,6 +5,8 @@ import { Controller } from '@hotwired/stimulus';
  * Otwórz w nowej karcie; dalej akcje wiersza z <template data-context-menu>.
  * Klawiatura: klawisz menu albo Shift+F10 na wybranym wierszu, strzałki, Enter, Esc.
  * Shift + prawy przycisk zostawia zwykłe menu przeglądarki.
+ * Po „Uzupełnij w BS” wiersz zostaje podświetlony (jak po najechaniu), żeby po powrocie z banku
+ * było widać, którą fakturę właśnie opłacano. Podświetlenie znika przy następnym kliknięciu lub klawiszu.
  */
 export default class extends Controller {
     static values = { frame: { type: String, default: 'preview' } };
@@ -29,6 +31,7 @@ export default class extends Controller {
 
     disconnect() {
         this.close();
+        this.clearRecent();
         this.element.removeEventListener('contextmenu', this.onContextMenu);
         window.removeEventListener('keydown', this.onKeydown);
         document.removeEventListener('mousedown', this.onDocumentDown);
@@ -92,6 +95,9 @@ export default class extends Controller {
         }
 
         menu.addEventListener('click', (event) => {
+            if (event.target.closest('[data-controller~="bspay-send"]')) {
+                this.markRecent(row);
+            }
             if (event.target.closest('a, button')) {
                 setTimeout(() => this.close(), 0);
             }
@@ -108,6 +114,33 @@ export default class extends Controller {
         this.row = row;
         row.classList.add('is-context');
         this.items()[0]?.focus();
+    }
+
+    markRecent(row) {
+        this.clearRecent();
+        row.classList.add('is-recent');
+        this.recent = row;
+        // Rejestracja po bieżącym kliknięciu, żeby to samo kliknięcie nie zdjęło podświetlenia.
+        setTimeout(() => {
+            if (this.recent !== row) {
+                return;
+            }
+            this.onClearRecent = () => this.clearRecent();
+            document.addEventListener('mousedown', this.onClearRecent, true);
+            document.addEventListener('keydown', this.onClearRecent, true);
+            document.addEventListener('turbo:before-visit', this.onClearRecent);
+        }, 0);
+    }
+
+    clearRecent() {
+        this.recent?.classList.remove('is-recent');
+        this.recent = null;
+        if (this.onClearRecent) {
+            document.removeEventListener('mousedown', this.onClearRecent, true);
+            document.removeEventListener('keydown', this.onClearRecent, true);
+            document.removeEventListener('turbo:before-visit', this.onClearRecent);
+            this.onClearRecent = null;
+        }
     }
 
     close() {

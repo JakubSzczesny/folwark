@@ -32,6 +32,8 @@ final class KsefSettingsType extends AbstractType
         SettingKey::KSEF_AUTO_ASSIGN,
         SettingKey::KSEF_SYNC_FROM,
         SettingKey::WHITE_LIST_ENABLED,
+        SettingKey::INVOICE_PREVIEW_VAT,
+        SettingKey::INVOICE_PREVIEW_GROSS,
     ];
 
     public function buildForm(FormBuilderInterface $builder, array $options): void
@@ -87,6 +89,16 @@ final class KsefSettingsType extends AbstractType
                 'label' => 'Uzupełniaj dane kontrahentów z Białej listy VAT',
                 'required' => false,
                 'help' => 'Gdy faktura nie podaje nazwy lub adresu. Wyniki są zapamiętywane, liczba zapytań dziennie jest ograniczona.',
+            ])
+            ->add(SettingsForm::field(SettingKey::INVOICE_PREVIEW_VAT), CheckboxType::class, [
+                'label' => 'Pokazuj VAT w podglądzie faktury',
+                'required' => false,
+                'help' => 'Podgląd to panel obok listy faktur. Domyślnie pokazuje tylko netto.',
+            ])
+            ->add(SettingsForm::field(SettingKey::INVOICE_PREVIEW_GROSS), CheckboxType::class, [
+                'label' => 'Pokazuj brutto w podglądzie faktury',
+                'required' => false,
+                'help' => 'Razem z brutto pozycji i kwotą do zapłaty.',
             ]);
     }
 

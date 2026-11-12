@@ -89,6 +89,7 @@ class InvoiceXmlService
         }
 
         $invoice->setAmountDue($parsed->amountDue);
+        $invoice->setPaymentForm($parsed->paymentForm);
         $invoice->setPaymentDue($parsed->paymentDue);
         if ($parsed->paid && !$invoice->isPaid()) {
             $invoice->markPaid($parsed->paidAt ?? $parsed->issueDate);

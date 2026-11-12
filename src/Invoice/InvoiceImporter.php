@@ -61,6 +61,9 @@ class InvoiceImporter
 
         $contractor = $this->contractors->resolve($invoice, $counterparty['nip'], $counterparty['name']);
         $invoice->setContractor($contractor);
+        if (true === $contractor?->isAutoPaid()) {
+            $invoice->markPaid($invoice->getIssueDate());
+        }
 
         if ($invoice->isCost() && null !== $counterparty['nip']) {
             $rule = $this->rules->findActiveForNip($counterparty['nip']);

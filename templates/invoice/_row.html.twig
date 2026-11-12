@@ -52,6 +52,7 @@
     <td data-label="Brutto" class="num">{{ invoice.gross|money(invoice.currency) }}{% if invoice.settlement %}<span class="block text-xs text-antracyt-500" title="Kwota do zapłaty po obciążeniach i odliczeniach z sekcji Rozliczenie">do zapłaty {{ invoice.amountDue|money(invoice.currency) }}</span>{% endif %}</td>
     <td data-label="Termin płatności" class="whitespace-nowrap">{{ m.deadline(invoice.paymentDue, 3, invoice.paid or not invoice.cost) }}</td>
     <td data-label="Status" class="whitespace-nowrap">
+        {% if invoice.paymentForm %}<twig:Badge tone="neutral" title="Forma płatności: {{ invoice.paymentForm }}">{{ invoice.paymentForm|length > 20 ? invoice.paymentForm|slice(0, 19) ~ '…' : invoice.paymentForm }}</twig:Badge>{% endif %}
         <twig:Badge tone="{{ invoice.status.tone }}">{{ invoice.status.label }}</twig:Badge>
         {% if invoice.paid %}<twig:Badge tone="positive">Opłacona</twig:Badge>{% endif %}
         {% set unassigned = unassigned_counts is defined ? (unassigned_counts[invoice.id] ?? 0) : invoice.countUnassignedItems %}

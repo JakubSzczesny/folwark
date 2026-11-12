@@ -30,6 +30,8 @@ use App\Repository\InvoiceRepository;
 use App\Repository\KsefSyncRepository;
 use App\Repository\SavedFilterRepository;
 use App\Security\Permission;
+use App\Settings\SettingKey;
+use App\Settings\Settings;
 use App\Twig\FormatExtension;
 use App\Ui\ListFilters;
 use App\Ui\Pager;
@@ -52,8 +54,11 @@ final class InvoiceController extends AbstractController
 {
     private const string LIST_KEY = 'invoices';
 
-    /** Status nie jest zapamiętywany: wejście na listę zawsze pokazuje wszystkie statusy. */
-    private const array NOT_REMEMBERED = ['status'];
+    /**
+     * Status i sortowanie nie są zapamiętywane: wejście na listę zawsze pokazuje wszystkie statusy,
+     * od najnowszej daty wystawienia.
+     */
+    private const array NOT_REMEMBERED = ['status', 'sort', 'kierunek', 'sort2', 'kierunek2'];
 
     public function __construct(
         private readonly InvoiceRepository $invoices,
@@ -62,6 +67,7 @@ final class InvoiceController extends AbstractController
         private readonly EntityManagerInterface $em,
         private readonly FarmContext $farmContext,
         private readonly PriceAnalysis $prices,
+        private readonly Settings $settings,
     ) {
     }
 
@@ -413,6 +419,8 @@ final class InvoiceController extends AbstractController
             'parsed' => $parsed,
             'parse_error' => $parseError,
             'price_alerts' => $this->isGranted(Permission::AMOUNTS_VIEW) ? $this->prices->alertsForInvoice($invoice) : [],
+            'preview_vat' => $this->settings->bool(SettingKey::INVOICE_PREVIEW_VAT),
+            'preview_gross' => $this->settings->bool(SettingKey::INVOICE_PREVIEW_GROSS),
         ];
     }
 

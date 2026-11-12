@@ -29,10 +29,14 @@
         <dt>Data wystawienia</dt><dd>{{ invoice.issueDate|pl_date }}</dd>
         <dt>Przyjęta w KSeF</dt><dd>{{ invoice.ksefReceivedAt|pl_datetime }}</dd>
         <dt>Termin płatności</dt><dd>{{ m.deadline(invoice.paymentDue, 3, invoice.paid or not invoice.cost) }}{% if invoice.paid and invoice.paidAt %} · opłacona {{ invoice.paidAt|pl_date }}{% endif %}</dd>
-        <dt>Netto</dt><dd class="tabular-nums">{{ invoice.net|money(invoice.currency) }}</dd>
-        <dt>VAT</dt><dd class="tabular-nums">{{ invoice.vat|money('PLN') }}</dd>
-        <dt>Brutto</dt><dd class="tabular-nums font-semibold">{{ invoice.gross|money(invoice.currency) }}</dd>
-        {% if invoice.settlement %}<dt>Do zapłaty</dt><dd class="tabular-nums font-semibold" title="Brutto z obciążeniami i odliczeniami z sekcji Rozliczenie">{{ invoice.amountDue|money(invoice.currency) }}</dd>{% endif %}
+        {% set payment_form = invoice.paymentForm ?: (parsed.paymentForm ?? null) %}
+        {% if payment_form %}<dt>Forma płatności</dt><dd>{{ payment_form }}</dd>{% endif %}
+        {% set show_vat = preview_vat|default(false) %}
+        {% set show_gross = preview_gross|default(false) %}
+        <dt>Netto</dt><dd class="tabular-nums{{ not show_gross ? ' font-semibold' }}">{{ invoice.net|money(invoice.currency) }}</dd>
+        {% if show_vat %}<dt>VAT</dt><dd class="tabular-nums">{{ invoice.vat|money('PLN') }}</dd>{% endif %}
+        {% if show_gross %}<dt>Brutto</dt><dd class="tabular-nums font-semibold">{{ invoice.gross|money(invoice.currency) }}</dd>{% endif %}
+        {% if show_gross and invoice.settlement %}<dt>Do zapłaty</dt><dd class="tabular-nums font-semibold" title="Brutto z obciążeniami i odliczeniami z sekcji Rozliczenie">{{ invoice.amountDue|money(invoice.currency) }}</dd>{% endif %}
         {% if invoice.contract %}
             <dt>Umowa</dt><dd><a href="{{ path('app_contract_show', {id: invoice.contract.id}) }}" data-turbo-frame="_top">{{ invoice.contract.number }}</a> – {{ invoice.contract.subject }}</dd>
         {% endif %}
@@ -48,7 +52,7 @@
 
     <section>
         <h3 class="font-semibold mb-2">Pozycje</h3>
-        {{ include('invoice/_items.html.twig', {compact: true, context: context|default(null)}) }}
+        {{ include('invoice/_items.html.twig', {compact: true, context: context|default(null), show_gross: preview_gross|default(false)}) }}
     </section>
 
     {{ include('invoice/_actions.html.twig', {context: context|default(null)}) }}

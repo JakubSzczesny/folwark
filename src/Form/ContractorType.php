@@ -44,6 +44,11 @@ final class ContractorType extends AbstractType
             ->add('phone', TelType::class, ['label' => 'Telefon', 'required' => false])
             ->add('contactPerson', TextType::class, ['label' => 'Osoba kontaktowa', 'required' => false])
             ->add('deliveryDays', IntegerType::class, ['label' => 'Czas dostawy (dni)', 'required' => false, 'help' => 'Uwzględniany przy przypomnieniach o zamówieniach.'])
+            ->add('autoPaid', CheckboxType::class, [
+                'label' => 'Faktury od tego kontrahenta przychodzą opłacone',
+                'required' => false,
+                'help' => 'Nowe faktury z KSeF od razu dostają status „Opłacona” (z datą wystawienia). Już pobranych faktur to nie zmienia.',
+            ])
             ->add('active', CheckboxType::class, ['label' => 'Aktywny', 'required' => false]);
     }
 

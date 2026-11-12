@@ -24,6 +24,7 @@ use App\Ksef\SubjectType;
 use App\Payment\TransferData;
 use App\Settings\SettingKey;
 use App\Settings\Settings;
+use App\Tests\Factory\ContractorFactory;
 use App\Tests\Factory\FarmFactory;
 use App\Tests\Factory\UserFactory;
 use Doctrine\ORM\EntityManagerInterface;
@@ -106,6 +107,21 @@ final class KsefSyncTest extends FunctionalTestCase
 
         $this->client->request('GET', '/faktury?rodzaj=zakupowe');
         self::assertSelectorTextContains('tbody', 'do zapłaty');
+    }
+
+    public function testInvoicesFromAutoPaidContractorAreMarkedPaid(): void
+    {
+        ContractorFactory::createOne(['nip' => self::SUPPLIER_NIP, 'name' => 'PETROMEX Sp. z o.o.', 'autoPaid' => true]);
+        $this->addInvoice($this->costInvoice('PET/9/2026', '2026-05-04')->item('ON', 'l', 100, 5));
+        $this->addInvoice($this->costInvoice('INNY/1/2026', '2026-05-05', '6791000004', 'Inny dostawca')->item('ON', 'l', 100, 5));
+
+        $this->syncKsef();
+
+        $paid = $this->em->getRepository(Invoice::class)->findOneBy(['number' => 'PET/9/2026']);
+        self::assertTrue($paid?->isPaid());
+        self::assertSame('2026-05-04', $paid->getPaidAt()?->format('Y-m-d'));
+        self::assertSame('Przelew', $paid->getPaymentForm(), 'Forma płatności z XML');
+        self::assertFalse($this->em->getRepository(Invoice::class)->findOneBy(['number' => 'INNY/1/2026'])?->isPaid());
     }
 
     public function testRepeatedSyncDoesNotDuplicateInvoices(): void

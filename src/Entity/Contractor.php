@@ -91,6 +91,10 @@ class Contractor implements \Stringable, FarmScoped
     #[ORM\Column]
     private bool $active = true;
 
+    /** Kontrahent przysyła faktury już opłacone – nowe faktury od niego od razu oznaczamy jako opłacone. */
+    #[ORM\Column(options: ['default' => false])]
+    private bool $autoPaid = false;
+
     /** @var Collection<int, ContractorBankAccount> */
     #[ORM\OneToMany(targetEntity: ContractorBankAccount::class, mappedBy: 'contractor', cascade: ['persist'], orphanRemoval: true)]
     private Collection $bankAccounts;
@@ -362,6 +366,18 @@ class Contractor implements \Stringable, FarmScoped
     public function setWhiteListCheckedAt(?\DateTimeImmutable $checkedAt): static
     {
         $this->whiteListCheckedAt = $checkedAt;
+
+        return $this;
+    }
+
+    public function isAutoPaid(): bool
+    {
+        return $this->autoPaid;
+    }
+
+    public function setAutoPaid(bool $autoPaid): static
+    {
+        $this->autoPaid = $autoPaid;
 
         return $this;
     }
